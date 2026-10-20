@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquete viva · iGreen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }</script>
+<style>
+:root{
+  --bg:#000; --surface:rgba(255,255,255,.035); --surface-2:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --text:#F2F5F2; --muted:#9AA39C; --dim:#6B746D;
+  --green:#03FF1F; --green-ink:#7DFF8C; --green-soft:rgba(3,255,31,.09); --green-line:rgba(3,255,31,.30);
+  --amber:#F5B54A; --red:#FF6A5F;
+  --stage-a:#0B0F0D; --stage-b:#020302; --dots:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:400 15px/1.45 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:8px}
+.meta{display:flex;align-items:center;gap:12px;padding:10px clamp(16px,2.4vw,32px);font-size:13px;color:var(--dim);border-bottom:1px dashed var(--line-2)}
+.meta strong{color:var(--muted);font-weight:500}
+.meta .nota{margin-left:auto}
+main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;padding:16px clamp(16px,2.4vw,32px);height:calc(100vh - 42px);min-height:560px}
+.palco{position:relative;border-radius:18px;border:1px solid var(--line);overflow:hidden;
+  background:radial-gradient(ellipse at 50% 42%,var(--stage-a),var(--stage-b) 70%),var(--stage-b)}
+.palco::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--dots) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.cena{position:absolute;inset:0;--mv-margem:44px 12px 12px 12px}
+.cab{position:absolute;left:16px;right:16px;top:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);z-index:2}
+.cab b{color:var(--text);font-weight:500}
+.cab .hora{margin-left:auto;display:flex;align-items:center;gap:8px}
+.cab .hora i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.ref{position:absolute;z-index:1;opacity:0;transition:opacity .35s;pointer-events:none}
+.ref.on{opacity:1}
+.ref-rot{position:absolute;left:16px;bottom:14px;z-index:3;font-size:12px;color:var(--muted);padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid var(--line-2);opacity:0;transition:opacity .25s}
+.ref-rot.on{opacity:1}
+/* selos presos ao 3D */
+.mv-selos{position:absolute;inset:0;pointer-events:none;z-index:2}
+.mv-selo{position:absolute;left:0;top:0;display:flex;align-items:center;gap:7px;padding:6px 10px 6px 7px;border-radius:999px;white-space:nowrap;
+  font-size:12.5px;font-weight:500;color:#F2F5F2;background:rgba(6,10,8,.72);border:1px solid var(--green-line);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 0 0 3px var(--green-soft),0 8px 24px rgba(0,0,0,.35);
+  opacity:0;transition:opacity .3s, border-color .3s;will-change:transform}
+.mv-selo.on{opacity:1}
+.mv-selo.falha{border-color:rgba(255,106,95,.55);box-shadow:0 0 0 3px rgba(255,106,95,.12),0 8px 24px rgba(0,0,0,.35)}
+.mv-selo::after{content:"";position:absolute;left:50%;bottom:calc(-1 * var(--haste, 7px));width:1px;height:var(--haste, 7px);background:var(--green-line)}
+.mv-selo.falha::after{background:rgba(255,106,95,.55)}
+.mv-ic{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--green);color:#012106}
+.mv-ic svg{width:12px;height:12px}
+.mv-ic-falha{background:var(--red);color:#2A0603;animation:pisca 1s ease-in-out infinite}
+@keyframes pisca{50%{opacity:.45}}
+.mv-pct{position:relative;display:grid;place-items:center;width:32px;height:32px;margin:-7px -7px -7px 2px;font-style:normal;font-size:10px;font-weight:600;color:var(--green-ink)}
+.mv-pct::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--green) calc(var(--p)*1%),rgba(3,255,31,.16) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px))}
+/* painel de controle da demonstração */
+.ctrl{display:flex;flex-direction:column;gap:12px;overflow:auto}
+.card{border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:14px 16px}
+.card h2{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:10px}
+.linha{display:flex;align-items:center;gap:8px}
+.linha + .linha{margin-top:8px}
+.linha .rot{flex:1;font-size:14px}
+.linha .rot small{display:block;color:var(--dim);font-size:12px}
+.btn{padding:6px 12px;border-radius:10px;border:1px solid var(--line-2);font-size:13px;background:var(--surface-2)}
+.btn:hover{border-color:var(--green-line)}
+.btn[aria-pressed="true"]{border-color:var(--green-line);box-shadow:0 0 0 3px var(--green-soft);color:var(--green-ink)}
+.btn.alerta[aria-pressed="true"]{border-color:rgba(255,106,95,.55);box-shadow:0 0 0 3px rgba(255,106,95,.12);color:var(--red)}
+.btn:disabled{opacity:.35;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips button{padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.chips button[aria-pressed="true"]{color:var(--text);border-color:var(--line-2);background:var(--surface-2)}
+input[type=range]{width:100%;accent-color:var(--green)}
+.preco{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2)}
+.preco span{color:var(--muted)}
+.preco input{flex:1;min-width:0;background:none;border:0;font-size:22px;font-weight:500;outline:none}
+.legenda{font-size:12.5px;color:var(--dim);line-height:1.5}
+.legenda b{color:var(--muted);font-weight:500}
+.demo{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--green-line);color:var(--green-ink);background:var(--green-soft);font-weight:500}
+.sel{position:relative;display:block}
+.sel select{appearance:none;-webkit-appearance:none;width:100%;padding:8px 34px 8px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);font:inherit;font-size:14px;color:var(--text);cursor:pointer}
+.sel select option{background:#111;color:#eee}
+.sel::after{content:"";position:absolute;right:13px;top:50%;width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.carregando{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;z-index:4}
+.captura .mv-selo,.captura .ref,.captura .ref-rot{transition:none}
+@media (prefers-reduced-motion: reduce){ .mv-selo{transition:none} .mv-ic-falha{animation:none} }
+@media (max-width: 900px){ main{grid-template-columns:1fr;height:auto} .palco{height:62vw;min-height:320px} }
+</style>
+</head>
+<body>
+<div class="meta"><strong>Maquete viva</strong> prova de conceito <span class="nota">Fundo e teto: render do Blender. Carro, cabo, selos e preço: 3D ao vivo.</span> <a href="proposta/" style="color:var(--green-ink);text-decoration:none">Ler a proposta</a></div>
+<main>
+  <section class="palco" aria-label="Maquete do posto">
+    <div class="cab"><span id="cabPosto"></span><span class="hora"><i></i><span id="horaTxt">14:00</span></span></div>
+    <div class="cena" id="cena"><div class="carregando" id="carregando">Carregando a maquete…</div><img class="ref" id="ref" src="dados/fast/ref-tarde.webp" alt="Render do Blender para comparação"></div>
+    <span class="ref-rot" id="refRot">Render do Blender (Cycles)</span>
+  </section>
+  <aside class="ctrl" aria-label="Controle da demonstração">
+    <div class="card">
+      <h2>Tipo de posto</h2>
+      <label class="sel"><select id="posto" aria-label="Tipo de posto"></select></label>
+    </div>
+    <button class="demo" id="demo" type="button">Rodar demonstração</button>
+    <div class="card">
+      <h2>Hora do dia</h2>
+      <input type="range" id="hora" min="0" max="24" step="0.05" value="14" aria-label="Hora do dia">
+      <div class="chips" id="chips">
+        <button type="button" data-h="8">Manhã</button><button type="button" data-h="14" aria-pressed="true">Tarde</button>
+        <button type="button" data-h="18">Pôr do sol</button><button type="button" data-h="21">Noite</button>
+        <button type="button" id="passar">Ver o dia passar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Pontos de recarga</h2>
+      <div id="vagas"></div>
+    </div>
+    <div class="card">
+      <h2 id="bombasTit">Bomba</h2>
+      <div id="bombas"></div>
+    </div>
+    <div class="card">
+      <h2>Preço do kWh no totem</h2>
+      <label class="preco"><span>R$</span><input id="preco" value="2,20" inputmode="decimal" aria-label="Preço do kWh"></label>
+    </div>
+    <div class="card">
+      <h2>Câmera e comparação</h2>
+      <div class="linha"><span class="rot">Aproximar da bomba<small>o teto some para mostrar a bomba</small></span><button class="btn" id="zoom" type="button" aria-pressed="false">Aproximar</button></div>
+      <div class="linha" id="linhaComparar"><span class="rot">Ver o render do Blender<small>P2 carregando, de dia ou à noite</small></span><button class="btn" id="comparar" type="button" aria-pressed="false">Comparar</button></div>
+    </div>
+    <p class="legenda"><b>Como funciona.</b> O posto vem renderizado do Blender para cada período do dia, em duas camadas: o fundo e o teto de vidro. Entre elas, o navegador desenha ao vivo o que muda: o carro chegando, o cabo, o anel da vaga e o preço. Os selos são da interface do painel.</p>
+  </aside>
+</main>
+<script type="module">
+import { criarMaquete } from './maquete.js'
+const q = new URLSearchParams(location.search)
+const captura = q.has('captura')
+if (captura) document.body.classList.add('captura')
+const el = document.getElementById('cena')
+const POSTOS = [
+  { id: 'fast', nome: 'Mobi Fast · com cobertura' }, { id: 'fast-sem', nome: 'Mobi Fast · sem cobertura' },
+  { id: 'mobi', nome: 'Mobi · garagem, sem cobertura' },
+  { id: 'ultra', nome: 'Mobi Ultra Fast · com cobertura' }, { id: 'ultra-sem', nome: 'Mobi Ultra Fast · sem cobertura' },
+  { id: 'fast-mobi', nome: 'Mobi Fast + Mobi · com cobertura' }, { id: 'fast-mobi-sem', nome: 'Mobi Fast + Mobi · sem cobertura' },
+  { id: 'fast-fast', nome: '2 Mobi Fast · com cobertura' }, { id: 'fast-ultra', nome: 'Mobi Fast + Mobi Ultra Fast · com cobertura' },
+]
+const postoId = POSTOS.some((p) => p.id === q.get('posto')) ? q.get('posto') : 'fast'
+const selPosto = document.getElementById('posto')
+for (const p of POSTOS) { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome; o.selected = p.id === postoId; selPosto.append(o) }
+selPosto.addEventListener('change', () => { q.set('posto', selPosto.value); location.search = q.toString() })
+const mq = await criarMaquete(el, { dados: `dados/${postoId}/`, hora: Number(q.get('hora') || 14), captura })
+document.getElementById('carregando').remove()
+window.maquete = mq
+
+const horaIn = document.getElementById('hora'), horaTxt = document.getElementById('horaTxt')
+const fmt = (h) => { const m = Math.round(h * 60) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0') }
+function setHora(h) { h = ((h % 24) + 24) % 24; mq.setHora(h); horaIn.value = h; horaTxt.textContent = fmt(h)
+  document.querySelectorAll('#chips [data-h]').forEach((b) => b.setAttribute('aria-pressed', Math.abs(Number(b.dataset.h) - h) < 0.01)); atualizaRef() }
+horaIn.addEventListener('input', () => setHora(Number(horaIn.value)))
+document.querySelectorAll('#chips [data-h]').forEach((b) => b.addEventListener('click', () => animaHora(Number(b.dataset.h))))
+let passando = null
+document.getElementById('passar').addEventListener('click', (e) => {
+  if (passando) { cancelAnimationFrame(passando); passando = null; e.target.setAttribute('aria-pressed', 'false'); return }
+  e.target.setAttribute('aria-pressed', 'true'); let t0 = performance.now(), h0 = mq.getHora()
+  const passo = (t) => { setHora(h0 + (t - t0) / 1000 * 1.2); passando = requestAnimationFrame(passo) }; passando = requestAnimationFrame(passo)
+})
+function animaHora(alvo, dur = 1200) {
+  let h0 = mq.getHora(), d = alvo - h0; if (d > 12) d -= 24; if (d < -12) d += 24
+  const t0 = performance.now(); const passo = (t) => { const k = Math.min(1, (t - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; setHora(h0 + d * e); if (k < 1) requestAnimationFrame(passo) }
+  requestAnimationFrame(passo)
+}
+const nomesBomba = { fast: 'Mobi Fast', ultra: 'Mobi Ultra Fast', mobi: 'Mobi' }
+const nv = mq.vagas.length, nb = mq.bombas.length
+if (nb > 1) document.getElementById('bombasTit').textContent = 'Bombas'
+document.getElementById('cabPosto').innerHTML = `<b>${mq.bombas.map((b) => nomesBomba[b.modelo]).join(' + ')}</b> · ${nv} ${nv > 1 ? 'pontos' : 'ponto'} · ${mq.posto.cobertura ? 'com cobertura' : 'sem cobertura'}`
+document.getElementById('vagas').innerHTML = mq.vagas.map((v, i) => `<div class="linha"><span class="rot">${v.nome}<small>${v.dc ? `DC ${mq.bombas[v.bomba].modelo === 'ultra' ? 80 : 40} kW` : 'AC 7 kW'}</small></span><button class="btn" data-v="${i}" data-a="chegar" type="button">Chegar</button><button class="btn" data-v="${i}" data-a="sair" type="button">Sair</button></div>`).join('')
+document.getElementById('bombas').innerHTML = mq.bombas.map((b, i) => `<div class="linha"><span class="rot">${nomesBomba[b.modelo]}${nb > 1 ? ' ' + (i + 1) : ''}<small>simula uma falha de comunicação</small></span><button class="btn alerta" data-falha="${i}" type="button" aria-pressed="false">Falha</button></div>`).join('')
+document.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => mq.evento(Number(b.dataset.v), b.dataset.a)))
+const bFalhas = [...document.querySelectorAll('[data-falha]')]
+const marcaFalha = (bi, on) => { bFalhas[bi].setAttribute('aria-pressed', on); mq.setFalha(on, bi) }
+bFalhas.forEach((b, bi) => b.addEventListener('click', () => marcaFalha(bi, b.getAttribute('aria-pressed') !== 'true')))
+// o roteiro usa o ponto DC primeiro (se houver) e mais um ponto, se o posto tiver
+const vA = Math.max(0, mq.vagas.findIndex((v) => v.dc)), vB = mq.vagas.findIndex((v, i) => i !== vA)
+const bA = mq.vagas[vA].bomba
+const precoIn = document.getElementById('preco')
+precoIn.addEventListener('input', () => { const v = precoIn.value.replace('.', ',').replace(/[^\d,]/g, '').slice(0, 5); if (v) mq.setPreco(v) })
+const bZoom = document.getElementById('zoom')
+bZoom.addEventListener('click', () => { const on = bZoom.getAttribute('aria-pressed') !== 'true'; bZoom.setAttribute('aria-pressed', on); mq.setZoom(on, bA) })
+
+// comparação com o render do Blender (mesmo enquadramento da camada)
+const ref = document.getElementById('ref'), refRot = document.getElementById('refRot'), bComp = document.getElementById('comparar')
+const temRef = postoId === 'fast'
+if (!temRef) document.getElementById('linhaComparar').hidden = true
+function atualizaRef() {
+  if (!temRef) return
+  const r = mq.quadroImagem(); Object.assign(ref.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' })
+  const h = mq.getHora(); const noite = h >= 18.8 || h < 6
+  const src = `dados/fast/ref-${noite ? 'noite' : 'tarde'}.webp`; if (!ref.src.endsWith(src)) ref.src = src
+}
+bComp.addEventListener('click', () => {
+  const on = bComp.getAttribute('aria-pressed') !== 'true'; bComp.setAttribute('aria-pressed', on)
+  if (on) { if (mq.estado(vA) === 'vazia') mq.evento(vA, 'chegar'); const h = mq.getHora(); if (!((h > 12.5 && h < 16.5) || h > 19.6 || h < 5)) animaHora(14) }
+  atualizaRef(); ref.classList.toggle('on', on); refRot.classList.toggle('on', on)
+})
+new ResizeObserver(atualizaRef).observe(el)
+
+// demonstração roteirizada (a mesma usada para gravar o vídeo)
+const ROTEIRO = [[0.3, () => setHora(9)], [0.6, () => mq.evento(vA, 'chegar')], [6.5, () => vB >= 0 && mq.evento(vB, 'chegar')],
+  [12.5, () => marcaFalha(bA, true)], [16.5, () => marcaFalha(bA, false)],
+  [18, 'hora'], [30, () => mq.evento(vA, 'sair')], [35, () => vB >= 0 && mq.evento(vB, 'sair')]]
+function demoEm(t, tAnt) {
+  for (const [ts, f] of ROTEIRO) if (tAnt < ts && t >= ts && typeof f === 'function') f()
+  if (t >= 18 && t <= 28) setHora(9 + (t - 18) / 10 * 12)       // 9h -> 21h
+}
+let demoT = null
+document.getElementById('demo').addEventListener('click', () => {
+  let t = 0, ult = performance.now()
+  const passo = (agora) => { const tA = t; t += (agora - ult) / 1000; ult = agora; demoEm(t, tA); if (t < 40) demoT = requestAnimationFrame(passo) }
+  cancelAnimationFrame(demoT); demoT = requestAnimationFrame(passo)
+})
+// captura quadro a quadro (vídeo): window.__quadro(dt) avança o roteiro e a maquete
+let tCap = 0
+window.__quadro = (dt) => { const tA = tCap; tCap += dt; demoEm(tCap, tA); mq.avancar(dt); return tCap }
+window.__pronto = true
+setHora(Number(q.get('hora') || 14))
+</script>
+</body>
+</html>

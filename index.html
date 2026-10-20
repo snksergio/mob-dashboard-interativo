@@ -1,0 +1,2160 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Posto agora · iGreen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }</script>
+<style>
+/* tema escuro só (o claro fica nos tokens para quando o CRM controlar o tema) */
+:root,[data-theme="dark"]{
+  --bg:#000; --surface:rgba(255,255,255,.035); --surface-2:rgba(255,255,255,.06); --surface-3:rgba(255,255,255,.09);
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --text:#F2F5F2; --muted:#9AA39C; --dim:#6B746D;
+  --green:#03FF1F; --green-ink:#7DFF8C; --green-soft:rgba(3,255,31,.09); --green-line:rgba(3,255,31,.30);
+  --amber:#F5B54A; --red:#FF6A5F; --red-soft:rgba(255,106,95,.10); --red-line:rgba(255,106,95,.45);
+  --stage-a:#0B0F0D; --stage-b:#020302; --dots:rgba(255,255,255,.05);
+  --vidro:rgba(8,11,9,.72); --vidro-2:rgba(22,27,24,.86); --modal:#0A0D0B;
+}
+[data-theme="light"]{
+  --bg:#EEF1EE; --surface:#FFFFFF; --surface-2:#F5F7F5; --surface-3:#EBEFEC;
+  --line:#E0E5E0; --line-2:#CDD4CE;
+  --text:#0E1410; --muted:#5B6660; --dim:#89938C;
+  --vidro:rgba(255,255,255,.8); --vidro-2:#FFFFFF; --modal:#FFFFFF;
+  --green:#00B32A; --green-ink:#067A2D; --green-soft:rgba(0,179,42,.09); --green-line:rgba(0,140,40,.35);
+  --amber:#B56F00; --red:#C8372D; --red-soft:rgba(200,55,45,.08); --red-line:rgba(200,55,45,.4);
+  --stage-a:#F7F9F7; --stage-b:#DCE3DE; --dots:rgba(14,20,16,.07);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:400 15px/1.45 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:8px}
+::selection{background:rgba(3,255,31,.28);color:var(--text)}
+input,textarea{caret-color:var(--green)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* barra do esboço (não faz parte do produto) */
+.meta{display:flex;align-items:center;gap:12px;padding:8px clamp(16px,2.4vw,32px);font-size:13px;color:var(--dim);border-bottom:1px dashed var(--line-2)}
+.meta strong{color:var(--muted);font-weight:500}
+.meta .nota{margin-left:auto}
+.meta a{color:var(--muted);text-decoration:none}
+.meta a:hover{color:var(--text)}
+
+/* grade: palco + coluna (só a coluna rola) */
+.app{padding:14px clamp(16px,2.4vw,32px) 18px;max-width:1720px;margin:0 auto}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 384px;gap:14px;height:calc(100vh - 38px - 32px);min-height:620px}
+.palco{position:relative;border-radius:18px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 50% 42%,var(--stage-a),var(--stage-b) 72%),var(--stage-b)}
+.palco::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--dots) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.cena{position:absolute;inset:0;--mv-margem:74px 10px 56px 10px}
+/* carregando o posto: um carro anda pela estrada até a bomba no ritmo do download e pluga quando termina */
+.carregando-cena{position:absolute;inset:0;display:grid;place-items:center;z-index:4;transition:opacity .45s ease;background:radial-gradient(ellipse at 50% 42%,var(--stage-a),var(--stage-b) 72%),var(--stage-b)}
+.carregando-cena.saindo{opacity:0}
+.viagem{width:min(560px,86%);display:grid;gap:14px;text-align:center}
+.estrada{position:relative;height:172px}
+.estrada .ceu{position:absolute;left:0;right:0;top:0;bottom:24px;overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+.nuvens{position:absolute;left:0;right:0;top:6px;height:60px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27460%27%20height%3D%2760%27%20viewBox%3D%270%200%20460%2060%27%3E%3Cg%20fill%3D%27%23FFFFFF%27%3E%3Cg%20opacity%3D%27.07%27%3E%3Cellipse%20cx%3D%2770%27%20cy%3D%2736%27%20rx%3D%2742%27%20ry%3D%2712%27%2F%3E%3Cellipse%20cx%3D%2788%27%20cy%3D%2728%27%20rx%3D%2724%27%20ry%3D%2714%27%2F%3E%3Cellipse%20cx%3D%2758%27%20cy%3D%2730%27%20rx%3D%2718%27%20ry%3D%2710%27%2F%3E%3C%2Fg%3E%3Cg%20opacity%3D%27.05%27%3E%3Cellipse%20cx%3D%27300%27%20cy%3D%2722%27%20rx%3D%2754%27%20ry%3D%2711%27%2F%3E%3Cellipse%20cx%3D%27322%27%20cy%3D%2715%27%20rx%3D%2726%27%20ry%3D%2711%27%2F%3E%3Cellipse%20cx%3D%27284%27%20cy%3D%2717%27%20rx%3D%2717%27%20ry%3D%278%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E") repeat-x 0 0 / 460px 60px;animation:nuvem 46s linear infinite}
+.nuvens.n2{top:34px;height:44px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27320%27%20height%3D%2744%27%20viewBox%3D%270%200%20320%2044%27%3E%3Cg%20fill%3D%27%23FFFFFF%27%20opacity%3D%27.045%27%3E%3Cellipse%20cx%3D%27200%27%20cy%3D%2726%27%20rx%3D%2736%27%20ry%3D%279%27%2F%3E%3Cellipse%20cx%3D%27214%27%20cy%3D%2720%27%20rx%3D%2718%27%20ry%3D%279%27%2F%3E%3Cellipse%20cx%3D%2760%27%20cy%3D%2730%27%20rx%3D%2722%27%20ry%3D%276%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") repeat-x 140px 0 / 320px 44px;animation:nuvem2 30s linear infinite}
+.cenario{position:absolute;left:0;right:0;bottom:0;height:48px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27200%27%20height%3D%2748%27%20viewBox%3D%270%200%20200%2048%27%3E%3Cg%20fill%3D%27%231C3324%27%3E%3Ccircle%20cx%3D%2720%27%20cy%3D%2728%27%20r%3D%2711%27%2F%3E%3Ccircle%20cx%3D%2731%27%20cy%3D%2732%27%20r%3D%278%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%2734%27%20width%3D%272.5%27%20height%3D%2714%27%2F%3E%3Ccircle%20cx%3D%27150%27%20cy%3D%2726%27%20r%3D%2712%27%2F%3E%3Crect%20x%3D%27149%27%20y%3D%2734%27%20width%3D%272.5%27%20height%3D%2714%27%2F%3E%3Ccircle%20cx%3D%27162%27%20cy%3D%2733%27%20r%3D%277%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%2318291E%27%3E%3Crect%20x%3D%2756%27%20y%3D%2722%27%20width%3D%2734%27%20height%3D%2726%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M53%2023%2073%2010%2093%2023Z%27%2F%3E%3Crect%20x%3D%27104%27%20y%3D%2728%27%20width%3D%2726%27%20height%3D%2720%27%20rx%3D%272%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%232A4A34%27%3E%3Crect%20x%3D%2762%27%20y%3D%2730%27%20width%3D%276%27%20height%3D%276%27%20rx%3D%271%27%2F%3E%3Crect%20x%3D%2776%27%20y%3D%2730%27%20width%3D%276%27%20height%3D%276%27%20rx%3D%271%27%2F%3E%3Crect%20x%3D%27110%27%20y%3D%2734%27%20width%3D%275%27%20height%3D%275%27%20rx%3D%271%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%23223A2A%27%3E%3Crect%20x%3D%27186%27%20y%3D%2712%27%20width%3D%272%27%20height%3D%2736%27%2F%3E%3Crect%20x%3D%27180%27%20y%3D%2711%27%20width%3D%2710%27%20height%3D%272%27%20rx%3D%271%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%27181%27%20cy%3D%2714%27%20r%3D%272.2%27%20fill%3D%27%237DFF8C%27%20opacity%3D%27.5%27%2F%3E%3C%2Fsvg%3E") repeat-x 0 100% / 200px 48px;animation:paisagem 7s linear infinite}
+.cenario.longe{height:70px;bottom:6px;opacity:.85;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27240%27%20height%3D%2770%27%20viewBox%3D%270%200%20240%2070%27%3E%3Cg%20fill%3D%27%2315221A%27%3E%3Crect%20x%3D%274%27%20y%3D%2726%27%20width%3D%2722%27%20height%3D%2744%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%2730%27%20y%3D%278%27%20width%3D%2718%27%20height%3D%2762%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%2752%27%20y%3D%2734%27%20width%3D%2726%27%20height%3D%2736%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%27112%27%20y%3D%2718%27%20width%3D%2720%27%20height%3D%2752%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%27136%27%20y%3D%2740%27%20width%3D%2730%27%20height%3D%2730%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%27186%27%20y%3D%270%27%20width%3D%2716%27%20height%3D%2770%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%27206%27%20y%3D%2730%27%20width%3D%2724%27%20height%3D%2740%27%20rx%3D%272%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%233E6B4C%27%3E%3Crect%20x%3D%2735%27%20y%3D%2716%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%2728%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%2735%27%20y%3D%2740%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%27117%27%20y%3D%2726%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%27124%27%20y%3D%2738%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%27191%27%20y%3D%2710%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%27191%27%20y%3D%2730%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%27196%27%20y%3D%2748%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%2710%27%20y%3D%2736%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%2760%27%20y%3D%2744%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%235A4A2A%27%3E%3Crect%20x%3D%2741%27%20y%3D%2752%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%27212%27%20y%3D%2740%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3Crect%20x%3D%27143%27%20y%3D%2750%27%20width%3D%273%27%20height%3D%273%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") repeat-x 0 100% / 240px 70px;animation:paisagem2 18s linear infinite}
+.calcada{position:absolute;left:0;right:0;bottom:24px;height:4px;border-radius:2px;background:#1E2923;-webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.pista{position:absolute;left:0;right:0;bottom:4px;height:20px;border-radius:6px;background:linear-gradient(180deg,#19211C,#121814);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.pista::after{content:"";position:absolute;left:0;right:0;top:9px;height:2px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.34) 0 18px,transparent 18px 38px);animation:faixa .6s linear infinite}
+.pista i{position:absolute;left:0;top:0;bottom:0;width:calc(var(--p,0) * 100%);background:linear-gradient(90deg,transparent,rgba(3,255,31,.16));border-right:1px solid rgba(3,255,31,.35)}
+@keyframes paisagem{to{background-position:-200px 100%}}
+@keyframes paisagem2{to{background-position:-240px 100%}}
+@keyframes nuvem{to{background-position:-460px 0}}
+@keyframes nuvem2{to{background-position:-180px 0}}
+@keyframes faixa{to{background-position:-38px 0}}
+.carro-anda{position:absolute;bottom:9px;left:calc((100% - 262px) * var(--p,0));width:172px}
+.carro-anda .corpo{display:block;width:100%;height:auto;animation:balanco .5s ease-in-out infinite alternate}
+.carro-anda .roda{position:absolute;top:75.66%;width:17.5%;height:auto;margin:-8.75% 0 0 -8.75%;animation:gira .5s linear infinite}
+.carro-anda .roda.tras{left:17.74%}
+.carro-anda .roda.frente{left:79.04%}
+.carro-anda .vento{position:absolute;left:-16px;top:28px;width:22px;height:20px}
+.carro-anda .vento i{position:absolute;left:0;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4));animation:vento .5s linear infinite}
+.carro-anda .vento i:nth-child(1){top:0;width:18px}
+.carro-anda .vento i:nth-child(2){top:8px;width:24px;animation-delay:.15s}
+.carro-anda .vento i:nth-child(3){top:16px;width:14px;animation-delay:.3s}
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes balanco{to{transform:translateY(-1px)}}
+@keyframes vento{from{transform:translateX(8px);opacity:0}40%{opacity:1}to{transform:translateX(-14px);opacity:0}}
+.ponto-carga{position:absolute;right:-6px;bottom:16px;width:96px;height:150px;display:grid;place-items:end center}
+.ponto-carga img{height:170px;width:auto;margin-bottom:-30px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));transition:filter .4s}
+.chegou .ponto-carga img{filter:drop-shadow(0 0 14px rgba(3,255,31,.75)) drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+.chegou .carro-anda .corpo,.chegou .carro-anda .roda,.chegou .cenario,.chegou .pista::after,.chegou .vento i{animation:none}
+.chegou .nuvens{animation-duration:90s}
+.chegou .vento{display:none}
+.viagem p{font-size:15px;color:var(--text);font-weight:500}
+.viagem p span{color:var(--green-ink);font-variant-numeric:tabular-nums}
+.viagem small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+@media (prefers-reduced-motion: reduce){ .cenario,.nuvens,.pista::after,.carro-anda .corpo,.carro-anda .roda,.vento i{animation:none} }
+
+/* botão do posto (abre o modal de postos) e porcentagem do zoom */
+button.posto-card{font:inherit;color:inherit;text-align:left;cursor:pointer}
+#zoomPct{min-width:58px;font-variant-numeric:tabular-nums;color:var(--text)}
+#zoomPct[aria-pressed="false"]{color:var(--muted)}
+#detBomba[hidden]{display:none}
+#detBomba{color:var(--green-ink);border-color:var(--green-line)}
+.mv-selo.clicavel.on{pointer-events:auto;cursor:pointer}
+.mv-selo.clicavel:hover{border-color:var(--green)}
+.mv-link{font-style:normal;font-weight:600;color:#7DFF8C;margin-left:4px}
+.mv-selo.falha .mv-link{color:#FF9A90}
+.mv-selo-bomba:not(.falha) .mv-ic{background:#12301A;color:#7DFF8C}
+
+/* modal de postos: busca, filtros, lista e mapa */
+dialog.modal.postos{width:min(1080px,calc(100vw - 32px))}
+.postos-corpo{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:24px;align-items:stretch}
+.postos-corpo > div:first-child{display:flex;flex-direction:column;min-height:0}
+/* raios: só o ícone, um raio levemente sobre o outro (Mobi 1, Mobi Fast 2, Mobi Ultra Fast 3) */
+.raios{display:inline-flex;align-items:center;gap:6px;flex:none;color:var(--green-ink);--recorte:var(--modal)}
+.raios .gr{display:inline-flex;align-items:center}
+.raios svg{width:14px;height:19px;flex:none;margin-left:-7px;overflow:visible}
+.raios .gr svg + svg{filter:drop-shadow(-1.5px .5px 1.2px rgba(0,0,0,.75))}
+.raios .gr svg:first-child{margin-left:0}
+.raios path{fill:currentColor;stroke:var(--recorte);stroke-width:1.6px;paint-order:stroke;stroke-linejoin:round}
+.est-livre .raios{color:var(--dim)}
+.est-alerta .raios{color:#FF8A80}
+.lista-postos .raios{min-width:46px;justify-content:center}
+.lista-postos button:hover .raios{--recorte:#1A1F1C}
+.lista-postos button[aria-pressed="true"] .raios{--recorte:#202622}
+.busca{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface-2)}
+.busca:focus-within{border-color:var(--green-line);box-shadow:0 0 0 3px var(--green-soft)}
+.busca svg{width:16px;height:16px;color:var(--muted);flex:none}
+.busca input{flex:1;min-width:0;background:none;border:0;outline:none;font-size:14.5px;color:var(--text)}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.lista-postos{list-style:none;padding:0;margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr);max-height:min(470px,55vh);overflow:auto;border:1px solid var(--line);border-radius:14px}
+.lista-postos li + li{border-top:1px solid var(--line)}
+.lista-postos button{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;text-align:left}
+.lista-postos button:hover{background:var(--surface-2)}
+.lista-postos button[aria-pressed="true"]{background:var(--surface-3)}
+.po-dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--dim)}
+.est-carregando .po-dot{background:var(--green)}
+.est-alerta .po-dot{background:var(--red)}
+.lista-postos .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.lista-postos .tx b{font-weight:500;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.lista-postos .tx small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lista-postos .po-dir{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}
+.lista-postos .po-dir .st{font-size:12.5px;color:var(--muted)}
+.est-carregando .po-dir .st{color:var(--green-ink)}
+.est-alerta .po-dir .st{color:var(--red)}
+.lista-postos .po-dir b{font-weight:500;font-size:14px}
+.lista-postos .aqui{font-size:11px;font-weight:600;color:var(--green-ink);padding:1px 7px;border-radius:999px;border:1px solid var(--green-line);white-space:nowrap}
+.lista-postos .vazio{padding:20px;font-size:13.5px;color:var(--muted);text-align:center}
+.mapa{position:relative;min-height:440px;height:100%;width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0A0F0C}
+.mapa > svg{position:absolute;inset:0;width:100%;height:100%}
+.mapa .rot-cidade{position:absolute;transform:translate(-50%,-50%);font-size:11px;font-weight:600;letter-spacing:.14em;color:rgba(255,255,255,.22);pointer-events:none;white-space:nowrap}
+.mapa .rot-cidade.peq{font-size:10px;letter-spacing:.06em;font-weight:500;color:rgba(255,255,255,.18)}
+.pin{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;padding:4px;border-radius:999px}
+.pin .raios{--recorte:#0A0F0C;padding:5px 8px;border-radius:999px;background:rgba(10,15,12,.86);box-shadow:0 0 0 1px var(--line-2),0 4px 12px rgba(0,0,0,.5)}
+.pin .raios svg{width:12px;height:16px;margin-left:-6px}
+.pin .raios .gr svg:first-child{margin-left:0}
+.pin.est-carregando .raios{box-shadow:0 0 0 1px var(--green-line),0 0 14px rgba(3,255,31,.28)}
+.pin.est-alerta .raios{box-shadow:0 0 0 1px var(--red-line),0 0 14px rgba(255,106,95,.3)}
+.pin:hover .raios,.pin[aria-pressed="true"] .raios{transform:scale(1.18)}
+.pin .raios{transition:transform .2s}
+.pin.aqui,.pin:hover,.pin[aria-pressed="true"]{z-index:2}
+
+
+
+
+.pin.apagado{opacity:.25}
+.pin-rot{position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);padding:4px 9px;border-radius:9px;background:var(--vidro-2);border:1px solid var(--line-2);font-size:12px;font-weight:500;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
+.pin:hover .pin-rot,.pin[aria-pressed="true"] .pin-rot,.pin.aqui .pin-rot{opacity:1}
+.mapa .legenda-mapa{position:absolute;left:12px;bottom:12px;display:flex;gap:12px;padding:6px 10px;border-radius:10px;background:var(--vidro);font-size:12px;color:var(--muted)}
+.mapa .legenda-mapa span{display:inline-flex;align-items:center;gap:6px}
+.mapa .legenda-mapa span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.mapa .legenda-mapa .c::before{background:var(--green)}
+.mapa .legenda-mapa .a::before{background:var(--red)}
+@media (max-width: 860px){ .postos-corpo{grid-template-columns:1fr} .mapa{min-height:0;height:auto;aspect-ratio:16/10} }
+
+/* cards que flutuam no palco: o posto e o "ao vivo" */
+.palco-topo{position:absolute;left:14px;top:14px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;z-index:3;max-width:calc(100% - 260px)}
+.vidro{background:var(--vidro);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.posto-card{position:relative;display:flex;align-items:center;gap:12px;padding:9px 14px 9px 12px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:100%}
+.posto-card:hover{border-color:var(--line-2)}
+.posto-card:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.posto-tx{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.posto-tx b{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.posto-tx small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.posto-card svg{width:14px;height:14px;color:var(--muted);flex:none}
+.posto-card select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;appearance:none}
+.posto-card select option{background:#111;color:#eee}
+.vivo{position:absolute;right:14px;top:14px;z-index:3;display:flex;align-items:center;gap:7px;padding:5px 12px 5px 10px;border-radius:999px;font-size:13px;color:var(--muted);white-space:nowrap}
+.vivo b{color:var(--text);font-weight:500}
+.vivo i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 var(--green-line);animation:pulso 2s ease-out infinite}
+.vivo.simulando i{background:var(--amber);animation:none}
+@keyframes pulso{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+.palco-pe{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:center;gap:8px;z-index:3}
+.chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chips span{font-size:12.5px;color:var(--muted);margin-right:2px;padding:3px 8px;border-radius:999px;background:var(--vidro)}
+.chips button{padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;color:var(--muted);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.chips button[aria-pressed="true"]{color:var(--text);border-color:var(--line-2);background:var(--vidro-2)}
+.zoom{margin-left:auto;display:flex;align-items:center;gap:6px}
+.zoom button{height:32px;min-width:32px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;font-size:13px;color:var(--muted)}
+.zoom button:hover{color:var(--text);border-color:var(--line-2)}
+.zoom button[aria-pressed="true"]{color:var(--green-ink);border-color:var(--green-line);box-shadow:0 0 0 3px var(--green-soft)}
+.zoom svg{width:14px;height:14px}
+
+/* selos presos ao 3D; com motorista, o selo vira um card clicável */
+.mv-selos{position:absolute;inset:0;pointer-events:none;z-index:2}
+.mv-selo{position:absolute;left:0;top:0;display:flex;align-items:center;gap:7px;padding:6px 10px 6px 7px;border-radius:999px;white-space:nowrap;font-size:12.5px;font-weight:500;color:#F2F5F2;background:rgba(6,10,8,.78);border:1px solid var(--green-line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 0 0 3px var(--green-soft),0 8px 24px rgba(0,0,0,.3);opacity:0;transition:opacity .3s,border-color .3s;will-change:transform}
+.mv-selo.on{opacity:1}
+.mv-selo.falha{border-color:rgba(255,106,95,.55);box-shadow:0 0 0 3px rgba(255,106,95,.12),0 8px 24px rgba(0,0,0,.3)}
+.mv-selo::after{content:"";position:absolute;left:50%;bottom:calc(-1 * var(--haste, 7px));width:1px;height:var(--haste, 7px);background:var(--green-line)}
+.mv-selo.falha::after{background:rgba(255,106,95,.55)}
+.mv-selo.pessoa{border-radius:14px;padding:5px 12px 5px 5px;gap:9px}
+.mv-selo.pessoa.on{pointer-events:auto;cursor:pointer}
+.mv-selo.pessoa *,.mv-selo.clicavel *{pointer-events:none}
+.mv-selo.pessoa:hover{border-color:var(--green);box-shadow:0 0 0 4px var(--green-soft),0 10px 28px rgba(0,0,0,.35)}
+.mv-av{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#12301A;color:#7DFF8C;font-size:11.5px;font-weight:600;letter-spacing:.02em}
+.mv-selo.falha .mv-av{background:#3A1411;color:#FF9A90}
+.mv-tx{display:flex;flex-direction:column;line-height:1.2}
+.mv-tx b{font-weight:600;font-size:13px}
+.mv-tx small{font-size:11.5px;color:#A9B3AC;font-weight:500}
+.mv-selo.falha .mv-tx small{color:#FF9A90}
+.mv-ic{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#03FF1F;color:#012106}
+.mv-ic svg{width:12px;height:12px}
+.mv-ic-falha{background:#FF6A5F;color:#2A0603;animation:pisca 1s ease-in-out infinite}
+@keyframes pisca{50%{opacity:.45}}
+.mv-pct{position:relative;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 2px;font-style:normal;font-size:10px;font-weight:600;color:#7DFF8C}
+.mv-pct::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(#03FF1F calc(var(--p)*1%),rgba(3,255,31,.16) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px))}
+
+/* coluna */
+.col{display:flex;flex-direction:column;gap:12px;overflow:auto;padding-right:6px;margin-right:-6px}
+/* barra de rolagem fina e discreta: quase some parada, fica mais visível ao passar o mouse */
+.rola::-webkit-scrollbar,.col::-webkit-scrollbar,.modal .corpo::-webkit-scrollbar,.lista-postos::-webkit-scrollbar,.regras-box::-webkit-scrollbar{width:10px;height:10px}
+.rola::-webkit-scrollbar-track,.col::-webkit-scrollbar-track,.modal .corpo::-webkit-scrollbar-track,.lista-postos::-webkit-scrollbar-track,.regras-box::-webkit-scrollbar-track{background:transparent}
+.rola::-webkit-scrollbar-button,.col::-webkit-scrollbar-button,.modal .corpo::-webkit-scrollbar-button,.lista-postos::-webkit-scrollbar-button,.regras-box::-webkit-scrollbar-button{display:none;height:0}
+.rola::-webkit-scrollbar-thumb,.col::-webkit-scrollbar-thumb,.modal .corpo::-webkit-scrollbar-thumb,.lista-postos::-webkit-scrollbar-thumb,.regras-box::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+.rola:hover::-webkit-scrollbar-thumb,.col:hover::-webkit-scrollbar-thumb,.modal .corpo:hover::-webkit-scrollbar-thumb,.lista-postos:hover::-webkit-scrollbar-thumb,.regras-box:hover::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.16)}
+.rola::-webkit-scrollbar-thumb:hover,.col::-webkit-scrollbar-thumb:hover,.modal .corpo::-webkit-scrollbar-thumb:hover,.lista-postos::-webkit-scrollbar-thumb:hover,.regras-box::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.28)}
+@supports not selector(::-webkit-scrollbar){ .rola,.col,.modal .corpo,.lista-postos,.regras-box{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent} }
+.agora{padding:4px 2px 2px}
+.vistas{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:14px;background:#0B0E0C;border:1px solid var(--line);box-shadow:0 10px 18px -6px rgba(0,0,0,.8)}
+.vistas::before{content:"";position:absolute;inset:-14px -8px -1px;background:var(--bg);z-index:-1;border-radius:0 0 14px 14px}
+.vistas button{display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 6px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--muted);white-space:nowrap}
+.vistas button:hover{color:var(--text)}
+.vistas button[aria-selected="true"]{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.vistas .vb{font-size:11.5px;font-weight:600;color:var(--dim);padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.05)}
+.vistas button[aria-selected="true"] .vb{color:var(--green-ink);background:var(--green-soft)}
+.vistas .vb.alerta{color:#2A0603;background:var(--red)}
+.vistas .vb:empty{display:none}
+.vista{display:flex;flex-direction:column;gap:12px}
+.vista[hidden]{display:none}
+.agora p{font-size:22px;line-height:1.2;font-weight:500;letter-spacing:-.01em}
+.agora p.alerta{color:var(--red)}
+.agora small{display:block;margin-top:4px;color:var(--dim);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.lista,.hist,.atalhos,.em-uso,.regras-lista,.recargas,.hist-mot{grid-template-columns:minmax(0,1fr)}
+.lista dd{min-width:0;overflow-wrap:anywhere}
+.ponto .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card h2{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.card h2 .resumo{font-weight:400;color:var(--dim)}
+.h2-fim{display:inline-flex;align-items:center;gap:10px;margin-left:auto}
+.card h2 .recolher{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;color:rgba(255,255,255,.32);background:transparent}
+.card h2 .recolher:hover{color:rgba(255,255,255,.75);background:rgba(255,255,255,.05)}
+.recolher svg{width:13px;height:13px;transition:transform .2s}
+.card.recolhido .recolher svg{transform:rotate(-90deg)}
+.card.recolhido > :not(h2){display:none !important}
+.card.recolhido > h2{margin-bottom:0}
+.card h2 button{font-size:13px;color:var(--green-ink);font-weight:500}
+.alertas{border-color:var(--red-line);background:var(--red-soft);display:none}
+.alertas.on{display:block}
+.alertas h2{color:var(--red);justify-content:flex-start;gap:8px}
+.alertas h2::before{content:"";width:16px;height:16px;flex:none;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5 15 14H1Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5 15 14H1Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat}
+.alertas p{font-size:14px;line-height:1.5}
+.alertas .acoes{display:flex;gap:8px;margin-top:10px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid var(--line-2);font-size:13.5px;font-weight:500;background:var(--surface-2);text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--green-line)}
+.btn.perigo{color:var(--red);border-color:var(--red-line)}
+.btn.perigo:hover{background:var(--red-soft)}
+.btn.prim{color:var(--green-ink);border-color:var(--green-line);background:var(--green-soft)}
+.btn:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line)}
+
+/* avatar com as iniciais */
+.av{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px;background:var(--surface-3);color:var(--text);font-size:12px;font-weight:600;letter-spacing:.02em}
+.av.vivo-av{background:#12301A;color:var(--green-ink)}
+.av.falha-av{background:#3A1411;color:#FF9A90}
+
+/* pontos */
+.ponto{border-top:1px solid var(--line)}
+.ponto:first-of-type{border-top:0}
+.ponto > button{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;text-align:left}
+.ponto .id{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
+.ponto .nome{font-size:15px;font-weight:500;display:flex;align-items:center;gap:7px}
+.ponto .nome i{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.ponto .sub{display:block;font-size:13px;color:var(--muted);margin-top:1px}
+.ponto .dir{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.anel{position:relative;width:38px;height:38px;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--green-ink);flex:none}
+.anel::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--green) calc(var(--p)*1%),var(--green-soft) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 3px))}
+.ponto[data-estado="carregando"] .nome i{background:var(--green)}
+.ponto[data-estado="conectando"] .nome i,.ponto[data-estado="chegando"] .nome i{background:var(--green-ink)}
+.ponto[data-estado="falha"] .nome i{background:var(--red)}
+.ponto[data-estado="falha"] .nome{color:var(--red)}
+.ponto .det{display:none;padding:0 0 12px 44px}
+.ponto.aberto .det{display:block}
+.ponto .det .acoes{display:flex;gap:8px;flex-wrap:wrap}
+.confirma{padding:10px 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.confirma b{color:var(--text);font-weight:500}
+.confirma .acoes{display:flex;gap:8px;margin-top:10px}
+
+/* conectores (cada linha é um conector da bomba) e a linha das vagas */
+.con-grupo{font-size:12px;color:var(--dim);margin:10px 0 2px}
+.con-grupo:first-child{margin-top:0}
+.ponto.con > button{grid-template-columns:38px minmax(0,1fr) auto}
+.con-ic{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.con-ic svg{width:20px;height:20px}
+.ponto.con[data-estado="carregando"] .con-ic{color:var(--green-ink);border-color:var(--green-line);background:var(--green-soft)}
+.ponto.con[data-estado="falha"] .con-ic{color:var(--red);border-color:var(--red-line);background:var(--red-soft)}
+.ponto.con .nome{gap:8px;align-items:baseline}
+.ponto.con .nome b{font-weight:500}
+.ponto.con .nome .pot{font-size:13px;color:var(--muted);font-weight:400}
+.ponto.con .sub{display:flex;align-items:center;gap:7px}
+.ponto.con .sub i{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
+.ponto.con[data-estado="carregando"] .sub i{background:var(--green)}
+.ponto.con[data-estado="conectando"] .sub i,.ponto.con[data-estado="chegando"] .sub i{background:var(--green-ink)}
+.ponto.con[data-estado="falha"] .sub i{background:var(--red)}
+.ponto.con[data-estado="falha"] .sub{color:var(--red)}
+.ponto.con .det{padding:0 14px 14px}
+.ponto.con .det:empty{display:none}
+#pontos .ponto.con .det .acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#pontos .ponto.con .det .acoes .btn{width:100%}
+#pontos .ponto.con .confirma .acoes{display:flex}
+#pontos{display:flex;flex-direction:column;gap:8px}
+#pontos .ponto.con{border:1px solid var(--line);border-radius:14px;background:var(--surface-2);transition:border-color .25s,background-color .25s}
+#pontos .ponto.con:hover{border-color:var(--line-2)}
+#pontos .ponto.con > button{padding:12px 14px;gap:12px;grid-template-columns:40px minmax(0,1fr) auto}
+#pontos .ponto.con > button *{pointer-events:none}
+#pontos .ponto.con .con-ic{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.04)}
+#pontos .ponto.con[data-estado="carregando"]{border-color:var(--green-line);background:linear-gradient(180deg,rgba(3,255,31,.06),rgba(3,255,31,0) 70%),var(--surface-2)}
+#pontos .ponto.con[data-estado="conectando"],#pontos .ponto.con[data-estado="chegando"]{border-color:rgba(3,255,31,.18)}
+#pontos .ponto.con[data-estado="falha"]{border-color:var(--red-line);background:linear-gradient(180deg,rgba(255,106,95,.07),rgba(255,106,95,0) 70%),var(--surface-2)}
+#pontos .ponto.con[data-estado="livre"] .dir{font-size:12.5px;color:var(--dim)}
+#pontos .ponto.con.aberto{border-color:var(--line-2)}
+.con-mot{grid-column:1 / -1;display:flex;align-items:center;gap:12px;margin-top:2px;padding-top:12px;border-top:1px solid var(--line)}
+.con-mot:empty{display:none}
+.con-mot .av{width:32px;height:32px;border-radius:10px;font-size:11.5px}
+.con-mot .cm{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.con-mot .cm b{font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.con-mot .cm small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.con-mot .cv{display:flex;flex-direction:column;align-items:flex-end;line-height:1.3;font-size:12.5px;color:var(--muted)}
+.con-mot .cv b{font-size:13.5px;font-weight:500;color:var(--text)}
+.vagas-linha{margin-top:12px}
+.dividindo{display:block;font-size:12px;color:var(--amber);text-align:right}
+.vagas-linha{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:12px;border-top:1px solid var(--line)}
+.vagas-linha .vt{font-size:12px;color:var(--dim);width:100%;margin-bottom:2px}
+.vg-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12.5px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);max-width:100%;min-width:0}
+.vg-chip b{font-weight:500;color:var(--text)}
+.vg-chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vg-chip.ocupada{border-color:var(--green-line)}
+.vg-chip.parada{border-color:rgba(245,181,74,.45);color:var(--amber)}
+.vg-chip.falha{border-color:var(--red-line);color:var(--red)}
+
+/* para ficar de olho: o que pede uma decisão do dono */
+.olho{list-style:none;padding:0;display:grid;grid-template-columns:minmax(0,1fr)}
+.olho li{display:flex;gap:14px;padding:16px 0;border-top:1px solid var(--line)}
+.olho li:first-child{border-top:0;padding-top:4px}
+.olho li:last-child{padding-bottom:4px}
+.olho .oi{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;flex:none;background:var(--surface-2);color:var(--muted)}
+.olho .oi svg{width:16px;height:16px}
+.olho li.parado .oi{background:rgba(245,181,74,.12);color:var(--amber)}
+.olho li.produto .oi{background:var(--green-soft);color:var(--green-ink)}
+.olho li.credito .oi{background:rgba(245,181,74,.12);color:var(--amber)}
+.olho .ot{flex:1;min-width:0;font-size:13.5px;line-height:1.55;color:var(--muted);padding-top:1px}
+.olho .ot b{color:var(--text);font-weight:500}
+.olho .oa{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px}
+.olho .oa button{font-size:13px;font-weight:500;color:var(--green-ink);padding:0}
+.olho .oa button:hover{text-decoration:underline}
+.olho .oa button:disabled{color:var(--dim);text-decoration:none;cursor:default}
+
+/* pagamento pré-pago, produtos iGreen e a prévia da notificação */
+.pp{padding:14px 16px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);margin-bottom:6px}
+.pp-barra{height:8px;border-radius:999px;background:var(--surface-3);overflow:hidden}
+.pp-barra i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,rgba(3,255,31,.55),var(--green));transition:width .3s}
+.pp-linha{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:13px;color:var(--muted)}
+.pp-linha b{color:var(--text);font-weight:600}
+.prod-lista{list-style:none;padding:0;display:grid;grid-template-columns:minmax(0,1fr)}
+.prod-lista li{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.prod-lista li:first-child{border-top:0;padding-top:2px}
+.prod-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--surface-2);color:var(--muted);flex:none}
+.prod-ic svg{width:18px;height:18px}
+.prod-lista li.tem .prod-ic{background:var(--green-soft);color:var(--green-ink)}
+.prod-lista .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.prod-lista .tx b{font-weight:500;font-size:14.5px}
+.prod-lista .tx small{font-size:13px;color:var(--muted)}
+.notif{display:flex;gap:12px;padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line-2);margin-top:12px}
+.notif-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#0B7A32;color:#fff;font-size:12px;font-weight:700;flex:none}
+.notif b{font-size:13px;font-weight:600}
+.notif b small{font-weight:400;color:var(--dim);margin-left:6px}
+.notif p{font-size:14px;line-height:1.45;margin-top:2px}
+.aviso-neutro{font-size:13.5px;color:var(--muted);padding:12px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);line-height:1.5}
+
+/* divisão da recarga: quanto fica com o posto, com a iGreen e com cada licenciado */
+.divisao .barra{display:flex;gap:2px;height:12px;border-radius:999px;overflow:hidden;background:var(--surface-3)}
+.divisao .barra i{display:block;height:100%;min-width:4px;transition:flex-grow .3s}
+.d-posto{background:var(--green)}
+.d-adm{background:rgba(255,255,255,.38)}
+.d-lp{background:#5BC8FF}
+.d-lm{background:#F5B54A}
+.divisao ul{list-style:none;padding:0;margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr)}
+.divisao li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.divisao li:first-child{border-top:0}
+.divisao li > i{width:9px;height:9px;border-radius:3px;flex:none;margin-top:6px}
+.divisao li .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.divisao li .tx b{font-weight:500;font-size:14px}
+.divisao li .tx small{font-size:12.5px;color:var(--muted)}
+.divisao li .vl{display:flex;flex-direction:column;align-items:flex-end;flex:none}
+.divisao li .vl b{font-weight:500;font-size:14px}
+.divisao li .vl small{font-size:12px;color:var(--dim)}
+.divisao .rodape-div{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.45}
+
+/* bomba */
+.bomba{display:flex;align-items:center;gap:12px}
+.bomba + .bomba{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.bomba .mini{width:40px;height:50px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--surface-2);overflow:hidden}
+.bomba .mini img{width:100%;height:100%;object-fit:contain}
+.bomba .info{flex:1;min-width:0}
+.bomba .info b{display:block;font-weight:500}
+.bomba .info span{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.bomba .info span i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.bomba.falha .info span{color:var(--red)}
+.bomba.falha .info span i{background:var(--red)}
+
+/* listas de rótulo e valor (hoje, ficha da bomba, modal do motorista) */
+.lista{display:grid}
+.lista > div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.lista > div:first-child{border-top:0;padding-top:2px}
+.lista dt{font-size:14px;color:var(--muted)}
+.lista dd{margin:0;font-size:15px;font-weight:500;text-align:right}
+
+/* preço */
+.preco-atual{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.preco-atual strong{font-size:28px;font-weight:500;letter-spacing:-.02em}
+.preco-atual strong small{font-size:14px;color:var(--muted);font-weight:400;margin-left:4px}
+.preco-atual span{display:block;font-size:12.5px;color:var(--dim)}
+.editor{display:none;margin-top:12px}
+.editor.on{display:block}
+.passo{display:flex;align-items:center;gap:8px}
+.passo button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);font-size:18px}
+.passo label{flex:1;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2)}
+.passo input{flex:1;min-width:0;background:none;border:0;font-size:20px;font-weight:500;outline:none}
+.previa{margin-top:12px;font-size:13.5px;color:var(--muted)}
+.previa b{color:var(--text);font-weight:500}
+.editor .acoes{display:flex;gap:8px;margin-top:10px}
+.retorno{font-size:13px;color:var(--green-ink);margin-top:8px;display:none;align-items:center;gap:10px}
+.retorno.on{display:flex}
+.retorno button{color:var(--muted);text-decoration:underline;font-size:13px}
+
+/* recargas de hoje: uma linha por motorista, que muda de estado no lugar */
+.recargas{list-style:none;padding:0;display:grid;grid-template-columns:minmax(0,1fr)}
+.recargas li{display:flex;align-items:center;gap:11px;padding:9px 6px;margin:0 -6px;border-radius:12px;cursor:pointer}
+.recargas li + li{border-top:1px solid var(--line);border-radius:0 0 12px 12px}
+.recargas li:hover{background:var(--surface-2)}
+.recargas .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.recargas .tx b{font-weight:500;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recargas .tx small{font-size:13px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.recargas li[data-estado="carregando"] .tx small{color:var(--green-ink)}
+.recargas li[data-estado="falha"] .tx small{color:var(--red)}
+.recargas time{font-size:12.5px;color:var(--dim);flex:none;align-self:flex-start;margin-top:2px}
+.recargas li.nova{animation:entra .5s ease-out}
+@keyframes entra{from{opacity:0;transform:translateY(-6px)}}
+
+/* motoristas no posto agora: um card por motorista, com a prévia; clique abre o modal */
+.ativos-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:6px 4px 0}
+.ativos-cab h2{font-size:13.5px;font-weight:500;color:var(--muted)}
+.ativos-cab span{font-size:13px;color:var(--dim)}
+.ativos{display:flex;flex-direction:column;gap:10px}
+.ma{display:flex;flex-direction:column;gap:11px;width:100%;padding:14px 16px;border-radius:16px;text-align:left;background:linear-gradient(180deg,rgba(3,255,31,.055),rgba(3,255,31,0) 55%),var(--surface);border:1px solid var(--green-line);transition:border-color .2s,transform .2s}
+.ma *{pointer-events:none}
+.ma:hover{border-color:rgba(3,255,31,.55)}
+.ma:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.ma[data-estado="falha"]{border-color:var(--red-line);background:linear-gradient(180deg,rgba(255,106,95,.07),rgba(255,106,95,0) 55%),var(--surface)}
+.ma[data-estado="parado"]{border-color:rgba(245,181,74,.42);background:linear-gradient(180deg,rgba(245,181,74,.06),rgba(245,181,74,0) 55%),var(--surface)}
+.ma[data-estado="chegando"],.ma[data-estado="conectando"]{border-color:rgba(3,255,31,.2)}
+.ma-topo{display:flex;align-items:center;gap:12px}
+.ma-topo .av{width:42px;height:42px;border-radius:13px;font-size:13.5px}
+.ma-id{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.ma-id b{font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ma-id small{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ma .anel{width:46px;height:46px;font-size:12px}
+.ma-est{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--green-ink)}
+.ma-est em{flex:1;min-width:0;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ma-est i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none;box-shadow:0 0 0 3px var(--green-soft)}
+.ma[data-estado="falha"] .ma-est{color:var(--red)}
+.ma[data-estado="falha"] .ma-est i{background:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.ma[data-estado="parado"] .ma-est{color:var(--amber)}
+.ma[data-estado="parado"] .ma-est i{background:var(--amber);box-shadow:0 0 0 3px rgba(245,181,74,.14)}
+.ma[data-estado="chegando"] .ma-est,.ma[data-estado="conectando"] .ma-est{color:var(--muted)}
+.ma[data-estado="chegando"] .ma-est i,.ma[data-estado="conectando"] .ma-est i{background:var(--green-ink)}
+.ma-num{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ma-num span{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:11px;background:rgba(255,255,255,.035);border:1px solid var(--line);min-width:0}
+.ma-num small{font-size:12px;color:var(--dim)}
+.ma-num b{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ma-pp{display:flex;flex-direction:column;gap:6px}
+.ma-pp .pp-barra{height:6px}
+.ma-pp small{font-size:12.5px;color:var(--muted)}
+.ma-pp small b{color:var(--text);font-weight:500}
+.ma-pe{display:flex;align-items:center;gap:4px;flex:none;font-size:13px;font-weight:500;color:var(--green-ink)}
+.ma-pe svg{width:12px;height:12px}
+.ativos .vazio-ativo{padding:16px;border-radius:16px;border:1px dashed var(--line-2);font-size:13.5px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion: reduce){ .ma{transition:none} }
+
+/* ver histórico completo, no fim da lista de recargas */
+.ver-tudo{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;padding:10px 0 2px;border-top:1px solid var(--line);font-size:13.5px;font-weight:500;color:var(--green-ink);text-decoration:none}
+.ver-tudo:hover{text-decoration:underline}
+.ver-tudo svg{width:12px;height:12px}
+
+/* preço: card e modal da tabela de preços */
+.preco-regra{margin-top:8px;font-size:13px;color:var(--muted)}
+.preco-regra b{color:var(--text);font-weight:500}
+.preco-corpo{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr);gap:56px;align-items:start}
+.preco-corpo > div > section + section{margin-top:30px;padding-top:26px;border-top:1px solid var(--line)}
+.hist-card{background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:18px 18px 8px}
+.modal h3 .h3-acao{float:right;font-size:13px;color:var(--green-ink);font-weight:500}
+.faixa{position:relative;display:flex;height:40px;border-radius:10px;overflow:hidden;border:1px solid var(--line);margin-top:4px}
+.faixa > div{display:grid;place-items:center;font-size:12px;font-weight:600;border-right:1px solid rgba(0,0,0,.35);min-width:0;overflow:hidden;white-space:nowrap}
+.faixa > div:last-of-type{border-right:0}
+.faixa .base{background:rgba(255,255,255,.06);color:var(--muted)}
+.faixa .barato{background:rgba(3,255,31,.12);color:var(--green-ink)}
+.faixa .caro{background:rgba(245,181,74,.16);color:var(--amber)}
+.faixa .marca-agora{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--text);box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+.faixa-horas{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:4px}
+.faixa-dias{display:flex;gap:6px;margin-top:10px}
+.faixa-dias button,.seg button{padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;color:var(--muted);background:var(--surface)}
+.faixa-dias button[aria-pressed="true"],.seg button[aria-pressed="true"]{color:var(--text);border-color:var(--line-2);background:var(--surface-3)}
+.regras-lista{list-style:none;padding:0;display:grid}
+.regras-lista li{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;border-top:1px solid var(--line)}
+.regras-lista li:first-child{border-top:0}
+.regras-lista li.off .tx,.regras-lista li.off .valor{opacity:.45}
+.regras-lista .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.regras-lista .tx b{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.regras-lista .tx small{font-size:12.5px;color:var(--muted)}
+.regras-lista .valor{font-weight:600;font-size:14.5px}
+.regras-lista .ic-btn{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--muted);border:1px solid transparent}
+.regras-lista .ic-btn:hover{color:var(--text);border-color:var(--line-2)}
+.regras-lista .ic-btn svg{width:14px;height:14px}
+/* campo de valor compacto: R$ · número · unidade, e os botões − + num grupo pequeno à direita */
+.campo-valor{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 4px 0 13px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface-2);cursor:text;flex:none}
+.campo-valor:focus-within{border-color:var(--green-line);box-shadow:0 0 0 3px var(--green-soft)}
+.campo-valor .pre{font-size:13px;color:var(--muted)}
+.campo-valor input{width:3.6ch;background:none;border:0;outline:none;font-size:17px;font-weight:600;color:var(--text);padding:0}
+.campo-valor .suf{font-size:12.5px;color:var(--muted);white-space:nowrap;margin-right:4px}
+.campo-valor .passos{display:flex;gap:2px;padding-left:4px;border-left:1px solid var(--line)}
+.campo-valor .passos button{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:16px;line-height:1;color:var(--muted)}
+.campo-valor .passos button:hover{background:var(--surface-3);color:var(--text)}
+.campo-valor.peq{height:38px;border-radius:10px;background:var(--surface)}
+.campo-valor.peq input{font-size:15px;width:3.4ch}
+.campo-valor.peq .passos button{width:26px;height:26px;font-size:15px}
+.campo-bloco{display:grid;gap:6px;font-size:12px;color:var(--muted)}
+/* modal de preço: cabeçalho de seção com ação à direita, preço padrão numa linha, gráfico do dia, regras com rolagem */
+.sec-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.sec-cab h3{margin:0}
+.sec-cab .h3-acao{font-size:13px;font-weight:500;color:var(--green-ink);padding:4px 2px}
+.sec-cab .h3-acao:hover{text-decoration:underline}
+.linha-preco{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.linha-preco h3{margin:0}
+.linha-preco .previa{margin-top:4px}
+.seg-dias{display:inline-flex;padding:3px;gap:2px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.seg-dias button{padding:4px 12px;border-radius:999px;font-size:12.5px;color:var(--muted)}
+.seg-dias button:hover{color:var(--text)}
+.seg-dias button[aria-pressed="true"]{background:var(--surface-3);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
+.grafico .barras{position:relative;height:96px;margin-top:26px;display:flex;align-items:flex-end;gap:3px}
+.grafico .b{flex:1;min-height:6px;border-radius:5px 5px 2px 2px;transition:height .25s ease}
+.grafico .b.base{background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,.10))}
+.grafico .b.barato{background:linear-gradient(180deg,rgba(3,255,31,.78),rgba(3,255,31,.20))}
+.grafico .b.caro{background:linear-gradient(180deg,rgba(245,181,74,.95),rgba(245,181,74,.25))}
+.grafico .b.agora{outline:2px solid var(--text);outline-offset:1px}
+.grafico .rot{position:absolute;transform:translateX(-50%);font-size:12px;font-weight:600;white-space:nowrap;line-height:1}
+.grafico .rot.base{color:var(--muted)}
+.grafico .rot.barato{color:var(--green-ink)}
+.grafico .rot.caro{color:var(--amber)}
+.grafico .marca{position:absolute;top:-26px;bottom:0;border-left:1px dashed rgba(255,255,255,.4);pointer-events:none}
+.grafico .marca em{position:absolute;top:0;left:0;transform:translateX(-50%);font-style:normal;font-size:11px;font-weight:500;color:var(--text);background:var(--surface-3);padding:2px 7px;border-radius:6px;white-space:nowrap}
+.grafico .eixo{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:8px}
+.grafico .legenda{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+.grafico .legenda span{display:inline-flex;align-items:center;gap:6px}
+.grafico .legenda span::before{content:"";width:10px;height:10px;border-radius:3px}
+.grafico .legenda .barato::before{background:rgba(3,255,31,.6)}
+.grafico .legenda .base::before{background:rgba(255,255,255,.28)}
+.grafico .legenda .caro::before{background:rgba(245,181,74,.85)}
+.regras-box{border:1px solid var(--line);border-radius:14px;max-height:300px;overflow:auto;background:var(--surface)}
+.form-li{display:block !important;padding:14px 16px !important;background:var(--surface-2)}
+.form-li .seg-dias{margin-bottom:12px}
+.form-pe{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.regras-lista li.editando{background:var(--surface-2)}
+.valor-grupo{display:inline-flex;align-items:stretch;height:52px;border:1px solid var(--line-2);border-radius:14px;background:var(--surface-2);overflow:hidden}
+.valor-grupo:focus-within{border-color:var(--green-line);box-shadow:0 0 0 3px var(--green-soft)}
+.valor-grupo button{width:50px;display:grid;place-items:center;color:var(--muted);font-size:20px;line-height:1}
+.valor-grupo button:hover{background:var(--surface-3);color:var(--text)}
+.valor-grupo button:first-child{border-right:1px solid var(--line)}
+.valor-grupo button:last-child{border-left:1px solid var(--line)}
+.valor-grupo label{display:flex;align-items:center;gap:6px;padding:0 14px;cursor:text}
+.valor-grupo label span{color:var(--muted);font-size:15px}
+.valor-grupo input{width:76px;background:none;border:0;outline:none;font-size:22px;font-weight:500;color:var(--text);text-align:center;padding:0}
+.valor-grupo.peq{height:42px;border-radius:12px;background:var(--surface)}
+.valor-grupo.peq button{width:40px;font-size:17px}
+.valor-grupo.peq label{padding:0 8px}
+.valor-grupo.peq label span{font-size:13px}
+.valor-grupo.peq input{width:58px;font-size:15px}
+.chave{position:relative;display:inline-block;width:34px;height:20px;flex:none}
+.chave input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.chave span{position:absolute;inset:0;border-radius:999px;background:var(--surface-3);border:1px solid var(--line-2);transition:background .15s}
+.chave span::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+.chave input:checked + span{background:var(--green-soft);border-color:var(--green-line)}
+.chave input:checked + span::after{transform:translateX(14px);background:var(--green)}
+.chave input:focus-visible + span{outline:2px solid var(--green);outline-offset:2px}
+.form-regra{margin-top:14px;padding:18px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line-2);display:grid;gap:18px}
+.seg{display:flex;gap:6px}
+.campos{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.campos > label,.campos > div{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.campos select{height:38px;padding:0 36px 0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%239AA39C' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center / 13px;color:var(--text);font-size:14px;appearance:none;-webkit-appearance:none;cursor:pointer}
+.campos select:hover{border-color:var(--green-line)}
+.campos select option{background:#111;color:#eee}
+
+.aviso{font-size:12.5px;color:var(--amber)}
+.hist{list-style:none;padding:0;display:grid}
+.hist li{display:grid;gap:3px;padding:12px 0 12px 18px;border-top:1px solid var(--line);position:relative}
+.hist li:first-child{border-top:0;padding-top:2px}
+.hist li::before{content:"";position:absolute;left:0;top:18px;width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.hist li:first-child::before{top:8px;background:var(--green)}
+.hist time{font-size:12px;color:var(--dim)}
+.hist span{font-size:13.5px;line-height:1.4}
+.modal .pe{display:flex;align-items:center;gap:10px;padding:16px 28px;border-top:1px solid var(--line)}
+.modal .pe span{flex:1;font-size:13px;color:var(--muted)}
+
+/* atalhos em lista */
+.atalhos{display:grid}
+.atalhos a{display:flex;align-items:center;gap:12px;padding:10px 4px;text-decoration:none;font-size:14.5px;border-top:1px solid var(--line)}
+.atalhos a:first-child{border-top:0;padding-top:2px}
+.atalhos a > svg:first-child{width:18px;height:18px;color:var(--muted);flex:none}
+.atalhos a span{flex:1}
+.atalhos a .seta{width:12px;height:12px;color:var(--dim)}
+.atalhos a:hover span{color:var(--green-ink)}
+
+/* modais */
+dialog.modal{margin:auto;border:1px solid var(--line-2);border-radius:20px;background:var(--modal);color:var(--text);padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 48px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+dialog.modal:focus{outline:none}
+dialog.modal[open]{display:flex;flex-direction:column;animation:abre .22s ease-out}
+@keyframes abre{from{opacity:0;transform:translateY(8px) scale(.985)}}
+@keyframes sobe{from{transform:translateY(40px);opacity:.4}}
+dialog.modal::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.modal .cab{display:flex;align-items:center;gap:16px;padding:22px 28px;border-bottom:1px solid var(--line)}
+.modal .cab .av{width:48px;height:48px;border-radius:15px;font-size:16px}
+.modal .cab h2{font-size:19px;font-weight:500;letter-spacing:-.01em}
+.modal .cab p{font-size:13.5px;color:var(--muted);margin-top:2px}
+.modal .fechar{margin-left:auto;align-self:flex-start;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--muted);border:1px solid var(--line)}
+.modal .fechar:hover{color:var(--text);border-color:var(--line-2)}
+.modal .corpo{padding:24px 28px 28px;overflow:auto;display:grid;gap:24px}
+.modal h3{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:12px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:500;background:var(--green-soft);color:var(--green-ink);border:1px solid var(--green-line)}
+.pill.cinza{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+.pill.verm{background:var(--red-soft);color:var(--red);border-color:var(--red-line)}
+.agora-box{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
+.agora-box .anel{width:54px;height:54px;font-size:13px}
+.agora-box .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.agora-box .tx b{font-weight:500;font-size:16px}
+.agora-box .tx span{font-size:13.5px;color:var(--muted)}
+.grade-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.grade-kpi.tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+.carro-topo .fatos{display:block;font-size:13px;color:var(--dim);margin-top:2px}
+.grade-kpi div{padding:12px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.grade-kpi b{display:block;font-size:17px;font-weight:500;margin-bottom:2px}
+.grade-kpi span{font-size:12px;color:var(--muted)}
+.passos{list-style:none;padding:0;display:flex;gap:6px;flex-wrap:wrap}
+.passos li{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);padding:4px 10px 4px 6px;border-radius:999px;background:var(--surface-2)}
+.passos li svg{width:15px;height:15px;color:var(--green-ink)}
+.modal .rodape{display:flex;gap:8px;flex-wrap:wrap}
+.nota-sim{font-size:12px;color:var(--dim)}
+
+/* modal do motorista em abas */
+#modalMotorista{width:min(680px,calc(100vw - 32px))}
+#modalMotorista .cab{border-bottom:0;padding-bottom:16px}
+#modalMotorista .cab .av{width:56px;height:56px;border-radius:17px;font-size:18px}
+#modalMotorista .cab .linha-nome{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.abas{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.abas button{position:relative;padding:12px 12px 14px;font-size:14px;font-weight:500;color:var(--muted);white-space:nowrap}
+.abas button:hover{color:var(--text)}
+.abas button[aria-selected="true"]{color:var(--text)}
+.abas button[aria-selected="true"]::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px;background:var(--green)}
+#modalMotorista .corpo{min-height:470px;align-content:start;gap:28px}
+.agora-box{padding:18px}
+.agora-grupo{border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+.agora-grupo.viva{border-color:var(--green-line);background:linear-gradient(180deg,rgba(3,255,31,.06),rgba(3,255,31,0) 65%),var(--surface-2)}
+.agora-grupo .agora-box{background:none;border:0;border-radius:0}
+.agora-grupo .rodape{padding:12px 18px;border-top:1px solid var(--line);justify-content:flex-end}
+.duas{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.etapas{list-style:none;padding:0;display:grid}
+.etapas li{position:relative;display:flex;justify-content:space-between;gap:10px;padding:0 0 16px 22px;font-size:14px}
+.etapas li::before{content:"";position:absolute;left:3px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--surface-3);border:1px solid var(--line-2)}
+.etapas li::after{content:"";position:absolute;left:7px;top:17px;bottom:2px;width:1px;background:var(--line-2)}
+.etapas li:last-child{padding-bottom:0}
+.etapas li:last-child::after{display:none}
+.etapas li.feito::before{background:var(--green-ink);border-color:var(--green-ink)}
+.etapas li.atual::before{background:var(--green);border-color:var(--green);box-shadow:0 0 0 4px var(--green-soft)}
+.etapas li.falha::before{background:var(--red);border-color:var(--red)}
+.etapas time{color:var(--dim);font-size:13px}
+.hist-mot{list-style:none;padding:0;display:grid}
+.hist-mot li{display:grid;grid-template-columns:96px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:13px 0;border-top:1px solid var(--line);font-size:14px}
+.hist-mot li:first-child{border-top:0;padding-top:4px}
+.hist-mot .quando{display:flex;flex-direction:column;line-height:1.25}
+.hist-mot .quando small,.hist-mot .onde{font-size:13px;color:var(--muted)}
+.hist-mot .rs{font-weight:500;min-width:76px;text-align:right}
+.hist-mot li.agora-li .onde{color:var(--green-ink)}
+.carro-topo{display:flex;align-items:center;gap:16px;padding:18px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+.cor-carro{width:46px;height:46px;border-radius:14px;background:var(--c);border:1px solid var(--line-2);box-shadow:inset 0 -8px 14px rgba(0,0,0,.25);flex:none}
+.carro-topo .tx{flex:1;display:flex;flex-direction:column;gap:2px}
+.carro-topo .tx b{font-size:17px;font-weight:500}
+.carro-topo .tx small{font-size:13.5px;color:var(--muted)}
+.placa{display:inline-grid;width:132px;border-radius:7px;overflow:hidden;background:#F2F4F3;border:2px solid #20306E;flex:none}
+.placa i{display:block;background:#2647B0;color:#fff;font-style:normal;font-size:8.5px;font-weight:600;letter-spacing:.24em;text-align:center;padding:2px 0 1px}
+.placa b{font:700 23px/1.25 "Barlow Condensed",system-ui,sans-serif;letter-spacing:.06em;color:#14171A;text-align:center}
+.lista.ic dd .ok{color:var(--green-ink)}
+
+/* modal da bomba: giro 360° + ficha */
+dialog.modal.largo{width:min(960px,calc(100vw - 32px))}
+dialog#modalMotorista{margin:max(24px,7vh) auto auto}
+#modalMotorista .corpo{min-height:min(520px,calc(100vh - 7vh - 260px))}
+.bomba-corpo{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:32px;align-items:start}
+.ficha{display:grid;gap:28px}
+.ficha section + section{padding-top:24px;border-top:1px solid var(--line)}
+.lista.ic > div{padding:11px 0}
+.lista.ic dt{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.lista.ic dt svg{width:16px;height:16px;color:var(--dim);flex:none}
+.lista.ic dd{font-size:14.5px;font-weight:400;color:var(--text)}
+.estado-ok{display:grid;gap:14px;padding:16px 18px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+.estado-ok .linha{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--dim)}
+.em-uso{list-style:none;padding:0;display:grid;gap:12px}
+.em-uso li{display:flex;align-items:center;gap:12px}
+.em-uso li span:last-child{display:flex;flex-direction:column}
+.em-uso b{font-weight:500;font-size:14.5px}
+.em-uso small{font-size:13px;color:var(--muted)}
+.estado-falha{display:grid;gap:12px;padding:18px;border-radius:16px;background:var(--red-soft);border:1px solid var(--red-line)}
+.estado-falha .tit{display:flex;align-items:center;gap:10px;color:var(--red);font-weight:500;font-size:16px}
+.estado-falha .tit svg{width:20px;height:20px;flex:none}
+.estado-falha p{font-size:14px;color:var(--text);line-height:1.5}
+.estado-falha h4{font-size:13px;font-weight:500;color:var(--muted);margin-top:2px}
+.estado-falha ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13.5px;color:var(--text)}
+.estado-falha .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn.perigo-cheio{background:var(--red);border-color:var(--red);color:#2A0603}
+.btn.perigo-cheio:hover{filter:brightness(1.08)}
+.bomba-corpo > .giro{position:sticky;top:0}                         /* o 3D fica à vista enquanto a ficha rola */
+.giro{position:relative;aspect-ratio:4/5;border-radius:16px;background:radial-gradient(ellipse at 50% 60%,#1A211D,#0B0E0C 70%);border:1px solid var(--line);cursor:grab;touch-action:pan-y;user-select:none;overflow:hidden}
+.giro:active{cursor:grabbing}
+.giro img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.giro .dica{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:4px 10px;border-radius:999px;background:var(--vidro);white-space:nowrap}
+.giro .sem{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--dim);padding:20px;text-align:center}
+
+/* controles da demonstração (não fazem parte do produto) */
+details.demo{border:1px dashed var(--line-2);border-radius:14px;padding:10px 14px;font-size:13px;color:var(--muted)}
+details.demo summary{cursor:pointer}
+details.demo .linha{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:12.5px}
+
+@media (max-width: 1080px){
+  .grid{grid-template-columns:1fr;height:auto}
+  .palco{height:62vw;min-height:380px}
+  .col{overflow:visible}
+}
+@media (max-width: 720px){
+  .duas{grid-template-columns:1fr}
+  .hist-mot li{grid-template-columns:64px minmax(0,1fr) auto}
+  .hist-mot .kwh{display:none}
+  .preco-corpo{grid-template-columns:1fr;gap:32px}
+  .bomba-corpo{grid-template-columns:1fr}
+  .giro{max-width:320px;width:100%;margin:0 auto}
+  .grade-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 560px){
+  .meta .nota{display:none}
+  .meta{flex-wrap:wrap;gap:2px 10px;font-size:12px}
+  .meta a{margin-left:auto}
+  dialog.modal,dialog.modal.largo,dialog.modal.postos,dialog#modalMotorista{width:100vw;max-width:100vw;max-height:92vh;margin:auto 0 0;border-radius:20px 20px 0 0;border-bottom:0}
+  dialog#modalMotorista{height:92vh}
+  #modalMotorista .corpo{min-height:0}
+  dialog.modal[open]{animation:sobe .26s cubic-bezier(.2,.8,.2,1)}
+  .modal .cab{padding:18px 18px 16px}
+  .modal .corpo{padding:18px 18px 28px}
+  .abas{padding:0 10px}
+  .abas button{padding:11px 8px 13px;font-size:13.5px}
+  .abas button[aria-selected="true"]::after{left:6px;right:6px}
+  .so-largo{display:none}
+  #pontos .ponto.con .det .acoes{grid-template-columns:1fr 1fr}
+  .app{padding-top:10px}
+  /* frase do momento antes da maquete; a coluna vira itens da grade */
+  .col{display:contents}
+  .agora{order:-1}
+  /* maquete compacta, controles embaixo dela (não por cima) */
+  .palco{height:auto;min-height:0;display:flex;flex-direction:column}
+  .palco-topo{left:10px;top:10px;right:10px;max-width:none;align-items:stretch;gap:6px}
+  .posto-card{min-width:0;padding:7px 10px}
+  .vivo{top:66px;right:10px}
+  .posto-tx b{font-size:14px}
+  .vivo{font-size:12px;padding:4px 10px}
+  .cena{position:relative;inset:auto;height:calc(72vw + 100px);--mv-margem:100px 4px 0 4px}
+  .palco-pe{position:relative;left:auto;right:auto;bottom:auto;padding:4px 10px 10px;flex-wrap:wrap;row-gap:8px}
+  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;width:100%}
+  .chips span{display:none}
+  .chips button{flex:none}
+  /* selos menores na maquete compacta */
+  .mv-selo{font-size:11px;gap:5px;padding:4px 8px 4px 5px}
+  .mv-selo.pessoa{padding:3px 8px 3px 3px;gap:6px}
+  .mv-av{width:22px;height:22px;border-radius:7px;font-size:9.5px}
+  .mv-tx b{font-size:11px}
+  .mv-tx small{font-size:10px}
+  .mv-ic{width:16px;height:16px}
+  .mv-ic svg{width:10px;height:10px}
+  .mv-pct{width:24px;height:24px;margin:-3px -5px -3px 1px;font-size:8px}
+  dialog.modal{width:100vw;max-width:100vw;max-height:92vh;margin:auto 0 0;border-radius:20px 20px 0 0}
+}
+@media (prefers-reduced-motion: reduce){ .vivo i,.mv-ic-falha{animation:none} .recargas li.nova{animation:none} .mv-selo{transition:none} dialog.modal[open]{animation:none} }
+</style>
+</head>
+<body>
+<div class="meta"><strong>Painel V1 · o posto agora</strong> esboço navegável <span class="nota">Dados simulados: um dia de demonstração gera chegadas, recargas e uma falha.</span> <a href="demo.html">Demonstração da maquete</a></div>
+<div class="app">
+  <div class="grid">
+    <section class="palco" aria-label="Maquete do posto">
+      <div class="palco-topo">
+        <button class="posto-card vidro" id="postoBtn" type="button" aria-haspopup="dialog" aria-label="Trocar de posto">
+          <span class="posto-tx"><b id="postoNome"></b><small id="postoEquip"></small></span>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="vivo vidro" id="vivo" aria-live="off"><i></i><b id="vivoTxt">Ao vivo</b><span id="horaTxt">--:--</span><span id="periodoTxt"></span></div>
+      <div class="cena" id="cena"><div class="carregando-cena" id="carregando" role="status" aria-live="polite">
+        <div class="viagem" id="viagem" style="--p:0">
+          <div class="estrada">
+            <div class="ceu" aria-hidden="true"><div class="nuvens"></div><div class="nuvens n2"></div><div class="cenario longe"></div><div class="cenario"></div></div>
+            <div class="calcada" aria-hidden="true"></div>
+            <div class="pista"><i></i></div>
+            <div class="ponto-carga"><img id="carregBomba" alt="" onerror="this.remove()"></div>
+            <div class="carro-anda">
+              <span class="vento" aria-hidden="true"><i></i><i></i><i></i></span>
+              <img class="corpo" src="dados/carregamento/carro-corpo.webp" alt="" width="640" height="280" draggable="false">
+              <img class="roda tras" src="dados/carregamento/carro-roda.webp" alt="" width="128" height="128" draggable="false">
+              <img class="roda frente" src="dados/carregamento/carro-roda.webp" alt="" width="128" height="128" draggable="false">
+            </div>
+          </div>
+          <div><p id="carregTxt">Carregando o posto <span id="carregPct">0%</span></p><small id="carregSub"></small></div>
+        </div>
+      </div></div>
+      <div class="palco-pe">
+        <div class="chips" role="group" aria-label="Simular horário (só muda a luz)">
+          <span>Ver de</span>
+          <button type="button" data-h="8.5">Manhã</button><button type="button" data-h="14">Tarde</button>
+          <button type="button" data-h="18.2">Pôr do sol</button><button type="button" data-h="21">Noite</button>
+          <button type="button" id="agoraBtn" aria-pressed="true">Agora</button>
+        </div>
+        <div class="zoom" role="group" aria-label="Aproximação">
+          <button type="button" id="zoomMenos" aria-label="Afastar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+          <button type="button" id="zoomPct" aria-pressed="false" title="Voltar a 100%">100%</button>
+          <button type="button" id="zoomMais" aria-label="Aproximar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+          <button type="button" id="verBomba" aria-pressed="false">Ver a bomba</button>
+          <button type="button" id="detBomba" hidden>Detalhes da bomba</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="col" aria-label="O posto agora">
+      <div class="agora" aria-live="polite"><p id="frase">…</p><small id="fraseSub"></small></div>
+
+      <div class="vistas" role="tablist" aria-label="Visões do painel">
+        <button type="button" role="tab" id="aba-v-posto" aria-controls="v-posto" data-vista="posto" aria-selected="true">Posto <span class="vb" id="vbPosto"></span></button>
+        <button type="button" role="tab" id="aba-v-motoristas" aria-controls="v-motoristas" data-vista="motoristas" aria-selected="false" tabindex="-1">Motoristas <span class="vb" id="vbMot"></span></button>
+        <button type="button" role="tab" id="aba-v-financeiro" aria-controls="v-financeiro" data-vista="financeiro" aria-selected="false" tabindex="-1">Financeiro</button>
+      </div>
+
+      <div class="vista" id="v-posto" role="tabpanel" aria-labelledby="aba-v-posto">
+      <div class="card alertas" id="alertas" role="alert">
+        <h2>Bomba sem comunicação</h2>
+        <p id="alertaTxt"></p>
+        <div class="acoes"><button class="btn" type="button" id="alertaIr">Ir até a bomba</button><a class="btn perigo-cheio" href="#suporte" id="alertaSuporte">Chamar o suporte</a></div>
+      </div>
+
+      <div class="card">
+        <h2>Conectores <span class="resumo" id="pontosResumo"></span></h2>
+        <div id="pontos"></div>
+        <div class="vagas-linha" id="vagasLinha"></div>
+      </div>
+
+      <div class="card" id="cardOlho">
+        <h2>Para ficar de olho</h2>
+        <ul class="olho" id="olho"></ul>
+      </div>
+
+      <div class="card">
+        <h2 id="bombasTit">Bomba</h2>
+        <div id="bombas"></div>
+      </div>
+
+      </div>
+
+      <div class="vista" id="v-financeiro" role="tabpanel" aria-labelledby="aba-v-financeiro" hidden>
+      <div class="card">
+        <h2>Preço do kWh <button type="button" id="alterarPreco">Alterar</button></h2>
+        <div class="preco-atual"><div><strong id="precoTxt">R$ 2,20<small>por kWh</small></strong><span id="precoDesde">vale desde 08:00</span></div></div>
+        <p class="preco-regra" id="precoRegra"></p>
+        <p class="retorno" id="precoRetorno"><span>Tabela salva. O totem e o app já mostram o preço novo.</span><button type="button" id="precoDesfazer">Desfazer</button></p>
+      </div>
+
+      <div class="card">
+        <h2>Hoje até agora</h2>
+        <dl class="lista">
+          <div><dt>Motoristas atendidos</dt><dd id="hojeMot">0</dd></div>
+          <div><dt>Energia entregue</dt><dd id="hojeKwh">0 kWh</dd></div>
+          <div><dt>Recebido</dt><dd id="hojeRs">R$ 0,00</dd></div>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Divisão de hoje <span class="resumo" id="divResumo"></span></h2>
+        <div class="divisao" id="divHoje"></div>
+      </div>
+
+      </div>
+
+      <div class="vista" id="v-motoristas" role="tabpanel" aria-labelledby="aba-v-motoristas" hidden>
+      <div class="ativos-cab"><h2>No posto agora</h2><span id="ativosResumo"></span></div>
+      <div class="ativos" id="ativos" aria-live="polite"></div>
+
+      <div class="card">
+        <h2>Recargas de hoje <span class="resumo" id="recargasResumo"></span></h2>
+        <ul class="recargas" id="recargas" aria-label="As últimas recargas que terminaram hoje; clique para ver os detalhes"></ul>
+        <a class="ver-tudo" href="#crm-historico">Ver histórico completo <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></a>
+      </div>
+
+      </div>
+      <div class="vista" id="v-atalhos">
+      <div class="card">
+        <h2>Atalhos</h2>
+        <nav class="atalhos" aria-label="Atalhos para outras áreas">
+          <a href="#crm-historico"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.5 2"/></svg><span>Histórico de recargas</span><svg class="seta" viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></a>
+          <a href="#crm-clientes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="7" r="3"/><path d="M2.5 16c.8-2.8 3-4.2 5.5-4.2s4.7 1.4 5.5 4.2M13 4.5a3 3 0 0 1 0 5.4M15 11.9c1.3.6 2.1 1.9 2.5 4.1"/></svg><span>Clientes</span><svg class="seta" viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></a>
+          <a href="#crm-financeiro"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="5" width="15" height="11" rx="2"/><path d="M2.5 8.5h15M6 12.5h3"/></svg><span>Financeiro</span><svg class="seta" viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></a>
+          <a href="#suporte"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V9a6 6 0 0 1 12 0v2"/><rect x="2.8" y="10.5" width="3.4" height="5" rx="1.4"/><rect x="13.8" y="10.5" width="3.4" height="5" rx="1.4"/><path d="M15.5 15.5c0 1.4-1.6 2-4 2"/></svg><span>Suporte iGreen</span><svg class="seta" viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></a>
+          <a href="#licenciado"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3.5 16.5c.7-3 3.2-4.6 6.5-4.6s5.8 1.6 6.5 4.6"/><circle cx="10" cy="6.8" r="3.3"/></svg><span id="atalhoLic">Falar com seu licenciado</span><svg class="seta" viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></a>
+        </nav>
+      </div>
+
+      </div>
+
+      <details class="demo">
+        <summary>Controles da demonstração</summary>
+        <div class="linha" id="demoLinha"></div>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<dialog class="modal" id="modalMotorista" aria-labelledby="mmNome" tabindex="-1"></dialog>
+<dialog class="modal largo" id="modalBomba" aria-labelledby="mbNome" tabindex="-1"></dialog>
+<dialog class="modal largo" id="modalPreco" aria-labelledby="mpTit" tabindex="-1"></dialog>
+<dialog class="modal postos" id="modalPostos" aria-labelledby="mpoTit" tabindex="-1"></dialog>
+
+<script type="module">
+import { criarMaquete } from './maquete.js'
+
+// ---------------------------------------------------------------- postos de exemplo (cada um é uma pasta gerada pelo Blender)
+// est/n/rs: situação agora e receita de hoje (exemplos; o posto aberto usa os dados ao vivo); x/y: posição no mapa (%)
+const POSTOS = [
+  { id: 'fast', nome: 'Unidade Avenida', equip: 'Mobi Fast · com cobertura', bairro: 'Savassi', cidade: 'Belo Horizonte', x: 57, y: 55, est: 'carregando', n: 2, rs: 162.4 },
+  { id: 'mobi', nome: 'Garagem Jardim', equip: 'Mobi · sem cobertura', bairro: 'Jardim Canadá', cidade: 'Nova Lima', x: 63, y: 86, est: 'livre', n: 0, rs: 38.2 },
+  { id: 'fast-sem', nome: 'Mercado do Bairro', equip: 'Mobi Fast · sem cobertura', bairro: 'Eldorado', cidade: 'Contagem', x: 25, y: 47, est: 'carregando', n: 1, rs: 96.5 },
+  { id: 'ultra', nome: 'Estrada Norte', equip: 'Mobi Ultra Fast · com cobertura', bairro: 'Venda Nova', cidade: 'Belo Horizonte', x: 49, y: 15, est: 'carregando', n: 2, rs: 410.8 },
+  { id: 'ultra-sem', nome: 'Posto Serra', equip: 'Mobi Ultra Fast · sem cobertura', bairro: 'Serra', cidade: 'Belo Horizonte', x: 66, y: 63, est: 'alerta', n: 0, rs: 188.0 },
+  { id: 'fast-mobi', nome: 'Centro Comercial', equip: 'Mobi Fast + Mobi · com cobertura', bairro: 'Centro', cidade: 'Belo Horizonte', x: 52, y: 47, est: 'carregando', n: 3, rs: 221.3 },
+  { id: 'fast-mobi-sem', nome: 'Praça da Matriz', equip: 'Mobi Fast + Mobi · sem cobertura', bairro: 'Centro', cidade: 'Betim', x: 9, y: 53, est: 'livre', n: 0, rs: 74.9 },
+  { id: 'fast-fast', nome: 'Terminal Rodoviário', equip: '2 Mobi Fast · com cobertura', bairro: 'Barro Preto', cidade: 'Belo Horizonte', x: 45, y: 54, est: 'carregando', n: 2, rs: 305.6 },
+  { id: 'fast-ultra', nome: 'Centro Logístico', equip: 'Mobi Fast + Mobi Ultra Fast · com cobertura', bairro: 'Cidade Industrial', cidade: 'Contagem', x: 31, y: 61, est: 'carregando', n: 1, rs: 276.1 },
+]
+const q = new URLSearchParams(location.search)
+const postoId = POSTOS.some((p) => p.id === q.get('posto')) ? q.get('posto') : 'fast'
+const posto = POSTOS.find((p) => p.id === postoId)
+// carregando: o carro anda até a bomba do modelo do posto no ritmo do download
+const modeloPosto = postoId.split('-')[0]
+document.getElementById('carregBomba').src = `dados/bombas/${modeloPosto}/g00.webp`
+document.getElementById('carregSub').textContent = posto.nome
+const viagem = document.getElementById('viagem')
+// o download avisa o quanto já veio (pReal); a tela mostra no máximo o que o tempo mínimo deixa, suavizado, para dar
+// tempo de ver o carro andar. ?carregamento=0.6 congela a tela nesse ponto (para ver e fotografar)
+const ETAPAS = [[0, 'buscando o posto'], [0.2, 'montando a maquete'], [0.55, 'acendendo as luzes'], [0.8, 'ligando as bombas'], [0.97, 'chegando']]
+const MIN_CARGA = q.has('captura') ? 0 : 4600, T0_CARGA = performance.now()
+let pReal = 0, pVisto = 0, pintaFeito = null
+function pinta(f) {
+  viagem.style.setProperty('--p', f.toFixed(4)); document.getElementById('carregPct').textContent = `${Math.round(f * 100)}%`
+  const et = ETAPAS.filter(([a]) => f >= a).at(-1)[1], sub = document.getElementById('carregSub'), t = `${posto.nome} · ${et}`
+  if (sub.textContent !== t) sub.textContent = t
+}
+function progresso(f) { pReal = Math.max(pReal, f) }
+function animaCarga() {
+  if (q.has('carregamento')) { pinta(Number(q.get('carregamento')) || 0); return }
+  const teto = MIN_CARGA ? Math.min(1, (performance.now() - T0_CARGA) / MIN_CARGA) : 1
+  const alvo = Math.min(pReal, teto)
+  pVisto += (alvo - pVisto) * 0.08; if (alvo - pVisto < 0.0015) pVisto = alvo
+  pinta(pVisto)
+  if (pVisto >= 1) { if (pintaFeito) pintaFeito(); pintaFeito = null; return }
+  requestAnimationFrame(animaCarga)
+}
+requestAnimationFrame(animaCarga)
+const cargaVista = () => new Promise((ok) => { if (pVisto >= 1) ok(); else pintaFeito = ok })
+document.getElementById('postoNome').textContent = posto.nome
+document.getElementById('postoEquip').textContent = posto.equip
+
+// ---------------------------------------------------------------- motoristas (o mesmo cadastro dos apps Mob: Conexão Mob)
+// cor = cor do carro na maquete; bateria em kWh (capacidade aproximada do modelo)
+const COR = { branco: '#E9EBED', prata: '#B9C0C6', grafite: '#4A5157', verde: '#1F8A4C' }
+const MOTORISTAS = [
+  { nome: 'Thiago Moreira Lins', carro: 'BYD Seal', ano: 2025, cor: 'grafite', placa: 'RTM4B21', bateria: 82.5, cidade: 'Nova Lima', desde: '02/09/2026', hor: 'Manhã, 7h–9h', rec: 14, kwh: 278, gasto: 612.40 },
+  { nome: 'Magali Andrade Rocha', carro: 'BYD Dolphin Mini', ano: 2025, cor: 'branco', placa: 'QPF7C09', bateria: 38, cidade: 'Contagem', desde: '17/10/2026', hor: 'Fim de tarde, 17h–19h', rec: 2, kwh: 20.6, gasto: 41.20 },
+  { nome: 'Rafael Teixeira Duarte', carro: 'Volvo EX30', ano: 2025, cor: 'prata', placa: 'SHA2E45', bateria: 69, cidade: 'Belo Horizonte', desde: '28/08/2026', hor: 'Fins de semana, à tarde', rec: 11, kwh: 226, gasto: 498.60 },
+  { nome: 'Juliana Prates Viana', carro: 'BYD Dolphin', ano: 2024, cor: 'branco', placa: 'RFX9A11', bateria: 44.9, cidade: 'Belo Horizonte', desde: '14/09/2026', hor: 'Almoço, 12h–14h', rec: 6, kwh: 74, gasto: 118.90 },
+  { nome: 'Ana Luíza Fontes', carro: 'BYD Yuan Pro', ano: 2025, cor: 'prata', placa: 'PZK3H70', bateria: 45.1, cidade: 'Contagem', desde: '20/08/2026', hor: 'Manhã, 7h–9h', rec: 9, kwh: 93, gasto: 186.40 },
+  { nome: 'Rogério Antunes Sá', carro: 'BYD Dolphin', ano: 2025, cor: 'verde', placa: 'RQB6D52', bateria: 44.9, cidade: 'Contagem', desde: '25/08/2026', hor: 'Manhã, 9h–11h', rec: 12, kwh: 127, gasto: 254.10 },
+  { nome: 'Fernanda Lopes Barreto', carro: 'Peugeot e-2008', ano: 2024, cor: 'grafite', placa: 'SJL1F38', bateria: 50, cidade: 'Nova Lima', desde: '09/07/2026', hor: 'Fins de semana, de manhã', rec: 7, kwh: 135, gasto: 296.30 },
+  { nome: 'Débora Ferraz Coutinho', carro: 'GWM Ora 03', ano: 2024, cor: 'verde', placa: 'QXT5G84', bateria: 48, cidade: 'Contagem', desde: '16/10/2026', hor: 'Noite, 19h–21h', rec: 1, kwh: 11.4, gasto: 22.80 },
+  { nome: 'Paula Cristina Méier', carro: 'Renault Megane E-Tech', ano: 2024, cor: 'prata', placa: 'RDN8B16', bateria: 60, cidade: 'Belo Horizonte', desde: '01/09/2026', hor: 'Noite, 19h–21h', rec: 4, kwh: 49, gasto: 78.40 },
+  { nome: 'Marcelo Dias Quintão', carro: 'Chevrolet Spark EUV', ano: 2025, cor: 'branco', placa: 'PWE4C63', bateria: 42, cidade: 'Betim', desde: '15/10/2026', hor: 'Fim de tarde, 17h–19h', rec: 1, kwh: 14, gasto: 28.30 },
+]
+// pagamento no app é pré-pago (o motorista reserva um valor antes de começar); cx = produtos iGreen que ele já tem;
+// optin = autorizou receber novidades da iGreen no app (sem isso, não recebe oferta nenhuma)
+const EXTRA = {
+  'Thiago Moreira Lins': { pag: 'Pix', cashback: 12.4, cx: ['energia'], optin: true },
+  'Magali Andrade Rocha': { pag: 'Cartão de crédito', cashback: 0, cx: [], optin: true },
+  'Rafael Teixeira Duarte': { pag: 'Saldo iGreen', cashback: 8.1, cx: ['energia', 'seguro'], optin: true },
+  'Juliana Prates Viana': { pag: 'Pix', cashback: 3.2, cx: [], optin: false },
+  'Ana Luíza Fontes': { pag: 'Cartão de crédito', cashback: 5.6, cx: ['tel'], optin: true },
+  'Rogério Antunes Sá': { pag: 'Pix', cashback: 0, cx: [], optin: true },
+  'Fernanda Lopes Barreto': { pag: 'Saldo iGreen', cashback: 21.9, cx: ['energia', 'seguro', 'tel'], optin: true },
+  'Débora Ferraz Coutinho': { pag: 'Pix', cashback: 0, cx: [], optin: true },
+  'Paula Cristina Méier': { pag: 'Cartão de crédito', cashback: 4.4, cx: ['energia'], optin: false },
+  'Marcelo Dias Quintão': { pag: 'Pix', cashback: 0, cx: [], optin: true },
+}
+MOTORISTAS.forEach((m) => Object.assign(m, EXTRA[m.nome], { enviadas: {} }))
+// licenciados: o do posto fechou o eletroposto com o dono; cada motorista fica com o licenciado do cadastro dele no app
+const LICENCIADOS = { lucas: { nome: 'Lucas Andrade', tel: '(31) 99430-2207' }, carla: { nome: 'Carla Mendes', a: true }, rodrigo: { nome: 'Rodrigo Alves Pinheiro' }, patricia: { nome: 'Patrícia Nunes Oliveira', a: true } }
+const LIC_POSTO = 'lucas'
+const VINCULO = { 'Thiago Moreira Lins': 'carla', 'Magali Andrade Rocha': 'lucas', 'Rafael Teixeira Duarte': 'rodrigo', 'Juliana Prates Viana': 'lucas', 'Ana Luíza Fontes': 'patricia',
+  'Rogério Antunes Sá': 'lucas', 'Fernanda Lopes Barreto': 'carla', 'Débora Ferraz Coutinho': 'lucas', 'Paula Cristina Méier': 'rodrigo', 'Marcelo Dias Quintão': 'lucas' }
+MOTORISTAS.forEach((m) => { m.lic = VINCULO[m.nome]; m.vinculo = m.lic === LIC_POSTO ? 'QR do seu posto' : `link de ${LICENCIADOS[m.lic].nome.split(' ')[0]}` })
+// percentuais: administração iGreen 14% (simulador do hotsite); licenciado do motorista 2% ("Rede 2%" do hotsite);
+// licenciado do posto: exemplo, a confirmar com a iGreen
+const TX = { adm: 0.14, licPosto: 0.02, licMot: 0.02 }
+function divisao(valor, m) {
+  const adm = valor * TX.adm, lp = valor * TX.licPosto, lm = valor * TX.licMot, mesmo = m.lic === LIC_POSTO
+  return { valor, adm, lp: mesmo ? lp + lm : lp, lm: mesmo ? 0 : lm, posto: valor - adm - lp - lm, mesmo, licMot: LICENCIADOS[m.lic] }
+}
+const partes = (n) => n.split(' ')
+const curto = (n) => `${partes(n)[0]} ${partes(n).at(-1)[0]}.`            // "Thiago L." (selo)
+const medio = (n) => `${partes(n)[0]} ${partes(n).at(-1)}`               // "Thiago Lins" (listas)
+const iniciais = (n) => partes(n)[0][0] + partes(n).at(-1)[0]
+const placaFmt = (p) => `${p.slice(0, 3)} ${p.slice(3)}`
+
+// ---------------------------------------------------------------- hora do Brasil
+const fmtH = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
+const horaBrasil = () => { const [h, m] = fmtH.format(new Date()).split(':').map(Number); return h + m / 60 }
+const hhmm = (d = new Date()) => fmtH.format(d)
+const periodoNome = (h) => (h < 5 || h >= 19.6 ? 'noite' : h < 10.5 ? 'manhã' : h < 17.6 ? 'tarde' : 'pôr do sol')
+
+const el = document.getElementById('cena')
+const mq = await criarMaquete(el, { dados: `dados/${postoId}/`, hora: horaBrasil(), aoProgresso: progresso })
+// ?carregamento=0.6 deixa a tela de carregamento parada nesse ponto (para ver e fotografar)
+if (!q.has('carregamento')) { // chegou: o carro pluga na bomba, a tela some e a maquete aparece
+  progresso(1); await cargaVista()
+  viagem.classList.add('chegou'); document.getElementById('carregTxt').firstChild.textContent = 'Pronto, posto carregado '
+  document.getElementById('carregSub').textContent = `${posto.nome} · tudo pronto`
+  const cc = document.getElementById('carregando'), demora = new URLSearchParams(location.search).has('captura') ? 0 : 1100
+  setTimeout(() => { cc.classList.add('saindo'); setTimeout(() => cc.remove(), 460) }, demora)
+}
+window.maquete = mq
+
+let horaFixa = null
+function atualizaHora() {
+  const h = horaFixa ?? horaBrasil()
+  mq.setHora(h)
+  const vivo = horaFixa == null
+  document.getElementById('vivo').classList.toggle('simulando', !vivo)
+  document.getElementById('vivoTxt').textContent = vivo ? 'Ao vivo' : 'Simulando'
+  document.getElementById('horaTxt').textContent = vivo ? hhmm() : String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.round((h % 1) * 60)).padStart(2, '0')
+  document.getElementById('periodoTxt').textContent = '· ' + periodoNome(h)
+}
+document.querySelectorAll('.chips [data-h]').forEach((b) => b.addEventListener('click', () => {
+  horaFixa = Number(b.dataset.h); document.querySelectorAll('.chips button').forEach((x) => x.setAttribute('aria-pressed', x === b)); atualizaHora()
+}))
+document.getElementById('agoraBtn').addEventListener('click', (e) => { horaFixa = null; document.querySelectorAll('.chips button').forEach((x) => x.setAttribute('aria-pressed', x === e.currentTarget)); atualizaHora() })
+setInterval(atualizaHora, 20000); atualizaHora()
+
+// zoom
+document.getElementById('zoomMais').addEventListener('click', () => mq.setZoomNivel(Math.min(mq.zoomLimites.max, mq.getZoom() * 1.25)))
+document.getElementById('zoomMenos').addEventListener('click', () => mq.setZoomNivel(Math.max(mq.zoomLimites.min, mq.getZoom() / 1.25)))
+const verBomba = document.getElementById('verBomba'), detBomba = document.getElementById('detBomba'), zoomPct = document.getElementById('zoomPct')
+let bombaEmFoco = 0
+function focoBomba(on, bi = 0) { bombaEmFoco = bi; mq.setZoom(on, bi); verBomba.setAttribute('aria-pressed', on); detBomba.hidden = !on }
+function irBomba(bi) { focoBomba(true, bi) }
+verBomba.addEventListener('click', () => { const on = verBomba.getAttribute('aria-pressed') !== 'true', bf = bombas.find((x) => x.falha); focoBomba(on, bf ? bf.bi : 0) })
+detBomba.addEventListener('click', () => abreBomba(bombaEmFoco))
+el.addEventListener('mv-bomba', (e) => abreBomba(e.detail.bomba))                // o card em cima da bomba, no zoom ou no alerta
+// porcentagem do zoom no meio dos botões; clicar volta a 100% e ao enquadramento original
+zoomPct.addEventListener('click', () => { focoBomba(false) })
+setInterval(() => {
+  const k = mq.getZoom(), t = `${Math.round(k * 100)}%`
+  if (zoomPct.textContent !== t) zoomPct.textContent = t
+  zoomPct.setAttribute('aria-pressed', Math.abs(k - 1) > 0.01); zoomPct.setAttribute('aria-label', Math.abs(k - 1) > 0.01 ? `Zoom em ${t}. Voltar a 100%` : 'Zoom em 100%')
+  if (k <= 1.01 && verBomba.getAttribute('aria-pressed') === 'true') { verBomba.setAttribute('aria-pressed', 'false'); detBomba.hidden = true }
+}, 150)
+
+// ---------------------------------------------------------------- estado do posto (simulado)
+let semente = 7; const rnd = () => (semente = (semente * 16807) % 2147483647) / 2147483647
+const brl = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const num = (v, d = 1) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d })
+const ACEL = 60                                   // 1 s de verdade = 1 min de recarga (para os números andarem na demonstração)
+const hoje = { motoristas: 3, kwh: 54.6, rs: 120.12 }
+const NOME_MODELO = { fast: 'Mobi Fast', ultra: 'Mobi Ultra Fast', mobi: 'Mobi' }
+// vagas (cada bomba atende 2, o padrão dos postos) e conectores (o motorista usa o que quiser da bomba da vaga)
+const pontos = mq.vagas.map((v, i) => ({ i, nome: `vaga ${i + 1}`, Nome: `Vaga ${i + 1}`, bomba: v.bomba, sessao: null, estado: 'vazia', parado: null, ultima: null }))
+const bombas = mq.bombas.map((b, bi) => ({ bi, nome: b.nome, modelo: b.modelo, falha: false, desde: null }))
+if (bombas.length > 1) document.getElementById('bombasTit').textContent = 'Bombas'
+const KW_NOM = { fast: 40, ultra: 80, mobi: 7 }
+const conectores = mq.conectores.map((c) => {
+  const modelo = bombas[c.bomba].modelo, tipo = c.dc ? 'CCS2' : 'Tipo 2'
+  const irmao = mq.conectores.filter((x) => x.bomba === c.bomba && x.dc === c.dc).length > 1
+  return { ...c, modelo, tipo, nome: tipo + (irmao ? ` ${c.lado}` : ''), pot: c.dc ? `DC ${KW_NOM[modelo]} kW` : 'AC 7 kW', kwMax: c.dc ? (modelo === 'ultra' ? 76 : 38) : 7, uso: null }
+})
+const temDC = conectores.some((c) => c.dc)
+const tipoSess = (s) => (s.con != null ? `${conectores[s.con].tipo} · ${conectores[s.con].pot}` : s.tipo || '')
+
+// sessões de hoje: uma por motorista; a mesma linha muda de estado (chegando → carregando → terminou)
+const sessoes = []
+let idSessao = 0
+// recargas que já terminaram hoje, antes de abrir a tela (horários contados a partir de agora)
+const haMin = (min) => hhmm(new Date(Date.now() - min * 60000))
+;[[3, 230, 21.4], [4, 140, 15.9], [2, 55, 17.3]].forEach(([m, min, kwh]) =>
+  sessoes.push({ id: ++idSessao, m: MOTORISTAS[m], ponto: null, con: null, tipo: temDC ? 'CCS2' : 'Tipo 2', nomePonto: pontos[0].nome, inicio: haMin(min + 38), fim: haMin(min), kwh, valor: kwh * 2.2,
+    reserva: Math.ceil(kwh * 2.2 / 10) * 10 + 10, cashback: 0, estado: 'terminou', kw: 0, pct: null, real: 38 * 60 / ACEL }))
+
+function escolheMotorista() {
+  const ocupados = new Set(sessoes.filter((s) => !['terminou', 'encerrada'].includes(s.estado)).map((s) => s.m))
+  const hojeJa = new Set(sessoes.map((s) => s.m))
+  const livres = MOTORISTAS.filter((m) => !ocupados.has(m))
+  const novos = livres.filter((m) => !hojeJa.has(m))
+  const lista = novos.length ? novos : livres
+  return lista[Math.floor(rnd() * lista.length)]
+}
+function iniciaSessao(p, conId) {
+  const m = escolheMotorista(), c = conectores[conId]
+  const reserva = [30, 40, 50, 60, 80, 100][Math.floor(rnd() * 6)], cashback = m.cashback && rnd() < 0.6 ? Math.min(m.cashback, 2 + Math.floor(rnd() * 5)) : 0
+  const s = { id: ++idSessao, m, ponto: p.i, con: conId, dc: c.dc, tipo: c.tipo, nomePonto: p.nome, inicio: hhmm(), inicioMs: Date.now(), fim: null, kwh: 0, valor: 0, kw: 0,
+    pct: c.dc ? 10 + Math.floor(rnd() * 35) : null, pct0: null, dur: 26 + rnd() * 22, real: 0, estado: 'chegando', nova: true, reserva, cashback, motivo: null }
+  s.pct0 = s.pct; p.sessao = s; sessoes.push(s); c.uso = p.i
+  mq.setDados(p.i, { pessoa: { nome: curto(m.nome), iniciais: iniciais(m.nome) } })
+  return s
+}
+function encerraSessao(p) {
+  const s = p.sessao; if (!s) return
+  s.estado = s.porDono ? 'encerrada' : 'terminou'; s.fim = hhmm(); s.kw = 0
+  hoje.kwh += s.kwh; hoje.rs += s.valor
+  if (s.con != null && conectores[s.con].uso === p.i) conectores[s.con].uso = null
+  p.ultima = s; p.sessao = null
+}
+
+let pronto = false
+mq.ouvir(({ vaga, estado }) => {
+  const p = pontos[vaga]; const anterior = p.estado; p.estado = estado
+  const s = p.sessao
+  if (s && ['chegando', 'conectando', 'carregando', 'falha'].includes(estado)) { s.estado = estado; s.t = s.t || {}; if (!s.t[estado]) s.t[estado] = hhmm() }
+  if (estado === 'carregando' && anterior === 'conectando') hoje.motoristas++
+  if (estado === 'desconectando' && s) encerraSessao(p)
+  if (estado === 'concluido') p.parado = { s: p.ultima, desde: hhmm(), real: 0, dur: 10 + rnd() * 14, avisado: null }   // terminou e o carro ficou na vaga
+  if (estado === 'saindo' || estado === 'vazia') { p.parado = null; mq.setDados(p.i, { pessoa: null }) }
+  if (pronto) desenha()
+})
+
+// ---------------------------------------------------------------- cards da coluna: setinha para recolher e abrir
+{
+  let guardados = []; try { guardados = JSON.parse(localStorage.getItem('painel-recolhidos') || '[]') } catch {}
+  const salva = () => { try { localStorage.setItem('painel-recolhidos', JSON.stringify([...document.querySelectorAll('.col .card.recolhido')].map((c) => c.dataset.chave))) } catch {} }
+  document.querySelectorAll('.col .card:not(.alertas)').forEach((card) => {
+    const h2 = card.querySelector(':scope > h2'); if (!h2) return
+    const chave = (h2.firstChild && h2.firstChild.textContent || '').trim(); card.dataset.chave = chave
+    const fim = document.createElement('span'); fim.className = 'h2-fim'
+    ;[...h2.children].forEach((x) => fim.append(x))
+    const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'recolher'
+    bt.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    const marca = () => { const r = card.classList.contains('recolhido'); bt.setAttribute('aria-expanded', !r); bt.setAttribute('aria-label', `${r ? 'Abrir' : 'Recolher'} ${chave}`) }
+    bt.addEventListener('click', () => { card.classList.toggle('recolhido'); marca(); salva() })
+    fim.append(bt); h2.append(fim)
+    if (guardados.includes(chave)) card.classList.add('recolhido')
+    marca()
+  })
+}
+
+// ---------------------------------------------------------------- visões da coluna: Posto, Motoristas e Financeiro
+const VISOES = ['posto', 'motoristas', 'financeiro']
+let visao = 'posto'; try { const g = localStorage.getItem('painel-visao'); if (VISOES.includes(g)) visao = g } catch {}
+function mostraVisao(v, foco) {
+  visao = v; try { localStorage.setItem('painel-visao', v) } catch {}
+  for (const k of VISOES) {
+    const b = document.querySelector(`.vistas [data-vista="${k}"]`); b.setAttribute('aria-selected', k === v); b.tabIndex = k === v ? 0 : -1
+    document.getElementById(`v-${k}`).hidden = k !== v
+  }
+  document.getElementById('v-atalhos').hidden = v !== 'financeiro'                  // atalhos ficam no Financeiro
+  if (foco) document.querySelector(`.vistas [data-vista="${v}"]`).focus()
+  const c = document.querySelector('.col'); if (c && c.scrollTop > 0) c.scrollTop = 0
+}
+document.querySelector('.vistas').addEventListener('click', (e) => { const b = e.target.closest('[data-vista]'); if (b) mostraVisao(b.dataset.vista) })
+document.querySelector('.vistas').addEventListener('keydown', (e) => {
+  if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return
+  const k = VISOES.indexOf(visao); mostraVisao(VISOES[(k + (e.key === 'ArrowRight' ? 1 : -1) + 3) % 3], true); e.preventDefault()
+})
+mostraVisao(visao)
+function desenhaAbasVisao() {
+  const emUso = conectores.filter((c) => c.uso != null).length, falha = bombas.some((b) => b.falha)
+  const vp = document.getElementById('vbPosto'); vp.textContent = falha ? '!' : `${emUso}/${conectores.length}`; vp.classList.toggle('alerta', falha)
+  const nAt = noPosto().length; document.getElementById('vbMot').textContent = nAt || ''
+}
+
+// ---------------------------------------------------------------- relógio da simulação: avança as recargas
+let ultimo = performance.now()
+setInterval(() => {
+  const agora = performance.now(), dt = Math.min(1, (agora - ultimo) / 1000); ultimo = agora
+  for (const p of pontos) {
+    if (p.parado) p.parado.real += dt
+    const s = p.sessao; if (!s) continue
+    const c = conectores[s.con]
+    if (p.estado === 'carregando') {
+      // Mobi Ultra Fast: os 80 kW se dividem quando os dois conectores carregam ao mesmo tempo (hipótese a confirmar)
+      const dividindo = c.modelo === 'ultra' && pontos.some((q) => q !== p && q.sessao && q.estado === 'carregando' && conectores[q.sessao.con].bomba === c.bomba)
+      s.dividindo = dividindo
+      const alvoKw = c.kwMax * (dividindo ? 0.5 : 1) * (s.dc ? (s.pct < 80 ? 1 : 0.45) : 1)
+      s.kw += (alvoKw * (0.94 + 0.06 * Math.sin(agora / 900 + p.i)) - s.kw) * Math.min(1, dt * 2)
+      const kwhDt = s.kw * dt * ACEL / 3600
+      s.kwh += kwhDt; s.real += dt; s.valor += kwhDt * precoAgora(s.kwh).p
+      if (s.dc) s.pct = Math.min(100, s.pct + kwhDt / s.m.bateria * 100)
+      // pré-pago: quando o valor reservado acaba, a recarga para
+      if (s.valor >= s.reserva) { s.valor = s.reserva; s.motivo = 'credito'; sair(p, rnd() < 0.5) }
+    } else s.kw += (0 - s.kw) * Math.min(1, dt * 3)
+    mq.setDados(p.i, { kw: Math.round(s.kw), pct: Math.round(s.pct ?? 0) })
+  }
+  if (pronto) desenha(true)
+}, 250)
+
+// ---------------------------------------------------------------- dia de demonstração: chegadas, saídas, carro que fica parado e uma falha
+let tDemo = 0, proximo = 3, proximaFalha = 34, fimFalha = null, demoLigada = true
+function chegar(p, conId) {
+  if (p.estado !== 'vazia') return false
+  const livres = conectores.filter((c) => c.bomba === p.bomba && c.uso == null); if (!livres.length) return false
+  const dc = livres.find((c) => c.dc), natural = livres.find((c) => c.vagasNaturais.includes(p.i))
+  const c = conId != null ? conectores[conId] : (dc && rnd() < 0.7 ? dc : natural || livres[0])
+  if (!c || c.uso != null) return false
+  const s = iniciaSessao(p, c.id)
+  mq.evento(p.i, 'chegar', { cor: COR[s.m.cor], conector: c.id })
+  return true
+}
+function sair(p, ficar = false) {
+  if (['carregando', 'falha'].includes(p.estado)) mq.evento(p.i, 'sair', { ficar })
+  else if (p.estado === 'concluido') mq.evento(p.i, 'sair')
+}
+function falhar(bi, on) {
+  const b = bombas[bi]; if (b.falha === on) return
+  b.falha = on; b.desde = on ? hhmm() : null; mq.setFalha(on, bi)
+  desenha()
+}
+setInterval(() => {
+  if (!demoLigada) return
+  tDemo += 0.5
+  for (const p of pontos) if (p.parado && p.parado.real > p.parado.dur) sair(p)          // o carro parado vai embora depois de um tempo
+  if (tDemo >= proximo) {
+    const prontos = pontos.filter((p) => p.estado === 'carregando' && p.sessao && p.sessao.real > p.sessao.dur)
+    const livres = pontos.filter((p) => p.estado === 'vazia' && conectores.some((c) => c.bomba === p.bomba && c.uso == null))
+    if (prontos.length) sair(prontos[0], rnd() < 0.45)
+    else if (livres.length && rnd() < 0.85) chegar(livres[Math.floor(rnd() * livres.length)])
+    proximo = tDemo + 6 + rnd() * 7
+  }
+  if (tDemo >= proximaFalha && fimFalha == null && pontos.some((p) => p.estado === 'carregando')) { falhar(0, true); fimFalha = tDemo + 11 }
+  if (fimFalha != null && tDemo >= fimFalha) { falhar(0, false); fimFalha = null; proximaFalha = tDemo + 110 }
+}, 500)
+
+// ---------------------------------------------------------------- textos de estado
+const ESTADO_TXT = { vazia: 'Livre', chegando: 'Carro chegando', conectando: 'Conectando', carregando: 'Carregando', falha: 'Interrompida', desconectando: 'Encerrando', concluido: 'Terminou, carro na vaga', saindo: 'Carro saindo' }
+const minutos = (s) => Math.max(1, Math.round(s.real * ACEL / 60))
+const minParado = (p) => Math.max(1, Math.round(p.parado.real * ACEL / 60))
+function linhaSessao(s) {
+  if (s.estado === 'chegando') return `Chegando à ${s.nomePonto}`
+  if (s.estado === 'conectando') return `Conectando na ${s.nomePonto} · ${s.tipo}`
+  if (s.estado === 'carregando') return `Carregando na ${s.nomePonto} · ${s.tipo} · ${num(s.kwh)} kWh · ${brl(s.valor)}`
+  if (s.estado === 'falha') return `Interrompida na ${s.nomePonto} · bomba sem comunicação`
+  const pr = s.ponto != null && pontos[s.ponto].parado && pontos[s.ponto].parado.s === s ? ` · ainda na ${s.nomePonto}` : ''
+  if (s.estado === 'encerrada') return `Encerrada por você às ${s.fim}${pr} · ${num(s.kwh)} kWh · ${brl(s.valor)}`
+  return `Terminou às ${s.fim}${s.motivo === 'credito' ? ' (crédito acabou)' : ''}${pr} · ${num(s.kwh)} kWh · ${brl(s.valor)}`
+}
+const ativa = (s) => !['terminou', 'encerrada'].includes(s.estado)
+
+// ---------------------------------------------------------------- conectores (cada linha é um conector; a vaga aparece em quem está usando)
+const ICON_CON = {
+  ac: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 9.5C5 6 8 3.5 12 3.5S19 6 19 9.5c0 4.4-3.1 8-7 8s-7-3.6-7-8Z"/><circle cx="9" cy="8" r="1" fill="currentColor"/><circle cx="15" cy="8" r="1" fill="currentColor"/><circle cx="12" cy="11" r="1" fill="currentColor"/><circle cx="8.6" cy="12.4" r="1" fill="currentColor"/><circle cx="15.4" cy="12.4" r="1" fill="currentColor"/></svg>',
+  dc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 7.2C6 4.6 8.7 2.8 12 2.8s6 1.8 6 4.4c0 3-2.7 5.4-6 5.4S6 10.2 6 7.2Z"/><circle cx="9.5" cy="6.5" r=".9" fill="currentColor"/><circle cx="14.5" cy="6.5" r=".9" fill="currentColor"/><circle cx="12" cy="9" r=".9" fill="currentColor"/><path d="M5.5 14.5h13v3.2a3.5 3.5 0 0 1-3.5 3.5H9a3.5 3.5 0 0 1-3.5-3.5Z"/><circle cx="9.3" cy="17.6" r="1.5"/><circle cx="14.7" cy="17.6" r="1.5"/></svg>',
+}
+const fechados = new Set(); let confirmando = null           // conectores vêm abertos; o dono pode fechar um a um
+function desenhaPontos() {
+  const box = document.getElementById('pontos')
+  if (!box.dataset.pronto) {
+    box.innerHTML = bombas.map((b) => (bombas.length > 1 ? `<p class="con-grupo">${b.nome}</p>` : '') + conectores.filter((c) => c.bomba === b.bi).map((c) =>
+      `<div class="ponto con" data-c="${c.id}"><button type="button" aria-expanded="false"><span class="con-ic">${ICON_CON[c.dc ? 'dc' : 'ac']}</span><span><span class="nome"><b>${c.nome}</b><span class="pot">${c.pot}</span></span><span class="sub"><i></i><span class="est"></span></span></span><span class="dir"></span><span class="con-mot"></span></button><div class="det"></div></div>`).join('')).join('')
+    box.dataset.pronto = 1
+    box.querySelectorAll('.ponto.con').forEach((d) => {
+      const id = Number(d.dataset.c)
+      d.addEventListener('mouseenter', () => { const c = conectores[id]; mq.setRealce(c.uso) }); d.addEventListener('mouseleave', () => mq.setRealce(null))
+      d.querySelector('button').addEventListener('click', () => { if (fechados.has(id)) fechados.delete(id); else fechados.add(id); confirmando = null; desenhaPontos() })
+      d.querySelector('.det').addEventListener('click', (e) => {
+        const a = e.target.closest('[data-acao]'); if (!a) return
+        const c = conectores[id], p = c.uso != null ? pontos[c.uso] : null
+        if (a.dataset.acao === 'motorista' && p && p.sessao) abreMotorista(p.sessao)
+        if (a.dataset.acao === 'encerrar') confirmando = id
+        if (a.dataset.acao === 'cancelar') confirmando = null
+        if (a.dataset.acao === 'confirmar' && p) { if (p.sessao) p.sessao.porDono = true; sair(p); confirmando = null }
+        desenhaPontos()
+      })
+    })
+  }
+  for (const c of conectores) {
+    const d = box.querySelector(`.ponto.con[data-c="${c.id}"]`), p = c.uso != null ? pontos[c.uso] : null, s = p && p.sessao
+    const est = s ? p.estado : bombas[c.bomba].falha ? 'falha' : 'livre'
+    const temAcoes = !!s && ['carregando', 'falha', 'conectando'].includes(p.estado), ab = temAcoes && !fechados.has(c.id)
+    d.dataset.estado = est; d.classList.toggle('aberto', ab)
+    if (temAcoes) d.querySelector('button').setAttribute('aria-expanded', ab); else d.querySelector('button').removeAttribute('aria-expanded')
+    const alcance = pontos.filter((q) => q.bomba === c.bomba).map((q) => q.Nome)
+    const txt = s ? `${ESTADO_TXT[p.estado] || p.estado} · ${p.Nome}` : bombas[c.bomba].falha ? 'Sem comunicação' : `Livre · alcança ${alcance.join(' e ')}`
+    const et = d.querySelector('.est'); if (et.textContent !== txt) et.textContent = txt
+    const dir = s && p.estado === 'carregando'
+      ? (s.dc ? `<span>${Math.round(s.kw)} kW${s.dividindo ? '<small class="dividindo">dividindo</small>' : ''}</span><span class="anel" style="--p:${Math.round(s.pct)}">${Math.round(s.pct)}%</span>` : `<span>${Math.round(s.kw)} kW</span>`) : ''
+    const mot = s ? `<span class="av ${p.estado === 'falha' ? 'falha-av' : 'vivo-av'}">${iniciais(s.m.nome)}</span><span class="cm"><b>${medio(s.m.nome)}</b><small>${s.m.carro} · desde ${s.inicio}</small></span><span class="cv"><b>${num(s.kwh)} kWh</b>${brl(s.valor)}</span>` : ''
+    const cm = d.querySelector('.con-mot'); if (cm.dataset.h !== mot) { cm.innerHTML = mot; cm.dataset.h = mot }
+    const dd = d.querySelector('.dir'); if (dd.dataset.h !== dir) { dd.innerHTML = dir; dd.dataset.h = dir }
+    const det = d.querySelector('.det')
+    {
+      let html
+      if (s && ['carregando', 'falha', 'conectando'].includes(p.estado)) {
+        html = confirmando === c.id
+          ? `<div class="confirma">Encerrar a recarga de <b>${medio(s.m.nome)}</b>? Para continuar, ${partes(s.m.nome)[0]} terá que iniciar de novo pelo app.<div class="acoes"><button class="btn perigo" type="button" data-acao="confirmar">Encerrar recarga</button><button class="btn" type="button" data-acao="cancelar">Voltar</button></div></div>`
+          : `<div class="acoes"><button class="btn" type="button" data-acao="motorista">Ver motorista</button><button class="btn perigo" type="button" data-acao="encerrar">Encerrar recarga</button></div>`
+      } else html = ''
+      if (!ab) html = ''
+      if (det.dataset.h !== html) { det.innerHTML = html; det.dataset.h = html }
+    }
+  }
+  const n = conectores.filter((c) => c.uso != null).length
+  document.getElementById('pontosResumo').textContent = `${n} de ${conectores.length} em uso`
+  // vagas: quem está em cada uma (inclusive o carro que terminou e continua parado)
+  const vl = document.getElementById('vagasLinha')
+  const html = '<span class="vt">Vagas</span>' + pontos.map((p) => {
+    const s = p.sessao
+    if (p.parado) return `<span class="vg-chip parada"><b>${p.Nome}</b><span>terminou, parado há ${minParado(p)} min</span></span>`
+    if (s && p.estado === 'falha') return `<span class="vg-chip falha"><b>${p.Nome}</b><span>${curto(s.m.nome)} · interrompida</span></span>`
+    if (s) return `<span class="vg-chip ocupada"><b>${p.Nome}</b><span>${curto(s.m.nome)} · ${s.tipo}</span></span>`
+    return `<span class="vg-chip"><b>${p.Nome}</b><span>${p.estado === 'saindo' ? 'carro saindo' : 'livre'}</span></span>`
+  }).join('')
+  if (vl.dataset.h !== html) { vl.innerHTML = html; vl.dataset.h = html }
+}
+
+// ---------------------------------------------------------------- bombas: estado e detalhes (giro 360° no modal)
+const quadroBomba = (modelo, k) => `dados/bombas/${modelo}/g${String(k).padStart(2, '0')}.webp`
+function desenhaBombas() {
+  const box = document.getElementById('bombas')
+  const html = bombas.map((b) => `<div class="bomba ${b.falha ? 'falha' : ''}"><span class="mini"><img src="${quadroBomba(b.modelo, 0)}" alt="" onerror="this.remove()"></span>
+      <div class="info"><b>${b.nome}</b><span><i></i>${b.falha ? `Sem comunicação desde ${b.desde}` : 'Online · respondendo'}</span></div>
+      <button class="btn" type="button" data-det="${b.bi}">Detalhes</button></div>`).join('')
+  if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html }
+}
+document.getElementById('bombas').addEventListener('click', (e) => { const v = e.target.closest('[data-det]'); if (v) abreBomba(Number(v.dataset.det)) })
+
+// ficha técnica: potência e conectores são do modelo; o resto é o que o sistema da bomba informa (simulado aqui)
+const FICHA = {
+  fast: { potencia: 'AC 7 kW + DC 40 kW', conectores: 'Tipo 2 (AC) · CCS2 (DC)', pontos: '2 carros: um no AC e um no DC', serie: 'IGM-F-24-0187' },
+  ultra: { potencia: 'DC 80 kW, dividida entre os 2 cabos', conectores: '2 × CCS2 (DC)', pontos: '2 carros, os dois no DC', serie: 'IGM-U-24-0042' },
+  mobi: { potencia: 'AC 7 kW', conectores: 'Tipo 2 (AC)', pontos: '1 carro por vez', serie: 'IGM-M-25-0311' },
+}
+const modalBomba = document.getElementById('modalBomba')
+let giro = null
+const ICB = {"raio":"<path d=\"M9 1.5 3.5 9h4L7 14.5 12.5 7h-4Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linejoin=\"round\"/>","plug":"<path d=\"M5.5 2v3M10.5 2v3M3.5 5h9v2.5a4.5 4.5 0 0 1-9 0ZM8 12v2.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>","pontos":"<rect x=\"2\" y=\"3\" width=\"5\" height=\"10\" rx=\"1.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><rect x=\"9\" y=\"3\" width=\"5\" height=\"10\" rx=\"1.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/>","sinal":"<path d=\"M3 13h.01M6 13V10M9.5 13V7M13 13V3.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>","serie":"<path d=\"M5.5 2.5 4.5 13.5M11.5 2.5l-1 11M2.5 5.5h11M2 10.5h11\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\"/>","chip":"<rect x=\"4\" y=\"4\" width=\"8\" height=\"8\" rx=\"1.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><path d=\"M6.5 2v2M9.5 2v2M6.5 12v2M9.5 12v2M2 6.5h2M2 9.5h2M12 6.5h2M12 9.5h2\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\"/>","cal":"<rect x=\"2.5\" y=\"3.5\" width=\"11\" height=\"10\" rx=\"1.8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><path d=\"M2.5 6.5h11M5.5 2v3M10.5 2v3\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\"/>","chave":"<path d=\"M10.2 2.4a3.3 3.3 0 0 0-3.7 4.4L2.6 10.7a1.3 1.3 0 0 0 1.9 1.9l3.9-3.9a3.3 3.3 0 0 0 4.4-3.7l-2 2-1.8-.4-.4-1.8Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linejoin=\"round\"/>","ok":"<circle cx=\"8\" cy=\"8\" r=\"6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><path d=\"m5.4 8.2 1.8 1.8 3.5-3.7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"}
+Object.assign(ICB, {
+  cartao: '<rect x="2" y="3.5" width="12" height="9" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 6.5h12M4.5 10h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  volta: '<path d="M3 6.5h7.5a3 3 0 0 1 0 6H7M5.5 4 3 6.5 5.5 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  sino: '<path d="M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3ZM6.5 14h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  chat: '<path d="M2.5 4.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7l-3 2.5v-2.5h0a1.5 1.5 0 0 1-1.5-1.5Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>',
+  pessoa: '<circle cx="8" cy="5.5" r="2.7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.8 14c.6-2.6 2.6-4 5.2-4s4.6 1.4 5.2 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  link: '<path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  etiqueta: '<path d="M2.5 8.6V3.3a.8.8 0 0 1 .8-.8h5.3l4.9 4.9a1 1 0 0 1 0 1.4l-4 4a1 1 0 0 1-1.4 0Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="5.6" cy="5.6" r="1" fill="currentColor"/>',
+  carro2: '<path d="M3 10.5V8.2l1.3-3.1a1.5 1.5 0 0 1 1.4-.9h4.6a1.5 1.5 0 0 1 1.4.9L13 8.2v2.3M2.5 10.5h11v1.8h-2v-1M4.5 11.3v1h-2v-1.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>',
+})
+const ic = (k) => `<svg viewBox="0 0 16 16" aria-hidden="true">${ICB[k]}</svg>`
+const ICON_ALERTA_B = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 18 16.5H2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="10" cy="14.2" r="1" fill="currentColor"/></svg>'
+const linhaIc = (k, rot, val) => `<div><dt>${ic(k)}${rot}</dt><dd>${val}</dd></div>`
+let bombaAberta = null
+function estadoBombaHTML(bi) {
+  const b = bombas[bi]
+  const recarga = pontos.filter((p) => p.bomba === bi && p.sessao && ['carregando', 'falha', 'conectando'].includes(p.estado))
+  if (b.falha) return `<div class="estado-falha" role="alert">
+      <div class="tit">${ICON_ALERTA_B}Sem comunicação desde ${b.desde}</div>
+      <p>A bomba parou de responder ao sistema.${recarga.length ? ` ${recarga.length > 1 ? 'As recargas nela foram interrompidas' : 'A recarga nela foi interrompida'} e volta${recarga.length > 1 ? 'm' : ''} sozinha${recarga.length > 1 ? 's' : ''} quando a comunicação voltar.` : ' Enquanto isso, ninguém consegue iniciar uma recarga nela.'}</p>
+      <h4>Possíveis causas</h4>
+      <ul><li>Internet da bomba (chip 4G) sem sinal ou sem dados</li><li>Queda de energia no local ou disjuntor da bomba desligado</li><li>Bomba reiniciando depois de uma atualização</li></ul>
+      <div class="acoes"><a class="btn perigo-cheio" href="#suporte">Chamar o suporte</a><button class="btn" type="button" data-ir="${bi}">Ver na maquete</button></div>
+    </div>`
+  return `<div class="estado-ok">
+      <div class="linha"><span class="pill">Online · respondendo</span><span>Última resposta agora</span></div>
+      ${recarga.length ? `<ul class="em-uso">${recarga.map((p) => `<li><span class="av ${p.estado === 'falha' ? 'falha-av' : 'vivo-av'}">${iniciais(p.sessao.m.nome)}</span><span><b>${medio(p.sessao.m.nome)}</b><small>${p.Nome} · ${tipoSess(p.sessao)} · ${ESTADO_TXT[p.estado]}${p.estado === 'carregando' ? ` · ${Math.round(p.sessao.kw)} kW` : ''}</small></span></li>`).join('')}</ul>`
+        : '<span style="font-size:14px;color:var(--muted)">Nenhuma recarga agora. Pronta para o próximo carro.</span>'}
+    </div>`
+}
+function abreBomba(bi) {
+  const b = bombas[bi], f = FICHA[b.modelo]; bombaAberta = bi
+  modalBomba.innerHTML = `
+    <div class="cab"><div><h2 id="mbNome">${b.nome}</h2><p>${b.nome === NOME_MODELO[b.modelo] ? posto.nome : NOME_MODELO[b.modelo] + ' · ' + posto.nome}</p></div>
+      <button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>
+    <div class="corpo"><div class="bomba-corpo">
+      <div class="giro" id="giro" tabindex="0" role="img" aria-label="${NOME_MODELO[b.modelo]} em 3D. Arraste ou use as setas para girar.">
+        <img id="giroImg" src="${quadroBomba(b.modelo, 0)}" alt="" draggable="false"><span class="dica"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 0 1 10-3.2M13.5 8a5.5 5.5 0 0 1-10 3.2M12.5 2.5v2.4h-2.4M3.5 13.5v-2.4h2.4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>Arraste para girar</span>
+      </div>
+      <div class="ficha">
+        <section><h3>Agora</h3><div id="mbEstado">${estadoBombaHTML(bi)}</div></section>
+        <section><h3>Elétrica</h3><dl class="lista ic">
+          ${linhaIc('raio', 'Potência', f.potencia)}${linhaIc('plug', 'Conectores', f.conectores)}${linhaIc('carro2', 'Atende ao mesmo tempo', f.pontos)}
+        </dl></section>
+        <section><h3>Equipamento</h3><dl class="lista ic">
+          ${linhaIc('sinal', 'Comunicação', 'OCPP 1.6J · 4G')}${linhaIc('serie', 'Número de série', f.serie)}${linhaIc('chip', 'Firmware', '2.4.1 · atualizado')}
+        </dl></section>
+        <section><h3>Manutenção e uso</h3><dl class="lista ic">
+          ${linhaIc('cal', 'Instalada em', '12/08/2026')}${linhaIc('chave', 'Última manutenção', '03/10/2026')}${linhaIc('ok', 'Disponível em outubro', '99,4% do tempo')}
+        </dl><p class="nota-sim" style="margin-top:10px">Série, firmware, datas e disponibilidade são exemplos; em produção vêm do sistema da bomba.</p></section>
+        ${b.falha ? '' : `<div class="rodape"><button class="btn" type="button" data-ir="${bi}">Ver na maquete</button></div>`}
+      </div>
+    </div></div>`
+  modalBomba.showModal(); modalBomba.focus()
+  iniciaGiro(b.modelo)
+}
+function iniciaGiro(modelo) {
+  const N = 36, caixa = document.getElementById('giro'), img = document.getElementById('giroImg')
+  const quadros = Array.from({ length: N }, (_, k) => { const im = new Image(); im.src = quadroBomba(modelo, k); return im })
+  let k = 0, solto = true, arr = null
+  const mostra = () => { img.src = quadros[((k % N) + N) % N].src }
+  img.onerror = () => { caixa.innerHTML = '<span class="sem">O giro 3D desta bomba ainda está sendo gerado.</span>' }
+  mostra()
+  const auto = setInterval(() => { if (solto) { k++; mostra() } }, 110)     // gira devagar até a pessoa pegar
+  caixa.addEventListener('pointerdown', (e) => { solto = false; arr = { x: e.clientX, k }; caixa.setPointerCapture(e.pointerId) })
+  caixa.addEventListener('pointermove', (e) => { if (!arr) return; k = arr.k - Math.round((e.clientX - arr.x) / 9); mostra() })
+  const solta = () => { arr = null }
+  caixa.addEventListener('pointerup', solta); caixa.addEventListener('pointercancel', solta)
+  caixa.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { solto = false; k += e.key === 'ArrowRight' ? -1 : 1; mostra(); e.preventDefault() } })
+  giro = { parar: () => clearInterval(auto) }
+}
+modalBomba.addEventListener('click', (e) => {
+  if (e.target === modalBomba || e.target.closest('[data-fecha]')) modalBomba.close()
+  const ir = e.target.closest('[data-ir]'); if (ir) { modalBomba.close(); irBomba(Number(ir.dataset.ir)) }
+})
+modalBomba.addEventListener('close', () => { if (giro) giro.parar(); giro = null; bombaAberta = null })
+
+// ---------------------------------------------------------------- modal do motorista
+const modalMot = document.getElementById('modalMotorista')
+let sessaoAberta = null, confirmaModal = false, abaMot = 'recarga'
+const ABAS_MOT = [['recarga', 'Recarga'], ['financeiro', 'Financeiro'], ['historico', 'Histórico'], ['produtos', 'Produtos<span class="so-largo"> iGreen</span>'], ['perfil', 'Perfil']]
+let ofertaSel = null
+function abreMotorista(s, aba = 'recarga') { sessaoAberta = s; confirmaModal = false; abaMot = aba; ofertaSel = null; desenhaMotorista(true); if (!modalMot.open) { modalMot.showModal(); modalMot.focus() } }
+const fmtDiaMes = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
+const fmtDiaSem = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short' })
+// recargas anteriores do motorista neste posto (exemplo estável por pessoa, no horário em que ela costuma vir)
+function historicoDe(m) {
+  if (m.hist) return m.hist
+  let sd = [...m.nome].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 2147483647; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647
+  const faixa = m.hor.match(/(\d+)h–(\d+)h/), h0 = faixa ? Number(faixa[1]) : 14, h1 = faixa ? Number(faixa[2]) : 17
+  const out = []; let dias = 0
+  for (let k = 0; k < Math.min(8, Math.max(0, m.rec - 1)); k++) {
+    dias += 1 + Math.floor(r() * 3)
+    const d = new Date(Date.now() - dias * 86400000), hi = h0 + r() * Math.max(1, h1 - h0), dc = r() < 0.6
+    const kwh = 8 + r() * 26
+    out.push({ dia: fmtDiaMes.format(d), sem: fmtDiaSem.format(d).replace('.', ''), hora: `${String(Math.floor(hi)).padStart(2, '0')}:${String(Math.floor((hi % 1) * 60)).padStart(2, '0')}`,
+      tipo: dc && temDC ? 'CCS2' : 'Tipo 2',
+      min: Math.max(12, Math.round(kwh / (dc && temDC ? 34 : 6.6) * 60)), kwh, valor: kwh * 2.2 })
+  }
+  return (m.hist = out)
+}
+const duracao = (min) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`)
+function etapasHTML(s) {
+  const t = s.t || {}, e = []
+  if (t.chegando || s.inicio !== '—') e.push(['Chegou e conectou', t.chegando || s.inicio, 'feito'])
+  if (t.carregando) e.push(['Começou a carregar', t.carregando, 'feito'])
+  if (t.falha) e.push(['Interrompida: bomba sem comunicação', t.falha, s.estado === 'falha' ? 'falha' : 'feito'])
+  if (s.fim) e.push([s.estado === 'encerrada' ? 'Encerrada por você' : 'Terminou', s.fim, 'atual'])
+  else if (s.estado === 'carregando') e.push(['Carregando agora', '', 'atual'])
+  else if (s.estado === 'falha') e.at(-1)[2] = 'falha'
+  else e.push([ESTADO_TXT[s.estado] || s.estado, '', 'atual'])
+  return `<ol class="etapas">${e.map(([txt, h, cls]) => `<li class="${cls}"><span>${txt}</span><time>${h}</time></li>`).join('')}</ol>`
+}
+function partesRecarga(s) {
+  const m = s.m, p = s.ponto != null ? pontos[s.ponto] : null, viva = ativa(s) && p && p.sessao === s
+  const horas = s.real * ACEL / 3600, media = horas > 0.01 ? s.kwh / horas : 0
+  const agora = viva
+    ? `<div class="agora-box">${s.dc && s.pct != null ? `<span class="anel" style="--p:${Math.round(s.pct)}">${Math.round(s.pct)}%</span>` : `<span class="av ${s.estado === 'falha' ? 'falha-av' : 'vivo-av'}" style="width:54px;height:54px;border-radius:50%">AC</span>`}
+        <div class="tx"><b>${ESTADO_TXT[s.estado] || s.estado} na ${s.nomePonto} · ${tipoSess(s)}</b>
+        <span>Desde ${s.inicio} · ${minutos(s)} min · ${Math.round(s.kw)} kW agora</span><span>${num(s.kwh)} kWh · ${brl(s.valor)} até agora</span></div></div>`
+    : `<div class="agora-box"><span class="av" style="width:54px;height:54px;border-radius:50%">${ICB ? ic('ok') : '✓'}</span><div class="tx"><b>${s.estado === 'encerrada' ? 'Recarga encerrada por você' : 'Recarga concluída'}</b><span>${s.inicio !== '—' ? `${s.inicio} – ` : ''}${s.fim} · ${s.nomePonto} · ${s.tipo}${s.motivo === 'credito' ? ' · o crédito reservado acabou' : ''}</span><span>${num(s.kwh)} kWh · ${brl(s.valor)}</span></div></div>`
+  const acoes = viva
+    ? (confirmaModal
+      ? `<div class="confirma" style="width:100%">Encerrar a recarga de <b>${medio(m.nome)}</b>? Para continuar, ${partes(m.nome)[0]} terá que iniciar de novo pelo app.<div class="acoes"><button class="btn perigo" type="button" data-m="confirmar">Encerrar recarga</button><button class="btn" type="button" data-m="voltar">Voltar</button></div></div>`
+      : `<button class="btn" type="button" data-m="ver">Ver na maquete</button><button class="btn perigo" type="button" data-m="encerrar">Encerrar recarga</button>`)
+    : ''
+  const detalhes = `<dl class="lista ic">
+      ${linhaIc('pontos', 'Vaga', p ? p.Nome : s.nomePonto)}
+      ${linhaIc('plug', 'Conector', tipoSess(s))}
+      ${linhaIc('raio', 'Potência média', media ? `${num(media)} kW` : '—')}
+      ${s.pct0 != null ? linhaIc('ok', 'Bateria', `${s.pct0}% → ${Math.round(s.pct)}%`) : linhaIc('ok', 'Bateria', 'O AC não informa')}
+      ${linhaIc('etiqueta', 'Preço do kWh', viva ? brl(precoAgora(s.kwh).p) : brl(s.valor / Math.max(0.1, s.kwh)))}
+    </dl>`
+  // pré-pago: o motorista reserva um valor no app antes de começar; o que sobra volta para o saldo dele
+  const usado = Math.min(100, s.valor / Math.max(1, s.reserva) * 100)
+  const pagamento = `<div class="pp"><div class="pp-barra"><i style="width:${usado}%"></i></div>
+      <div class="pp-linha"><span><b>${brl(s.valor)}</b> ${viva ? 'usados até agora' : 'cobrados'}</span><span>de ${brl(s.reserva)} reservados</span></div></div>
+    <dl class="lista ic">${linhaIc('cartao', 'Pagou a reserva com', m.pag)}${linhaIc('ok', 'Cashback usado', s.cashback ? brl(s.cashback) : 'Não usou')}
+      ${linhaIc('volta', viva ? 'Volta para o saldo ao terminar' : 'Voltou para o saldo', brl(Math.max(0, s.reserva - s.valor)))}</dl>
+    ${s.motivo === 'credito' ? '<p class="aviso" style="margin-top:8px">A recarga parou porque o valor reservado acabou.</p>' : ''}`
+  const d = divisao(s.valor, m), pc = (v) => (s.valor > 0 ? `${Math.round(v / s.valor * 100)}%` : '')
+  const divisaoHTML = `<div class="divisao"><div class="barra" role="img" aria-label="Divisão do valor da recarga">
+      <i class="d-posto" style="flex-grow:${d.posto}"></i><i class="d-adm" style="flex-grow:${d.adm}"></i><i class="d-lp" style="flex-grow:${d.lp}"></i>${d.lm ? `<i class="d-lm" style="flex-grow:${d.lm}"></i>` : ''}</div>
+    <ul>
+      <li><i class="d-posto"></i><span class="tx"><b>Faturamento do posto</b><small>daqui saem energia, tributos e a sociedade</small></span><span class="vl"><b>${brl(d.posto)}</b><small>${pc(d.posto)}</small></span></li>
+      <li><i class="d-adm"></i><span class="tx"><b>Administração iGreen</b><small>plataforma, suporte 24h e taxas de cartão</small></span><span class="vl"><b>${brl(d.adm)}</b><small>14%</small></span></li>
+      <li><i class="d-lp"></i><span class="tx"><b>${LICENCIADOS[LIC_POSTO].nome}</b><small>${d.mesmo ? `seu licenciado e também o de ${partes(m.nome)[0]}` : 'seu licenciado, fechou o posto com você'}</small></span><span class="vl"><b>${brl(d.lp)}</b><small>${d.mesmo ? '4%' : '2%'}</small></span></li>
+      ${d.lm ? `<li><i class="d-lm"></i><span class="tx"><b>${d.licMot.nome}</b><small>licenciad${d.licMot.a ? 'a' : 'o'} de ${partes(m.nome)[0]}, cadastrado pelo ${m.vinculo}</small></span><span class="vl"><b>${brl(d.lm)}</b><small>2%</small></span></li>` : ''}
+    </ul></div>`
+  const finTopo = `<div class="grade-kpi tres"><div><b>${brl(s.valor)}</b><span>${viva ? 'até agora' : 'cobrados'}</span></div>
+      <div><b>${brl(d.posto)}</b><span>ficam com o posto</span></div><div><b>${brl(s.cashback || 0)}</b><span>${s.cashback ? 'cashback usado' : 'sem cashback'}</span></div></div>`
+  return { viva, agora, acoes, etapas: etapasHTML(s), detalhes, pagamento, divisao: divisaoHTML, finTopo }
+}
+// produtos iGreen (os mesmos da Conexão Mob) e a novidade que o dono pode mandar pelo app
+const ICP = {
+  energia: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 14.5h6M7.8 17h4.4M10 2.5a5.2 5.2 0 0 0-3.2 9.3c.7.6 1 1.3 1 2.2h4.4c0-.9.3-1.6 1-2.2A5.2 5.2 0 0 0 10 2.5Z"/></svg>',
+  seguro: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 2.5 4 5v4.6c0 3.8 2.6 6.6 6 7.9 3.4-1.3 6-4.1 6-7.9V5Z"/><path d="m7.4 10 1.8 1.8 3.5-3.6"/></svg>',
+  tel: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="2.5" width="9" height="15" rx="2"/><path d="M9 14.8h2"/></svg>',
+  placas: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 15.5 5 8h10l2 7.5ZM4.1 11.7h11.8M8.4 8l-.9 7.5M11.6 8l.9 7.5M10 2.5v2M5.7 4.3l1 1M14.3 4.3l-1 1"/></svg>',
+  posto: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M11 2.5 5.5 11h4L9 17.5l5.5-8.5h-4Z" stroke-linejoin="round"/></svg>',
+}
+const PRODUTOS = [['energia', 'Energia por assinatura', 'para a casa'], ['seguro', 'Seguro auto', 'para o carro'], ['tel', 'Telefonia', 'plano de celular'], ['placas', 'Placas solares', 'para gerar energia em casa']]
+function novidadePosto(f) {
+  const barata = tabela.regras.filter((r) => r.ativa && r.tipo === 'hora' && r.preco < tabela.base).sort((a, b) => a.preco - b.preco)[0]
+  return barata ? `${f}, novidade no ${posto.nome}: ${minusc(regraTxt(barata))}, o kWh sai por ${brl(barata.preco)}.` : `${f}, o ${posto.nome} está pronto para a sua próxima recarga.`
+}
+function textoOferta(m, k) {
+  const f = partes(m.nome)[0]
+  return { energia: `${f}, você já recarrega o seu ${m.carro} aqui no ${posto.nome}. Que tal economizar também na conta de luz de casa com a energia por assinatura da iGreen?`,
+    seguro: `${f}, que tal uma cotação de seguro para o seu ${m.carro}? É rápido, direto pelo app iGreen.`,
+    tel: `${f}, a iGreen também tem plano de celular. Quer conhecer as opções no app?`,
+    placas: `${f}, já pensou em gerar a própria energia em casa com placas solares? Faça uma simulação no app iGreen.`,
+    posto: novidadePosto(f) }[k]
+}
+function abaProdutos(m) {
+  const tem = PRODUTOS.filter(([k]) => m.cx.includes(k)).length, f = partes(m.nome)[0]
+  const opcoes = PRODUTOS.filter(([k]) => !m.cx.includes(k)).map(([k, n]) => [k, n]).concat([['posto', 'Novidade do posto']])
+  if (!ofertaSel || !opcoes.some(([k]) => k === ofertaSel)) ofertaSel = opcoes[0][0]
+  const enviada = m.enviadas[ofertaSel]
+  return `<section><div class="sec-cab"><h3>Produtos iGreen</h3><span class="resumo" style="font-size:13px;color:var(--dim)">${tem} de ${PRODUTOS.length}</span></div>
+      <ul class="prod-lista">${PRODUTOS.map(([k, n, d]) => { const has = m.cx.includes(k); return `<li class="${has ? 'tem' : ''}"><span class="prod-ic">${ICP[k]}</span><span class="tx"><b>${n}</b><small>${d}</small></span><span class="pill ${has ? '' : 'cinza'}">${has ? 'Já tem' : 'Ainda não tem'}</span></li>` }).join('')}</ul></section>
+    <section><h3>Enviar uma novidade</h3>
+      ${m.optin ? `<div class="seg-dias" role="group" aria-label="Sobre o que">${opcoes.map(([k, t]) => `<button type="button" data-m="oferta" data-v="${k}" aria-pressed="${ofertaSel === k}">${t}</button>`).join('')}</div>
+        <div class="notif"><span class="notif-ic">iG</span><div><b>iGreen<small>agora</small></b><p>${textoOferta(m, ofertaSel)}</p></div></div>
+        <div class="form-pe" style="justify-content:space-between;align-items:center"><span class="nota-sim">Chega como notificação no app. ${f} autorizou receber novidades.</span>
+          <button class="btn prim" type="button" data-m="enviar" ${enviada ? 'disabled' : ''}>${enviada ? `Enviada às ${enviada}` : 'Enviar pelo app'}</button></div>`
+      : `<p class="aviso-neutro">${f} não autorizou receber novidades da iGreen no app. Pela LGPD, só quem autorizou pode receber ofertas. O pedido de autorização aparece no app de ${f}.</p>`}
+    </section>`
+}
+function painelMot(s) {
+  const m = s.m
+  if (abaMot === 'recarga') {
+    const r = partesRecarga(s)
+    return `<div class="agora-grupo ${r.viva ? 'viva' : ''}"><div data-parte="agora">${r.agora}</div>
+      ${r.acoes ? `<div class="rodape" data-parte="acoes">${r.acoes}</div>` : ''}</div>
+      <div class="duas"><section><h3>Como foi</h3><div data-parte="etapas">${r.etapas}</div></section>
+        <section><h3>Detalhes</h3><div data-parte="detalhes">${r.detalhes}</div></section></div>`
+  }
+  if (abaMot === 'financeiro') {
+    const r = partesRecarga(s)
+    return `<div data-parte="finTopo">${r.finTopo}</div>
+      <section><h3>Pagamento · pré-pago no app</h3><div data-parte="pagamento">${r.pagamento}</div></section>
+      <section><h3>Para onde vai esta recarga</h3><div data-parte="divisao">${r.divisao}</div></section>`
+  }
+  if (abaMot === 'historico') {
+    const hojeAqui = sessoes.filter((x) => x.m === m).sort((a, b) => b.id - a.id)
+    const linhas = hojeAqui.map((x) => `<li class="${ativa(x) ? 'agora-li' : ''}"><span class="quando"><b>Hoje</b><small>${x.inicio}</small></span>
+        <span class="onde">${x.tipo} · ${ativa(x) ? 'carregando agora' : (x.real ? duracao(Math.round(x.real * ACEL / 60)) : 'concluída')}</span><span class="kwh">${num(x.kwh)} kWh</span><b class="rs">${brl(x.valor)}</b></li>`)
+      .concat(historicoDe(m).map((h) => `<li><span class="quando"><b>${h.dia}</b><small>${h.sem} · ${h.hora}</small></span><span class="onde">${h.tipo} · ${duracao(h.min)}</span><span class="kwh">${num(h.kwh)} kWh</span><b class="rs">${brl(h.valor)}</b></li>`))
+    return `<section><h3>Neste posto em outubro</h3><div class="grade-kpi">
+        <div><b>${m.rec}</b><span>recargas</span></div><div><b>${num(m.kwh, 0)}</b><span>kWh</span></div>
+        <div><b>${brl(m.gasto)}</b><span>gasto</span></div><div><b>${brl(m.gasto / Math.max(1, m.rec))}</b><span>por recarga</span></div></div>
+        <dl class="lista ic" style="margin-top:12px">${linhaIc('cal', 'Costuma vir', m.hor)}${linhaIc('raio', 'Recarga média', `${num(m.kwh / Math.max(1, m.rec))} kWh`)}</dl></section>
+      <section><h3>Últimas recargas aqui</h3><ul class="hist-mot">${linhas.join('')}</ul>
+        <a class="ver-tudo" href="#crm-clientes">Ver histórico completo <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></a></section>`
+  }
+  if (abaMot === 'produtos') return abaProdutos(m)
+  // perfil: o carro (com a placa), a verificação e o cadastro
+  const corNome = m.cor[0].toUpperCase() + m.cor.slice(1)
+  const dd = m.desde.slice(0, 5), [dia, mes] = dd.split('/').map(Number), nx = new Date(2026, mes - 1, dia + 1)
+  const dv = String(nx.getDate()).padStart(2, '0') + '/' + String(nx.getMonth() + 1).padStart(2, '0')
+  return `<div class="carro-topo"><span class="cor-carro" style="--c:${COR[m.cor]}"></span><span class="tx"><b>${m.carro} · ${m.ano}</b><small>${corNome} · bateria de ${num(m.bateria, m.bateria % 1 ? 1 : 0)} kWh</small><small class="fatos">Aceita Tipo 2 (AC) e CCS2 (DC)</small></span>
+      <span class="placa" aria-label="Placa ${placaFmt(m.placa)}"><i>BRASIL</i><b>${placaFmt(m.placa)}</b></span></div>
+    <div class="duas"><section><h3>Verificação</h3><ol class="etapas">
+        <li class="feito"><span>Cadastro no app</span><time>${dd}</time></li><li class="feito"><span>Documentos enviados</span><time>${dd}</time></li>
+        <li class="atual"><span>Validado pela iGreen</span><time>${dv}</time></li></ol></section>
+      <section><h3>Licenciado</h3><dl class="lista ic">
+        ${linhaIc('pessoa', 'Nome', LICENCIADOS[m.lic].nome)}${linhaIc('link', 'Cadastrado pelo', m.vinculo)}
+        ${m.lic === LIC_POSTO ? linhaIc('ok', 'Relação', 'O mesmo do seu posto') : ''}
+      </dl></section></div>
+    <section><h3>Cadastro</h3><dl class="lista ic">
+      ${linhaIc('cal', 'Cliente desde', `${m.desde} · ${m.cidade}/MG`)}${linhaIc('cartao', 'Pagamento', `Pré-pago no app · ${m.pag}`)}
+      ${linhaIc('ok', 'Cashback disponível', brl(m.cashback || 0))}${linhaIc('sino', 'Novidades da iGreen', m.optin ? 'Autorizou receber' : 'Não autorizou')}
+      ${linhaIc('chat', 'Contato', 'Pelo app (o telefone não aparece aqui)')}
+    </dl></section>`
+}
+function desenhaMotorista(tudo) {
+  const s = sessaoAberta; if (!s) return
+  if (!tudo) {                                                       // aba aberta: só os trechos que mudam com o tempo
+    if (!['recarga', 'financeiro'].includes(abaMot)) return
+    const r = partesRecarga(s)
+    for (const k of ['agora', 'etapas', 'detalhes', 'acoes', 'pagamento', 'divisao', 'finTopo']) { const el = modalMot.querySelector(`[data-parte="${k}"]`); if (el && el.dataset.h !== r[k]) { el.innerHTML = r[k]; el.dataset.h = r[k] } }
+    return
+  }
+  const m = s.m, p = s.ponto != null ? pontos[s.ponto] : null, viva = ativa(s) && p && p.sessao === s
+  modalMot.innerHTML = `
+    <div class="cab"><span class="av ${viva ? (s.estado === 'falha' ? 'falha-av' : 'vivo-av') : ''}">${iniciais(m.nome)}</span>
+      <div><div class="linha-nome"><h2 id="mmNome">${m.nome}</h2><span class="pill">Verificado</span></div><p>Cliente desde ${m.desde} · ${m.cidade}/MG · ${m.carro}</p></div>
+      <button class="fechar" type="button" data-fecha aria-label="Fechar"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
+    <div class="abas" role="tablist" aria-label="Informações do motorista">${ABAS_MOT.map(([k, t]) => `<button type="button" role="tab" id="aba-${k}" aria-controls="painelMot" aria-selected="${abaMot === k}" tabindex="${abaMot === k ? 0 : -1}" data-aba="${k}">${t}</button>`).join('')}</div>
+    <div class="corpo" id="painelMot" role="tabpanel" aria-labelledby="aba-${abaMot}">${painelMot(s)}</div>`
+}
+modalMot.addEventListener('click', (e) => {
+  if (e.target === modalMot || e.target.closest('[data-fecha]')) { modalMot.close(); return }
+  const aba = e.target.closest('[data-aba]'); if (aba) { abaMot = aba.dataset.aba; desenhaMotorista(true); if (e.detail === 0) modalMot.querySelector(`[data-aba="${abaMot}"]`).focus(); return }
+  const a = e.target.closest('[data-m]'); if (!a || !sessaoAberta) return
+  const p = sessaoAberta.ponto != null ? pontos[sessaoAberta.ponto] : null
+  if (a.dataset.m === 'ver' && p) { modalMot.close(); mq.setRealce(p.i); setTimeout(() => mq.setRealce(null), 2600) }
+  if (a.dataset.m === 'oferta') { ofertaSel = a.dataset.v; desenhaMotorista(true); return }
+  if (a.dataset.m === 'enviar' && sessaoAberta.m.optin) { sessaoAberta.m.enviadas[ofertaSel] = hhmm(); desenhaMotorista(true); return }
+  if (a.dataset.m === 'encerrar') confirmaModal = true
+  if (a.dataset.m === 'voltar') confirmaModal = false
+  if (a.dataset.m === 'confirmar' && p && p.sessao === sessaoAberta) { sessaoAberta.porDono = true; sair(p); confirmaModal = false }
+  desenhaMotorista(false)
+})
+// setas trocam de aba (padrão de abas acessíveis)
+modalMot.addEventListener('keydown', (e) => {
+  if (!e.target.closest('[role="tab"]') || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return
+  const k = ABAS_MOT.findIndex(([x]) => x === abaMot), n = (k + (e.key === 'ArrowRight' ? 1 : -1) + ABAS_MOT.length) % ABAS_MOT.length
+  abaMot = ABAS_MOT[n][0]; desenhaMotorista(true); modalMot.querySelector(`[data-aba="${abaMot}"]`).focus(); e.preventDefault()
+})
+modalMot.addEventListener('close', () => { sessaoAberta = null })
+// clicar no card do motorista na maquete
+el.addEventListener('mv-selo', (e) => { const p = pontos[e.detail.vaga]; if (p.sessao) abreMotorista(p.sessao) })
+
+// ---------------------------------------------------------------- hoje até agora, frase e alerta
+function desenhaHoje() {
+  const vivo = pontos.reduce((a, p) => a + (p.sessao ? p.sessao.kwh : 0), 0), vivoRs = pontos.reduce((a, p) => a + (p.sessao ? p.sessao.valor : 0), 0)
+  document.getElementById('hojeMot').textContent = hoje.motoristas
+  document.getElementById('hojeKwh').textContent = `${num(hoje.kwh + vivo)} kWh`
+  document.getElementById('hojeRs').textContent = brl(hoje.rs + vivoRs)
+}
+function desenhaFrase() {
+  const fr = document.getElementById('frase'), sub = document.getElementById('fraseSub')
+  const falhas = bombas.filter((b) => b.falha)
+  const carregando = pontos.filter((p) => p.estado === 'carregando')
+  const chegando = pontos.filter((p) => ['chegando', 'conectando'].includes(p.estado))
+  let txt, alerta = false
+  if (falhas.length) {
+    const afetados = pontos.filter((p) => p.estado === 'falha').length
+    txt = `${falhas[0].nome} sem comunicação${afetados ? ` · ${afetados} recarga${afetados > 1 ? 's' : ''} interrompida${afetados > 1 ? 's' : ''}` : ''}`; alerta = true
+  } else if (carregando.length) {
+    const kw = Math.round(carregando.reduce((a, p) => a + (p.sessao ? p.sessao.kw : 0), 0))
+    txt = `${carregando.length} carro${carregando.length > 1 ? 's' : ''} carregando · ${kw} kW agora`
+  } else if (chegando.length) txt = `Um carro está chegando à ${chegando[0].nome}`
+  else txt = 'Posto livre · pronto para o próximo carro'
+  if (fr.textContent !== txt) fr.textContent = txt
+  fr.classList.toggle('alerta', alerta)
+  sub.textContent = `Atualizado às ${hhmm()} · ${pontos.length} vagas · ${conectores.length} conector${conectores.length > 1 ? 'es' : ''}`
+  const al = document.getElementById('alertas')
+  al.classList.toggle('on', falhas.length > 0)
+  if (falhas.length) document.getElementById('alertaTxt').textContent = `A ${falhas[0].nome} parou de responder às ${falhas[0].desde}. As recargas nela foram interrompidas e voltam sozinhas quando a comunicação voltar.`
+}
+document.getElementById('alertaIr').addEventListener('click', () => { const b = bombas.find((x) => x.falha) || bombas[0]; irBomba(b.bi) })
+
+// ---------------------------------------------------------------- modal de postos: busca, filtros, lista e mapa
+const modalPostos = document.getElementById('modalPostos')
+const fPostos = { busca: '', est: 'todos', modelos: new Set(), sel: postoId }
+const EST_TXT = { carregando: (n) => `${n} carregando`, livre: () => 'Livre', alerta: () => 'Sem comunicação' }
+const MODELOS_F = [['mobi', 'Mobi'], ['fast', 'Mobi Fast'], ['ultra', 'Mobi Ultra Fast']]
+// cada bomba vira um grupo de raios: Mobi 1, Mobi Fast 2, Mobi Ultra Fast 3 (círculos um sobre o outro)
+const RAIO_SVG = '<svg viewBox="0 0 12 16" aria-hidden="true"><path d="M7.6 1 1.6 9.2h4.1L4.5 15 10.4 6.7H6.3Z"/></svg>'
+const N_RAIOS = { mobi: 1, fast: 2, ultra: 3 }, NOME_M = { mobi: 'Mobi', fast: 'Mobi Fast', ultra: 'Mobi Ultra Fast' }
+const modelosDe = (p) => p.id.split('-').filter((x) => N_RAIOS[x])
+const raiosHTML = (p) => `<span class="raios" aria-hidden="true" title="${modelosDe(p).map((m) => NOME_M[m]).join(' + ')}">${modelosDe(p).map((m) => `<span class="gr">${RAIO_SVG.repeat(N_RAIOS[m])}</span>`).join('')}</span>`
+const temModelo = (p, m) => p.id.split('-').some((x) => x === m)
+function situacaoAtual() {                                              // o posto aberto usa o que está acontecendo agora
+  const n = pontos.filter((q) => q.estado === 'carregando').length
+  return bombas.some((b) => b.falha) ? { est: 'alerta', n } : n ? { est: 'carregando', n } : { est: 'livre', n: 0 }
+}
+const situacao = (p) => (p.id === postoId ? { ...situacaoAtual(), rs: hoje.rs + pontos.reduce((a, q) => a + (q.sessao ? q.sessao.valor : 0), 0) } : p)
+const passaFiltro = (p) => {
+  const t = fPostos.busca.trim().toLowerCase(), st = situacao(p)
+  return (!t || `${p.nome} ${p.bairro} ${p.cidade} ${p.equip}`.toLowerCase().includes(t)) && (fPostos.est === 'todos' || st.est === fPostos.est)
+    && (!fPostos.modelos.size || [...fPostos.modelos].some((m) => temModelo(p, m)))
+}
+const MAPA_SVG = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+  <defs><pattern id="quadras" width="3.2" height="3.2" patternUnits="userSpaceOnUse"><rect x=".35" y=".35" width="2.5" height="2.5" rx=".4" fill="rgba(255,255,255,.03)"/></pattern></defs>
+  <rect width="100" height="100" fill="#0A0F0C"/><rect width="100" height="100" fill="url(#quadras)"/>
+  <path d="M28 78C40 71 56 72 68 66c9-4 18-5 30-3v9c-12-2-20-1-28 3-12 6-28 7-42 9Z" fill="rgba(3,255,31,.045)"/>
+  <path d="M35.5 25.5c1.5-4.5 7.5-6 11-3s2 8.5-2.5 9.5-9.8-1.5-8.5-6.5Z" fill="#0E2626" stroke="#1C3D3B" stroke-width=".35" vector-effect="non-scaling-stroke"/>
+  <g fill="none" stroke="#25302A" stroke-linecap="round" vector-effect="non-scaling-stroke">
+    <path d="M17 17C25 30 29 46 32 60c3 11 17 13 30 11 10-2 18-8 26-14" stroke-width="5" vector-effect="non-scaling-stroke"/>
+    <path d="M52 47 30 51 6 54" stroke-width="3.4" vector-effect="non-scaling-stroke"/>
+    <path d="M52 47 49 30 46 6" stroke-width="3.4" vector-effect="non-scaling-stroke"/>
+    <path d="M52 47c6-8 12-18 20-30" stroke-width="3.4" vector-effect="non-scaling-stroke"/>
+    <path d="M56 54c4 10 6 22 8 42" stroke-width="3.4" vector-effect="non-scaling-stroke"/>
+    <path d="M52 47l14 16M45 54l7-7M31 61l14-7" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  </g>
+</svg>
+<span class="rot-cidade" style="left:54%;top:39%">BELO HORIZONTE</span><span class="rot-cidade" style="left:22%;top:39%">CONTAGEM</span>
+<span class="rot-cidade" style="left:9%;top:46%">BETIM</span><span class="rot-cidade" style="left:72%;top:92%">NOVA LIMA</span>
+<span class="rot-cidade peq" style="left:41%;top:20%">Lagoa da Pampulha</span><span class="rot-cidade peq" style="left:70%;top:73%">Serra do Curral</span>`
+function desenhaPostos(tudo) {
+  const lista = POSTOS.filter(passaFiltro), sel = POSTOS.find((p) => p.id === fPostos.sel)
+  const resumo = POSTOS.map(situacao), nCar = resumo.filter((x) => x.est === 'carregando').length, nAl = resumo.filter((x) => x.est === 'alerta').length
+  const linhas = lista.map((p) => { const st = situacao(p); return `<li class="est-${st.est}"><button type="button" data-po="${p.id}" aria-pressed="${fPostos.sel === p.id}">
+      ${raiosHTML(p)}<span class="tx"><b>${p.nome}${p.id === postoId ? '<span class="aqui">aberto agora</span>' : ''}</b><small>${p.bairro} · ${p.cidade}</small><small>${p.equip}</small></span>
+      <span class="po-dir"><span class="st">${EST_TXT[st.est](st.n)}</span><b>${brl(st.rs)}</b></span></button></li>` }).join('') || '<li class="vazio">Nenhum posto com esses filtros.</li>'
+  const pins = POSTOS.map((p) => { const st = situacao(p); return `<button type="button" class="pin est-${st.est} ${passaFiltro(p) ? '' : 'apagado'} ${p.id === postoId ? 'aqui' : ''}" style="left:${p.x}%;top:${p.y}%" data-po="${p.id}" aria-pressed="${fPostos.sel === p.id}" aria-label="${p.nome}, ${modelosDe(p).map((m) => NOME_M[m]).join(' e ')}, ${EST_TXT[st.est](st.n)}">${raiosHTML(p)}<span class="pin-rot">${p.nome}</span></button>` }).join('')
+  if (!tudo) {
+    modalPostos.querySelector('#poLista').innerHTML = linhas; modalPostos.querySelector('#poPins').innerHTML = pins
+    modalPostos.querySelector('#poMostrando').textContent = `Mostrando ${lista.length} de ${POSTOS.length}`
+    const ab = modalPostos.querySelector('[data-pa="abrir"]'); ab.disabled = !sel || sel.id === postoId; ab.textContent = !sel ? 'Escolha um posto' : sel.id === postoId ? 'Você está neste posto' : `Abrir ${sel.nome}`
+    modalPostos.querySelectorAll('[data-est]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.est === fPostos.est))
+    modalPostos.querySelectorAll('[data-mod]').forEach((b) => b.setAttribute('aria-pressed', fPostos.modelos.has(b.dataset.mod)))
+    return
+  }
+  modalPostos.innerHTML = `
+    <div class="cab"><div><h2 id="mpoTit">Seus eletropostos</h2><p>${POSTOS.length} postos · ${nCar} carregando agora · ${nAl} com alerta</p></div>
+      <button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>
+    <div class="corpo"><div class="postos-corpo">
+      <div>
+        <label class="busca"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="m10.5 10.5 3.2 3.2" stroke-linecap="round"/></svg>
+          <input type="search" id="poBusca" placeholder="Buscar por nome, bairro ou cidade" aria-label="Buscar posto" value="${fPostos.busca}"></label>
+        <div class="filtros">
+          <div class="seg-dias" role="group" aria-label="Situação">${[['todos', 'Todos'], ['carregando', 'Carregando'], ['alerta', 'Com alerta'], ['livre', 'Livres']].map(([k, t]) => `<button type="button" data-est="${k}" aria-pressed="${fPostos.est === k}">${t}</button>`).join('')}</div>
+          <div class="seg-dias" role="group" aria-label="Bombas">${MODELOS_F.map(([k, t]) => `<button type="button" data-mod="${k}" aria-pressed="${fPostos.modelos.has(k)}">${t}</button>`).join('')}</div>
+        </div>
+        <ul class="lista-postos" id="poLista">${linhas}</ul>
+      </div>
+      <div class="mapa">${MAPA_SVG}<div id="poPins">${pins}</div>
+        <div class="legenda-mapa"><span class="c">Carregando</span><span>Livre</span><span class="a">Com alerta</span><em style="font-style:normal;color:var(--dim)">1 raio Mobi · 2 Mobi Fast · 3 Mobi Ultra Fast</em></div></div>
+    </div></div>
+    <div class="pe"><span id="poMostrando">Mostrando ${lista.length} de ${POSTOS.length}</span>
+      <button class="btn" type="button" data-pa="cancelar">Cancelar</button>
+      <button class="btn prim" type="button" data-pa="abrir" ${!sel || sel.id === postoId ? 'disabled' : ''}>${!sel ? 'Escolha um posto' : sel.id === postoId ? 'Você está neste posto' : `Abrir ${sel.nome}`}</button></div>`
+}
+function abrePostos() { fPostos.sel = postoId; desenhaPostos(true); modalPostos.showModal(); modalPostos.focus() }
+function vaiPara(id) { if (id === postoId) return; q.set('posto', id); location.search = q.toString() }
+document.getElementById('postoBtn').addEventListener('click', abrePostos)
+modalPostos.addEventListener('input', (e) => { if (e.target.id === 'poBusca') { fPostos.busca = e.target.value; desenhaPostos(false) } })
+modalPostos.addEventListener('click', (e) => {
+  if (e.target === modalPostos || e.target.closest('[data-fecha]') || e.target.closest('[data-pa="cancelar"]')) { modalPostos.close(); return }
+  const po = e.target.closest('[data-po]'); if (po) { fPostos.sel = po.dataset.po; desenhaPostos(false); return }
+  const est = e.target.closest('[data-est]'); if (est) { fPostos.est = est.dataset.est; desenhaPostos(false); return }
+  const mod = e.target.closest('[data-mod]'); if (mod) { const k = mod.dataset.mod; fPostos.modelos.has(k) ? fPostos.modelos.delete(k) : fPostos.modelos.add(k); desenhaPostos(false); return }
+  if (e.target.closest('[data-pa="abrir"]')) vaiPara(fPostos.sel)
+})
+modalPostos.addEventListener('dblclick', (e) => { const po = e.target.closest('[data-po]'); if (po) vaiPara(po.dataset.po) })
+
+// ---------------------------------------------------------------- para ficar de olho: o que pede uma decisão do dono
+const ICO = {
+  parado: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.5"/></svg>',
+  credito: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="4" width="12" height="9" rx="1.8"/><path d="M2 7h12M5 10.5h2.5"/></svg>',
+  produto: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2.5 9.6 6l3.9.4-2.9 2.6.8 3.8L8 10.9l-3.4 1.9.8-3.8L2.5 6.4 6.4 6Z" stroke-linejoin="round"/></svg>',
+  pico: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 13.5h12M3.5 11V8.5M6.5 11V5.5M9.5 11V3M12.5 11V7"/></svg>',
+}
+function itensOlho() {
+  const itens = []
+  for (const p of pontos) if (p.parado) {
+    const s = p.parado.s
+    itens.push({ k: 'parado', id: 'parado' + p.i, txt: `<b>${medio(s.m.nome)}</b> terminou às ${s.fim} e continua na ${p.nome} há <b>${minParado(p)} min</b>, ocupando a vaga.`,
+      acoes: [[`avisar:${p.i}`, p.parado.avisado ? `Aviso enviado às ${p.parado.avisado}` : 'Avisar pelo app', !!p.parado.avisado], ['preco', 'Ver tabela de preços']] })
+  }
+  const cred = sessoes.filter((s) => s.motivo === 'credito').at(-1)
+  if (cred) itens.push({ k: 'credito', id: 'cred' + cred.id, txt: `A recarga de <b>${medio(cred.m.nome)}</b> parou às ${cred.fim} porque o valor reservado (${brl(cred.reserva)}) acabou.`, acoes: [[`mot:${cred.id}`, 'Ver motorista']] })
+  const hojeM = [...new Set(sessoes.map((s) => s.m))], semEnergia = hojeM.filter((m) => !m.cx.includes('energia'))
+  if (semEnergia.length) itens.push({ k: 'produto', id: 'prod', txt: `<b>${semEnergia.length} dos ${hojeM.length}</b> motoristas de hoje ainda não têm Energia por assinatura da iGreen.`, acoes: [['oferta', 'Ver quem são']] })
+  itens.push({ k: 'pico', id: 'pico', txt: 'Na última semana, das <b>18h às 21h</b> os conectores ficaram ocupados quase o tempo todo; das <b>0h às 6h</b>, quase vazios.', acoes: [['preco', 'Ajustar preços']] })
+  return itens
+}
+function desenhaOlho() {
+  const html = itensOlho().map((it) => `<li class="${it.k}"><span class="oi">${ICO[it.k]}</span><div class="ot">${it.txt}<div class="oa">${it.acoes.map(([a, t, off]) => `<button type="button" data-olho="${a}" ${off ? 'disabled' : ''}>${t}</button>`).join('')}</div></div></li>`).join('')
+  const ul2 = document.getElementById('olho'); if (ul2.dataset.h !== html) { ul2.innerHTML = html; ul2.dataset.h = html }
+}
+document.getElementById('olho').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-olho]'); if (!b || b.disabled) return
+  const [a, v] = b.dataset.olho.split(':')
+  if (a === 'avisar') { const p = pontos[Number(v)]; if (p.parado) p.parado.avisado = hhmm(); desenhaOlho() }
+  if (a === 'preco') abrePreco()
+  if (a === 'mot') abreMotorista(sessoes.find((s) => s.id === Number(v)), 'recarga')
+  if (a === 'oferta') { const m = [...new Set(sessoes.map((s) => s.m))].find((x) => !x.cx.includes('energia')); if (m) abreMotorista(sessoes.filter((s) => s.m === m).at(-1), 'produtos') }
+})
+
+// ---------------------------------------------------------------- divisão de hoje
+function desenhaDivisao() {
+  const t = { valor: 0, adm: 0, lp: 0, lm: 0, posto: 0 }, outros = new Map()
+  for (const s of sessoes) {
+    const d = divisao(s.valor, s.m)
+    for (const k of ['valor', 'adm', 'lp', 'lm', 'posto']) t[k] += d[k]
+    if (d.lm) outros.set(s.m.lic, (outros.get(s.m.lic) || 0) + d.lm)
+  }
+  const pc = (v) => (t.valor > 0 ? `${Math.round(v / t.valor * 100)}%` : '')
+  const nOut = sessoes.filter((s) => s.m.lic !== LIC_POSTO).length
+  const html = `<div class="barra" role="img" aria-label="Divisão do que entrou hoje">
+      <i class="d-posto" style="flex-grow:${t.posto}"></i><i class="d-adm" style="flex-grow:${t.adm}"></i><i class="d-lp" style="flex-grow:${t.lp}"></i>${t.lm ? `<i class="d-lm" style="flex-grow:${t.lm}"></i>` : ''}</div>
+    <ul>
+      <li><i class="d-posto"></i><span class="tx"><b>Faturamento do posto</b><small>antes de energia, tributos e da sociedade ${bombas.some((b) => b.modelo !== 'mobi') ? '80/20' : '100% sua'}</small></span><span class="vl"><b>${brl(t.posto)}</b><small>${pc(t.posto)}</small></span></li>
+      <li><i class="d-adm"></i><span class="tx"><b>Administração iGreen</b><small>14% de cada recarga</small></span><span class="vl"><b>${brl(t.adm)}</b><small>${pc(t.adm)}</small></span></li>
+      <li><i class="d-lp"></i><span class="tx"><b>${LICENCIADOS[LIC_POSTO].nome}</b><small>seu licenciado</small></span><span class="vl"><b>${brl(t.lp)}</b><small>${pc(t.lp)}</small></span></li>
+      ${t.lm ? `<li><i class="d-lm"></i><span class="tx"><b>Outros licenciados</b><small>${nOut} motorista${nOut > 1 ? 's' : ''} de ${[...outros.keys()].map((k) => LICENCIADOS[k].nome.split(' ')[0]).join(', ')}</small></span><span class="vl"><b>${brl(t.lm)}</b><small>${pc(t.lm)}</small></span></li>` : ''}
+    </ul><p class="rodape-div">Percentuais dos licenciados são exemplos, a confirmar com a iGreen.</p>`
+  const box = document.getElementById('divHoje'); if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html }
+  document.getElementById('divResumo').textContent = brl(t.valor)
+}
+document.getElementById('atalhoLic').innerHTML = `Falar com seu licenciado<small style="display:block;font-size:12.5px;color:var(--muted)">${LICENCIADOS[LIC_POSTO].nome}</small>`
+
+// ---------------------------------------------------------------- recargas de hoje (a linha de cada motorista se atualiza no lugar)
+const ul = document.getElementById('recargas')
+// quem está no posto agora: recargas em andamento e o carro que terminou e continua na vaga
+function noPosto() {
+  const lista = sessoes.filter(ativa).map((s) => ({ s, parado: null }))
+  for (const p of pontos) if (p.parado && p.parado.s) lista.push({ s: p.parado.s, parado: p })
+  return lista.sort((a, b) => (a.s.ponto ?? 0) - (b.s.ponto ?? 0))
+}
+const SETA_MA = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>'
+function cartaoAtivo(s, parado) {
+  const m = s.m, est = parado ? 'parado' : s.estado
+  const linha = parado ? `Terminou às ${s.fim} e continua na ${s.nomePonto} há ${minParado(parado)} min`
+    : s.estado === 'chegando' ? `Chegando à ${s.nomePonto}`
+    : s.estado === 'conectando' ? `Conectando · ${s.tipo} · ${pontos[s.ponto].Nome}`
+    : s.estado === 'falha' ? `Interrompida na ${s.nomePonto} · bomba sem comunicação`
+    : `Carregando · ${s.tipo} · ${pontos[s.ponto].Nome}`
+  const anel = !parado && s.dc && s.pct != null ? `<span class="anel" style="--p:${Math.round(s.pct)}">${Math.round(s.pct)}%</span>` : ''
+  const nums = parado
+    ? [['Energia', `${num(s.kwh)} kWh`], ['Valor', brl(s.valor)], ['Parado há', `${minParado(parado)} min`]]
+    : [['Potência', s.estado === 'carregando' ? `${Math.round(s.kw)} kW` : '—'], ['Energia', `${num(s.kwh)} kWh`], ['Valor', brl(s.valor)]]
+  const pp = !parado && s.reserva ? `<span class="ma-pp"><span class="pp-barra"><i style="width:${Math.min(100, s.valor / s.reserva * 100).toFixed(1)}%"></i></span><small><b>${brl(s.valor)}</b> de ${brl(s.reserva)} reservados no app</small></span>` : ''
+  return [est, `<span class="ma-topo"><span class="av ${est === 'falha' ? 'falha-av' : 'vivo-av'}">${iniciais(m.nome)}</span><span class="ma-id"><b>${medio(m.nome)}</b><small>${m.carro} · ${m.placa}</small></span>${anel}</span>
+    <span class="ma-est"><i></i><em>${linha}</em><span class="ma-pe">Ver detalhes ${SETA_MA}</span></span>
+    <span class="ma-num">${nums.map(([k, v]) => `<span><small>${k}</small><b>${v}</b></span>`).join('')}</span>
+    ${pp}`]
+}
+const boxAtivos = document.getElementById('ativos')
+function desenhaAtivos() {
+  const lista = noPosto()
+  if (!lista.length) {
+    const ult = sessoes.filter((x) => x.fim).sort((a, b) => b.fim.localeCompare(a.fim))[0]
+    const h = `<p class="vazio-ativo">Ninguém no posto agora.${ult ? ` A última recarga terminou às ${ult.fim}.` : ''}</p>`
+    if (boxAtivos.dataset.h !== h) { boxAtivos.innerHTML = h; boxAtivos.dataset.h = h }
+  } else {
+    if (boxAtivos.querySelector('.vazio-ativo')) { boxAtivos.innerHTML = ''; boxAtivos.dataset.h = '' }
+    lista.forEach(({ s, parado }, k) => {
+      let b = boxAtivos.querySelector(`.ma[data-s="${s.id}"]`)
+      if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'ma'; b.dataset.s = s.id }
+      const [est, html] = cartaoAtivo(s, parado)
+      b.dataset.estado = est; b.dataset.vaga = s.ponto
+      b.setAttribute('aria-label', `${medio(s.m.nome)}, ${s.m.carro}. Ver detalhes`)
+      if (b.dataset.h !== html) { b.innerHTML = html; b.dataset.h = html }
+      if (boxAtivos.children[k] !== b) boxAtivos.insertBefore(b, boxAtivos.children[k] || null)
+    })
+    const ids = new Set(lista.map(({ s }) => String(s.id)))
+    ;[...boxAtivos.querySelectorAll('.ma')].forEach((b) => { if (!ids.has(b.dataset.s)) b.remove() })
+  }
+  const nc = lista.filter(({ s, parado }) => !parado && s.estado === 'carregando').length, np = lista.filter(({ parado }) => parado).length
+  document.getElementById('ativosResumo').textContent = lista.length ? [nc ? `${nc} carregando` : '', np ? `${np} parado${np > 1 ? 's' : ''} na vaga` : ''].filter(Boolean).join(' · ') || `${lista.length} chegando` : ''
+}
+boxAtivos.addEventListener('click', (e) => { const b = e.target.closest('.ma'); if (b) abreMotorista(sessoes.find((x) => x.id === Number(b.dataset.s))) })
+boxAtivos.addEventListener('mouseover', (e) => { const b = e.target.closest('.ma'); mq.setRealce(b ? Number(b.dataset.vaga) : null) })
+boxAtivos.addEventListener('mouseleave', () => mq.setRealce(null))
+
+function desenhaRecargas() {
+  const presos = new Set(pontos.filter((p) => p.parado && p.parado.s).map((p) => p.parado.s))
+  const feitas = sessoes.filter((x) => !ativa(x) && !presos.has(x))
+  const ordem = [...feitas].sort((a, b) => (b.fim || '').localeCompare(a.fim || '') || b.id - a.id).slice(0, 10)
+  ordem.forEach((s, k) => {
+    let li = ul.querySelector(`li[data-s="${s.id}"]`)
+    if (!li) {
+      li = document.createElement('li'); li.dataset.s = s.id; li.tabIndex = 0
+      li.innerHTML = `<span class="av"></span><span class="tx"><b></b><small></small></span><time></time>`
+      if (s.nova) li.classList.add('nova'); s.nova = false
+    }
+    li.dataset.estado = s.estado
+    if (s.ponto != null && ativa(s)) li.dataset.vaga = s.ponto; else delete li.dataset.vaga
+    const av = li.querySelector('.av'); av.textContent = iniciais(s.m.nome)
+    av.className = 'av' + (s.estado === 'falha' ? ' falha-av' : ativa(s) ? ' vivo-av' : '')
+    li.querySelector('b').textContent = medio(s.m.nome)
+    const t = linhaSessao(s); const sm = li.querySelector('small'); if (sm.textContent !== t) sm.textContent = t
+    li.querySelector('time').textContent = ativa(s) ? s.inicio : s.fim
+    if (ul.children[k] !== li) ul.insertBefore(li, ul.children[k] || null)
+  })
+  while (ul.children.length > ordem.length) ul.lastElementChild.remove()
+  const n = feitas.length
+  document.getElementById('recargasResumo').textContent = n > 10 ? `10 últimas de ${n}` : n ? `${n} terminada${n > 1 ? 's' : ''}` : 'nenhuma ainda'
+}
+ul.addEventListener('click', (e) => { const li = e.target.closest('li[data-s]'); if (li) abreMotorista(sessoes.find((s) => s.id === Number(li.dataset.s))) })
+ul.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { const li = e.target.closest('li[data-s]'); if (li) { e.preventDefault(); abreMotorista(sessoes.find((s) => s.id === Number(li.dataset.s))) } } })
+ul.addEventListener('mouseover', (e) => { const li = e.target.closest('li[data-vaga]'); mq.setRealce(li ? Number(li.dataset.vaga) : null) })
+ul.addEventListener('mouseleave', () => mq.setRealce(null))
+
+// ---------------------------------------------------------------- preço do kWh e tabela de preços
+// regras: por horário (dias + faixa de horas) e por quantidade (a partir de N kWh na mesma recarga).
+// Se duas valem ao mesmo tempo, a de quantidade vence; entre duas de horário, vale a mais recente.
+const DIAS = { todos: 'Todos os dias', uteis: 'Seg a sex', fds: 'Sáb e dom' }
+const NOME_DIA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
+const valeNoDia = (r, d) => r.dias === 'todos' || (r.dias === 'uteis' ? d >= 1 && d <= 5 : d === 0 || d === 6)
+const naHora = (r, h) => (r.de < r.ate ? h >= r.de && h < r.ate : h >= r.de || h < r.ate)       // de > até: passa da meia-noite
+const hh = (h) => `${h % 24}h`
+const regraTxt = (r) => (r.tipo === 'hora' ? `${DIAS[r.dias]} · ${hh(r.de)} às ${hh(r.ate)}` : `A partir de ${r.kwh} kWh na mesma recarga`)
+const copia = (o) => JSON.parse(JSON.stringify(o))
+const minusc = (t) => t[0].toLowerCase() + t.slice(1)                   // só a primeira letra ("kWh" continua certo)
+let tabela = { base: 2.2, regras: [
+  { id: 1, tipo: 'hora', dias: 'todos', de: 0, ate: 6, preco: 1.9, ativa: true },
+  { id: 2, tipo: 'hora', dias: 'uteis', de: 18, ate: 21, preco: 2.6, ativa: true },
+  { id: 3, tipo: 'qtd', kwh: 30, preco: 2.0, ativa: false },
+] }
+let idRegra = 3
+const historicoPreco = [
+  { quando: 'Hoje · 08:00', txt: 'Preço padrão: R$ 2,10 → R$ 2,20' },
+  { quando: '12/10 · 17:40', txt: 'Nova regra: seg a sex · 18h às 21h, R$ 2,60' },
+  { quando: '12/10 · 17:38', txt: 'Nova regra: todos os dias · 0h às 6h, R$ 1,90' },
+  { quando: '05/10 · 10:02', txt: 'Nova regra: a partir de 30 kWh na mesma recarga, R$ 2,00 (desligada)' },
+  { quando: '01/10 · 09:15', txt: 'Preço padrão: R$ 1,99 → R$ 2,10' },
+]
+function precoEm(tb, hora, dia, kwhSessao = 0) {
+  let p = tb.base, regra = null
+  for (const r of tb.regras) if (r.ativa && r.tipo === 'hora' && valeNoDia(r, dia) && naHora(r, Math.floor(hora))) { p = r.preco; regra = r }
+  const q = tb.regras.filter((r) => r.ativa && r.tipo === 'qtd' && kwhSessao >= r.kwh).sort((a, b) => b.kwh - a.kwh)[0]
+  if (q) { p = q.preco; regra = q }
+  return { p, regra }
+}
+const agoraBR = () => { const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })); return { h: d.getHours() + d.getMinutes() / 60, dia: d.getDay() } }
+const precoAgora = (kwh = 0) => { const a = agoraBR(); return precoEm(tabela, a.h, a.dia, kwh) }
+const fmtPreco = (v) => num(v, 2)
+
+// card: o preço que vale agora (o mesmo do totem), qual regra está valendo e a próxima mudança
+const precoTxt = document.getElementById('precoTxt')
+let precoMostrado = null, precoDesde = '08:00'
+function desenhaPreco() {
+  const { p, regra } = precoAgora()
+  if (precoMostrado !== p) { if (precoMostrado != null) precoDesde = hhmm(); precoMostrado = p; mq.setPreco(fmtPreco(p)) }
+  precoTxt.innerHTML = `${brl(p)}<small>por kWh</small>`
+  document.getElementById('precoDesde').textContent = `vale desde ${precoDesde}`
+  const a = agoraBR(); let prox = null
+  for (let k = 1; k <= 24 && !prox; k++) { const hk = Math.floor(a.h) + k, pk = precoEm(tabela, hk % 24, (a.dia + Math.floor(hk / 24)) % 7).p; if (pk !== p) prox = { h: hk % 24, p: pk } }
+  const qtd = tabela.regras.filter((r) => r.ativa && r.tipo === 'qtd')
+  document.getElementById('precoRegra').innerHTML = (regra && regra.tipo === 'hora' ? `Agora vale a regra <b>${minusc(regraTxt(regra))}</b>.` : 'Agora vale o preço padrão.')
+    + (prox ? ` Às ${String(prox.h).padStart(2, '0')}:00 passa para <b>${brl(prox.p)}</b>.` : '')
+    + qtd.map((r) => ` Acima de ${r.kwh} kWh na mesma recarga: <b>${brl(r.preco)}</b>.`).join('')
+}
+setInterval(desenhaPreco, 20000)
+
+// modal: trabalha num rascunho; nada muda no totem até "Salvar alterações"
+const modalPreco = document.getElementById('modalPreco')
+let rasc = null, form = null, diaFaixa = null, tabelaAnterior = null, tmDesfazer = null
+const ICON_LAPIS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 2.7a1.6 1.6 0 0 1 2.3 2.3L6 12.1l-3 .8.8-3Z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/></svg>'
+const ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+function mudancas(a, b) {
+  const out = [], semAtiva = (r) => JSON.stringify({ ...r, ativa: null })
+  if (a.base !== b.base) out.push(`Preço padrão: ${brl(a.base)} → ${brl(b.base)}`)
+  for (const r of b.regras) {
+    const o = a.regras.find((x) => x.id === r.id)
+    if (!o) out.push(`Nova regra: ${minusc(regraTxt(r))}, ${brl(r.preco)}${r.ativa ? '' : ' (desligada)'}`)
+    else if (semAtiva(o) !== semAtiva(r)) out.push(`Regra alterada: ${minusc(regraTxt(r))}, ${brl(r.preco)}`)
+    else if (o.ativa !== r.ativa) out.push(`${r.ativa ? 'Ligou' : 'Desligou'} a regra ${minusc(regraTxt(r))}`)
+  }
+  for (const o of a.regras) if (!b.regras.some((r) => r.id === o.id)) out.push(`Removeu a regra ${minusc(regraTxt(o))}`)
+  return out
+}
+function graficoHTML(tb, dia) {
+  const ps = Array.from({ length: 24 }, (_, h) => precoEm(tb, h, dia).p)
+  const mn = Math.min(...ps), mx = Math.max(...ps), a = agoraBR(), hoje = dia === a.dia, hAg = Math.floor(a.h)
+  const alt = (p) => (mx === mn ? 60 : 32 + 62 * (p - mn) / (mx - mn))
+  const cls = (p) => (p < tb.base ? 'barato' : p > tb.base ? 'caro' : 'base')
+  const segs = []; ps.forEach((p, h) => { const u = segs.at(-1); if (u && u.p === p) u.n++; else segs.push({ de: h, n: 1, p }) })
+  const barras = ps.map((p, h) => `<span class="b ${cls(p)} ${hoje && h === hAg ? 'agora' : ''}" style="height:${alt(p)}%" title="${String(h).padStart(2, '0')}h às ${String(h + 1).padStart(2, '0')}h · ${brl(p)}"></span>`).join('')
+  const ponto = (g) => {
+    let c = g.de + g.n / 2; const m = hAg + 0.5
+    if (hoje && Math.abs(c - m) < 1.6) { const dir = (g.de + g.n - m - 1.2), esq = (m - g.de - 1.2); c = dir >= esq ? m + 1.6 : m - 1.6; if (c < g.de + 0.5 || c > g.de + g.n - 0.5) return null }
+    return c
+  }
+  const rotulos = segs.filter((g) => g.n >= 2).map((g) => { const c = ponto(g); return c == null ? '' : `<b class="rot ${cls(g.p)}" style="left:${c / 24 * 100}%;bottom:calc(${alt(g.p)}% + 7px)">${fmtPreco(g.p)}</b>` }).join('')
+  const marca = hoje ? `<i class="marca" style="left:${(hAg + 0.5) / 24 * 100}%"><em>Agora</em></i>` : ''
+  return `<div class="barras">${barras}${rotulos}${marca}</div>
+    <div class="eixo">${[0, 6, 12, 18, 24].map((h) => `<span>${h}h</span>`).join('')}</div>
+    <div class="legenda"><span class="barato">Mais barato</span><span class="base">Preço padrão</span><span class="caro">Mais caro</span></div>`
+}
+function sobrepoe(r) {
+  if (r.tipo !== 'hora' || r.de === r.ate) return null
+  const horas = (x) => Array.from({ length: 24 }, (_, h) => h).filter((h) => naHora(x, h))
+  const dias = (x) => [0, 1, 2, 3, 4, 5, 6].filter((d) => valeNoDia(x, d))
+  const o = rasc.regras.find((x) => x.id !== r.id && x.tipo === 'hora' && x.ativa && dias(x).some((d) => dias(r).includes(d)) && horas(x).some((h) => horas(r).includes(h)))
+  return o ? `Cruza com a regra ${minusc(regraTxt(o))}. No horário em comum, vale esta (a mais recente).` : null
+}
+const campoValor = (cls, menos, mais, campo, valor, rotulo, pre = 'R$', suf = 'por kWh') => `<label class="campo-valor ${cls}">
+  ${pre ? `<span class="pre">${pre}</span>` : ''}<input ${campo} inputmode="decimal" aria-label="${rotulo}" value="${valor}"><span class="suf">${suf}</span>
+  <span class="passos"><button type="button" data-p="${menos}" aria-label="Diminuir ${rotulo}">−</button><button type="button" data-p="${mais}" aria-label="Aumentar ${rotulo}">+</button></span></label>`
+function formLi() {
+  const r = form.r, opH = (sel, de, ate) => Array.from({ length: ate - de + 1 }, (_, k) => de + k).map((h) => `<option value="${h}" ${h === sel ? 'selected' : ''}>${String(h % 24).padStart(2, '0')}:00</option>`).join('')
+  const campos = r.tipo === 'hora'
+    ? `<label>Dias<select data-f="dias">${Object.entries(DIAS).map(([k, v]) => `<option value="${k}" ${k === r.dias ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+       <label>Das<select data-f="de">${opH(r.de, 0, 23)}</select></label><label>Até<select data-f="ate">${opH(r.ate, 1, 24)}</select></label>`
+    : `<div class="campo-bloco">A partir de${campoValor('peq', 'k-menos', 'k-mais', 'data-f="kwh" style="width:3.2ch"', r.kwh, 'kWh na mesma recarga', '', 'kWh')}</div>`
+  const aviso = r.tipo === 'hora' && r.de === r.ate % 24 ? 'O começo e o fim não podem ser iguais.' : sobrepoe(r)
+  return `<li class="form-li">
+    <div class="seg-dias" role="group" aria-label="Tipo de regra"><button type="button" data-p="tipo" data-v="hora" aria-pressed="${r.tipo === 'hora'}">Por horário</button><button type="button" data-p="tipo" data-v="qtd" aria-pressed="${r.tipo === 'qtd'}">Por quantidade</button></div>
+    <div class="campos">${campos}<div class="campo-bloco">Preço${campoValor('peq', 'f-menos', 'f-mais', 'data-f="preco"', fmtPreco(r.preco), 'preço da regra')}</div></div>
+    ${aviso ? `<p class="aviso" style="margin-top:10px">${aviso}</p>` : ''}
+    <div class="form-pe"><button class="btn" type="button" data-p="form-cancela">Cancelar</button><button class="btn prim" type="button" data-p="form-ok">${form.novo ? 'Adicionar regra' : 'Salvar regra'}</button></div>
+  </li>`
+}
+function desenhaModalPreco() {
+  const rolagem = [modalPreco.querySelector('.corpo')?.scrollTop || 0, modalPreco.querySelector('.regras-box')?.scrollTop || 0]
+  requestAnimationFrame(() => { const c = modalPreco.querySelector('.corpo'), r = modalPreco.querySelector('.regras-box'); if (c) c.scrollTop = rolagem[0]; if (r) r.scrollTop = rolagem[1] })
+  const mud = mudancas(tabela, rasc), dg = diaFaixa ?? agoraBR().dia
+  const grupo = dg === 0 ? 0 : dg === 6 ? 6 : 1
+  const linhas = rasc.regras.map((r) => {
+    const editando = form && !form.novo && form.r.id === r.id
+    return `<li data-r="${r.id}" class="${r.ativa ? '' : 'off'} ${editando ? 'editando' : ''}">
+      <label class="chave"><input type="checkbox" data-p="liga" ${r.ativa ? 'checked' : ''} aria-label="Regra ligada"><span></span></label>
+      <span class="tx"><b>${regraTxt(r)}</b><small>${r.tipo === 'hora' ? 'Por horário' : 'Por quantidade'}${r.ativa ? '' : ' · desligada'}</small></span>
+      <b class="valor">${brl(r.preco)}</b>
+      <button class="ic-btn" type="button" data-p="editar" aria-label="Editar regra" aria-expanded="${editando}">${ICON_LAPIS}</button><button class="ic-btn" type="button" data-p="remover" aria-label="Remover regra">${ICON_X}</button></li>${editando ? formLi() : ''}`
+  }).join('')
+  modalPreco.innerHTML = `
+    <div class="cab"><div><h2 id="mpTit">Preço do kWh</h2><p>${posto.nome} · vale para as próximas recargas; as que estão em andamento continuam como começaram</p></div>
+      <button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>
+    <div class="corpo"><div class="preco-corpo">
+      <div>
+        <section class="linha-preco"><div><h3>Preço padrão</h3><p class="previa" id="mpPrevia"></p></div>
+          ${campoValor('', 'menos', 'mais', 'id="mpBase"', fmtPreco(rasc.base), 'preço padrão do kWh')}</section>
+        <section><div class="sec-cab"><h3>Ao longo do dia</h3>
+            <div class="seg-dias" role="group" aria-label="Ver o dia">${[[1, 'Seg a sex'], [6, 'Sábado'], [0, 'Domingo']].map(([d, t]) => `<button type="button" data-p="dia" data-v="${d}" aria-pressed="${grupo === d}">${t}</button>`).join('')}</div></div>
+          <div class="grafico" id="mpGrafico">${graficoHTML(rasc, dg)}</div>
+        </section>
+        <section><div class="sec-cab"><h3>Regras</h3><button class="h3-acao" type="button" data-p="nova">+ Nova regra</button></div>
+          <div class="regras-box"><ul class="regras-lista">${form && form.novo ? formLi() : ''}${linhas || '<li><span class="tx"><small>Sem regras: vale o preço padrão o dia todo.</small></span></li>'}</ul></div>
+          <p class="nota-sim" style="margin-top:10px">Se duas regras valem ao mesmo tempo, a de quantidade vence; entre duas de horário, vale a mais recente.</p>
+        </section>
+      </div>
+      <section class="hist-card"><h3>Histórico de preços</h3><ol class="hist">${historicoPreco.map((h) => `<li><time>${h.quando}</time><span>${h.txt}</span></li>`).join('')}</ol></section>
+    </div></div>
+    <div class="pe"><span id="mpResumo">${mud.length ? `${mud.length} alteraç${mud.length > 1 ? 'ões' : 'ão'} para salvar` : 'Nenhuma alteração'}</span>
+      <button class="btn" type="button" data-p="cancelar">Cancelar</button><button class="btn prim" type="button" data-p="salvar" ${mud.length && !form ? '' : 'disabled'}>Salvar alterações</button></div>`
+  atualizaPrevia()
+}
+function atualizaPrevia() {                                             // enquanto digita: só prévia, faixa e resumo
+  const pv = modalPreco.querySelector('#mpPrevia'); if (!pv) return
+  pv.innerHTML = rasc.base === tabela.base ? 'Vale quando nenhuma regra está valendo.' : `Muda de <b>${brl(tabela.base)}</b> para <b>${brl(rasc.base)}</b> fora das regras.`
+  modalPreco.querySelector('#mpGrafico').innerHTML = graficoHTML(rasc, diaFaixa ?? agoraBR().dia)
+  const mud = mudancas(tabela, rasc), rs = modalPreco.querySelector('#mpResumo'), sv = modalPreco.querySelector('[data-p="salvar"]')
+  rs.textContent = mud.length ? `${mud.length} alteraç${mud.length > 1 ? 'ões' : 'ão'} para salvar` : 'Nenhuma alteração'
+  sv.disabled = !mud.length || !!form
+}
+function abrePreco() { rasc = copia(tabela); form = null; diaFaixa = null; desenhaModalPreco(); modalPreco.showModal(); modalPreco.focus() }
+document.getElementById('alterarPreco').addEventListener('click', abrePreco)
+const lePreco = (v) => { const n = parseFloat(String(v).replace(',', '.')); return n > 0 ? Math.round(n * 100) / 100 : null }
+modalPreco.addEventListener('input', (e) => {
+  if (e.target.id === 'mpBase') { const v = lePreco(e.target.value); if (v) { rasc.base = v; atualizaPrevia() } return }
+  const f = e.target.dataset.f; if (!f || !form) return
+  if (f === 'preco') { const v = lePreco(e.target.value); if (v) form.r.preco = v }
+  if (f === 'kwh') { const v = parseInt(e.target.value, 10); if (v > 0) form.r.kwh = v }
+})
+modalPreco.addEventListener('change', (e) => {
+  const f = e.target.dataset.f
+  if (f && form && ['dias', 'de', 'ate'].includes(f)) { form.r[f] = f === 'dias' ? e.target.value : Number(e.target.value); desenhaModalPreco() }
+  if (e.target.dataset.p === 'liga') { const r = rasc.regras.find((x) => x.id === Number(e.target.closest('[data-r]').dataset.r)); r.ativa = e.target.checked; desenhaModalPreco() }
+})
+modalPreco.addEventListener('click', (e) => {
+  if (e.target === modalPreco || e.target.closest('[data-fecha]')) { modalPreco.close(); return }
+  const b = e.target.closest('button[data-p]'); if (!b) return
+  const li = b.closest('[data-r]'), r = li ? rasc.regras.find((x) => x.id === Number(li.dataset.r)) : null
+  switch (b.dataset.p) {
+    case 'mais': rasc.base = Math.round((rasc.base + 0.05) * 100) / 100; break
+    case 'menos': rasc.base = Math.max(0.5, Math.round((rasc.base - 0.05) * 100) / 100); break
+    case 'dia': diaFaixa = Number(b.dataset.v); break
+    case 'nova': modalPreco.querySelector('.regras-box') && (modalPreco.querySelector('.regras-box').scrollTop = 0); form = { novo: true, r: { id: ++idRegra, tipo: 'hora', dias: 'uteis', de: 18, ate: 21, kwh: 30, preco: rasc.base, ativa: true } }; break
+    case 'editar': form = { novo: false, r: copia(r) }; break
+    case 'remover': rasc.regras = rasc.regras.filter((x) => x !== r); if (form && form.r.id === r.id) form = null; break
+    case 'f-menos': form.r.preco = Math.max(0.5, Math.round((form.r.preco - 0.05) * 100) / 100); break
+    case 'f-mais': form.r.preco = Math.round((form.r.preco + 0.05) * 100) / 100; break
+    case 'k-menos': form.r.kwh = Math.max(5, form.r.kwh - 5); break
+    case 'k-mais': form.r.kwh = form.r.kwh + 5; break
+    case 'tipo': form.r.tipo = b.dataset.v; break
+    case 'form-cancela': form = null; break
+    case 'form-ok': {
+      const n = form.r; if (n.tipo === 'hora' && n.de === n.ate % 24) return
+      n.ate = n.tipo === 'hora' ? n.ate : n.ate
+      const k = rasc.regras.findIndex((x) => x.id === n.id); if (k >= 0) rasc.regras[k] = n; else rasc.regras.push(n)
+      form = null; break
+    }
+    case 'cancelar': modalPreco.close(); return
+    case 'salvar': {
+      const mud = mudancas(tabela, rasc); if (!mud.length) return
+      tabelaAnterior = copia(tabela); tabela = copia(rasc)
+      mud.forEach((t) => historicoPreco.unshift({ quando: `Hoje · ${hhmm()}`, txt: t }))
+      modalPreco.close(); desenhaPreco()
+      const ret = document.getElementById('precoRetorno'); ret.classList.add('on'); clearTimeout(tmDesfazer); tmDesfazer = setTimeout(() => ret.classList.remove('on'), 8000)
+      return
+    }
+  }
+  desenhaModalPreco()
+})
+document.getElementById('precoDesfazer').addEventListener('click', () => {
+  if (!tabelaAnterior) return
+  tabela = tabelaAnterior; tabelaAnterior = null
+  historicoPreco.unshift({ quando: `Hoje · ${hhmm()}`, txt: 'Desfez a última alteração da tabela' })
+  document.getElementById('precoRetorno').classList.remove('on'); desenhaPreco()
+})
+
+function desenha(soNumeros) {
+  desenhaPontos(); desenhaOlho(); desenhaBombas(); desenhaHoje(); desenhaDivisao(); desenhaFrase(); desenhaAtivos(); desenhaRecargas(); desenhaAbasVisao()
+  if (modalMot.open) desenhaMotorista(false)
+  if (modalBomba.open && bombaAberta != null) { const e = document.getElementById('mbEstado'), h = estadoBombaHTML(bombaAberta); if (e && e.dataset.h !== h) { e.innerHTML = h; e.dataset.h = h } }
+  if (!soNumeros) desenhaPreco()
+}
+pronto = true
+desenha()
+
+// começa com um carro já carregando (a tela abre no meio do dia)
+{
+  const cdc = conectores.find((c) => c.dc) || conectores[0], p = pontos.find((q) => cdc.vagasNaturais.includes(q.i)) || pontos[0]
+  chegar(p, cdc.id); const s = p.sessao; s.reserva = 80
+  s.kwh = 9.6; s.valor = 9.6 * precoAgora().p; if (s.pct != null) s.pct = 46; s.inicio = hhmm(new Date(Date.now() - 17 * 60000)); s.real = 17 * 60 / ACEL; s.nova = false
+  s.t = { chegando: s.inicio, conectando: s.inicio, carregando: s.inicio }; if (s.pct != null) s.pct0 = 31
+  mq.avancar(1 / 30, 170)
+}
+
+// controles da demonstração
+const demo = document.getElementById('demoLinha')
+const bt = (txt, f) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.addEventListener('click', f); demo.append(b); return b }
+pontos.forEach((p) => bt(`Carro na ${p.nome}`, () => chegar(p)))
+pontos.forEach((p) => bt(`Sair da ${p.nome}`, () => sair(p)))
+pontos.forEach((p) => bt(`Terminar e ficar na ${p.nome}`, () => sair(p, true)))
+bombas.forEach((b) => bt(`Falha: ${b.nome}`, () => falhar(b.bi, !b.falha)))
+const pausa = bt('Pausar o dia de demonstração', () => { demoLigada = !demoLigada; pausa.textContent = demoLigada ? 'Pausar o dia de demonstração' : 'Retomar o dia de demonstração' })
+
+// atalhos de exemplo (o CRM não faz parte deste esboço)
+document.addEventListener('click', (e) => { const a = e.target.closest('a[href^="#crm"],a[href^="#suporte"],a[href^="#licenciado"]'); if (a) e.preventDefault() })
+window.__pronto = true
+</script>
+</body>
+</html>

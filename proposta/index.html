@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquete viva · proposta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000; --surface:rgba(255,255,255,.035); --surface-2:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --text:#F2F5F2; --muted:#9AA39C; --dim:#6B746D;
+  --green:#03FF1F; --green-ink:#7DFF8C; --green-soft:rgba(3,255,31,.09); --green-line:rgba(3,255,31,.30);
+  --red:#FF6A5F;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font:400 16px/1.55 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+a:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:8px}
+.wrap{width:min(1280px,100% - 2*clamp(16px,4vw,48px));margin-inline:auto}
+img,video{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);background:#050706}
+.meta{display:flex;align-items:center;gap:12px;padding:12px 0;font-size:13px;color:var(--dim);border-bottom:1px dashed var(--line-2)}
+.meta strong{color:var(--muted);font-weight:500}
+.meta a{margin-left:auto;text-decoration:none;color:var(--muted)}
+.meta a:hover{color:var(--text)}
+
+/* abertura */
+.hero{padding:clamp(48px,7vw,96px) 0 32px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(24px,4vw,64px);align-items:end}
+h1{font-weight:500;font-size:clamp(36px,4.6vw,62px);line-height:1.04;letter-spacing:-.025em;max-width:13ch}
+.hero p{color:var(--muted);font-size:17px;max-width:46ch}
+.acoes{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:500;border:1px solid var(--line-2);background:var(--surface-2)}
+.btn.prim{border-color:var(--green-line);color:var(--green-ink);background:var(--green-soft)}
+.btn:hover{border-color:var(--green-line)}
+.video{position:relative}
+.video figcaption{margin-top:10px;font-size:13px;color:var(--dim)}
+
+/* seções */
+section{padding:clamp(56px,7vw,96px) 0 0}
+.cab{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(20px,4vw,64px);align-items:end;margin-bottom:28px}
+h2{font-weight:500;font-size:clamp(28px,3.2vw,44px);line-height:1.08;letter-spacing:-.02em}
+.cab p{color:var(--muted);max-width:56ch}
+.grade{display:grid;gap:14px}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+figure{margin:0}
+figure figcaption{margin-top:10px;font-size:14px;color:var(--muted)}
+figure figcaption b{display:block;color:var(--text);font-weight:500;font-size:15px}
+.legendas3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:10px;font-size:14px;color:var(--muted)}
+.legendas3 b{display:block;color:var(--text);font-weight:500;font-size:15px}
+.fatos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:28px}
+.fato{padding:18px 20px;border-radius:16px;border:1px solid var(--line);background:var(--surface)}
+.fato b{display:block;font-weight:500;font-size:16px;margin-bottom:4px}
+.fato p{color:var(--muted);font-size:14.5px}
+.lado{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:clamp(20px,4vw,56px);align-items:center}
+.lado ul{list-style:none;padding:0;display:grid;gap:14px}
+.lado li{padding-left:16px;border-left:2px solid var(--green-line);color:var(--muted)}
+.lado li b{color:var(--text);font-weight:500}
+.rot-comp{display:grid;grid-template-columns:1fr 1fr;margin-top:10px;font-size:14px;color:var(--muted)}
+.rot-comp span:last-child{padding-left:8px}
+
+/* variações: plantas */
+.plantas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:14px}
+.planta{padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--surface)}
+.planta svg{width:100%;height:auto;display:block}
+.planta b{display:block;font-weight:500;margin-top:12px}
+.planta small{display:block;color:var(--muted);font-size:13.5px}
+.planta .estado{display:inline-block;margin-top:10px;font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted)}
+.planta .estado.ok{border-color:var(--green-line);color:var(--green-ink)}
+
+/* números */
+.numeros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.num{padding:20px;border-radius:16px;border:1px solid var(--line);background:var(--surface)}
+.num strong{display:block;font-weight:500;font-size:clamp(26px,2.6vw,34px);letter-spacing:-.02em}
+.num span{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+
+/* plano e decisões */
+.duas{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(20px,4vw,56px)}
+ol.passos{list-style:none;padding:0;counter-reset:p;display:grid;gap:4px}
+ol.passos li{counter-increment:p;display:grid;grid-template-columns:36px 1fr;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+ol.passos li::before{content:counter(p);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1px solid var(--line-2);font-size:13px;color:var(--muted)}
+ol.passos b{display:block;font-weight:500}
+ol.passos span{color:var(--muted);font-size:14.5px}
+.decisoes{padding:22px;border-radius:18px;border:1px solid var(--green-line);background:linear-gradient(180deg,var(--green-soft),transparent 70%)}
+.decisoes h3{font-weight:500;font-size:20px;margin-bottom:12px}
+.decisoes ul{padding-left:18px;display:grid;gap:10px;color:var(--muted)}
+.decisoes li b{color:var(--text);font-weight:500}
+.limites{margin-top:28px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 28px;color:var(--muted);font-size:14.5px}
+.limites b{color:var(--text);font-weight:500}
+footer{margin-top:clamp(64px,8vw,112px);padding:28px 0 40px;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;color:var(--dim);font-size:13px}
+footer .btn{margin-left:auto}
+
+@media (max-width: 980px){
+  .hero,.cab,.lado,.duas{grid-template-columns:1fr}
+  .g4,.plantas,.numeros{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fatos,.g3{grid-template-columns:1fr}
+  .legendas3{grid-template-columns:1fr}
+  .limites{grid-template-columns:1fr}
+}
+@media (max-width: 560px){
+  .meta .data{display:none}
+  .g4,.plantas,.numeros,.g2{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="meta"><strong>Painel V1 · maquete viva</strong> <span class="data">proposta de 19/10</span> <a href="../">Abrir a demonstração</a></div>
+
+  <header class="hero">
+    <div>
+      <h1>O posto vivo, com a qualidade do render.</h1>
+    </div>
+    <div>
+      <p>O cenário vem pronto do Blender. Só o que muda é desenhado ao vivo no navegador: o carro chegando, o cabo conectando, a recarga, a falha da bomba e o preço no totem. A maquete segue a hora do dia.</p>
+      <div class="acoes">
+        <a class="btn prim" href="../">Abrir a demonstração</a>
+        <a class="btn" href="#plano">Ver o plano</a>
+      </div>
+    </div>
+  </header>
+
+  <figure class="video">
+    <video src="demo.mp4" poster="demo-capa.webp" autoplay muted loop playsinline controls aria-label="Demonstração: carros chegam, carregam, a bomba falha, o dia passa e um carro sai"></video>
+    <figcaption>Gravado da prova de conceito, quadro a quadro: chegada, conexão, falha da bomba, o dia passando e a saída.</figcaption>
+  </figure>
+
+  <section aria-labelledby="como">
+    <div class="cab">
+      <h2 id="como">Duas camadas do Blender, o resto ao vivo</h2>
+      <p>O posto vazio e o teto de vidro saem do Cycles para cada período do dia. Entre eles, o navegador desenha o carro na mesma câmera, com a luz exportada da própria cena. Caixas invisíveis no lugar de pilares, frades e da bomba escondem o carro onde há algo na frente.</p>
+    </div>
+    <img src="camadas.webp" alt="Três painéis: o posto vazio renderizado, o teto de vidro sozinho e a montagem final com o carro carregando" width="2700" height="630" loading="lazy">
+    <div class="legendas3">
+      <span><b>Fundo</b>Render do posto vazio, com a sombra do teto</span>
+      <span><b>Teto</b>Render só da cobertura, com transparência, por cima do carro</span>
+      <span><b>Montagem</b>Carro, cabo, anel da vaga, selo e preço ao vivo</span>
+    </div>
+    <div class="fatos">
+      <div class="fato"><b>O que é de Blender, continua de Blender</b><p>Vegetação, vidro, pisos e luzes têm exatamente a qualidade do render aprovado.</p></div>
+      <div class="fato"><b>O que muda, muda de verdade</b><p>O estado vem dos dados do posto: quem está carregando, a potência, a carga, as falhas e o preço.</p></div>
+      <div class="fato"><b>Mesma cor do render</b><p>O carro ao vivo usa o mesmo ajuste de cor do Blender e o reflexo tirado da cena, no lugar da vaga.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="reage">
+    <div class="cab">
+      <h2 id="reage">O que reage no 3D</h2>
+      <p>O dono não precisa mexer na maquete. Os cards ao lado mostram o que acontece e o posto acompanha, com os mesmos nomes P1 e P2.</p>
+    </div>
+    <div class="grade g4">
+      <figure><img src="estado-chegada.webp" alt="Carro branco subindo a rampa e entrando na vaga" width="1100" height="800" loading="lazy"><figcaption><b>Chegada</b>O carro sobe a rampinha de frente e para na vaga.</figcaption></figure>
+      <figure><img src="estado-carregando.webp" alt="Carro conectado, anel verde na vaga e selo P1 com 38 kW" width="1100" height="800" loading="lazy"><figcaption><b>Recarga</b>O cabo conecta, o anel verde respira e o selo mostra kW e carga.</figcaption></figure>
+      <figure><img src="estado-falha.webp" alt="Dois carros com anéis vermelhos e selos de falha sobre a bomba e as vagas" width="1100" height="800" loading="lazy"><figcaption><b>Falha da bomba</b>Alarme vermelho na bomba e as vagas afetadas em vermelho.</figcaption></figure>
+      <figure><img src="estado-saida.webp" alt="À noite, um carro saindo de ré enquanto o outro continua carregando" width="1100" height="800" loading="lazy"><figcaption><b>Saída</b>O cabo recolhe, a pistola volta à bomba e o carro sai de ré.</figcaption></figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="hora">
+    <div class="cab">
+      <h2 id="hora">Segue a hora do dia</h2>
+      <p>Cada período é um render do Blender. A maquete cruza o atual com o próximo no horário do Brasil, e a luz, a sombra e os faróis do carro acompanham. Em produção, de 6 a 8 períodos.</p>
+    </div>
+    <div class="grade g4">
+      <figure><img src="hora-manha.webp" alt="Posto pela manhã" width="1100" height="800" loading="lazy"><figcaption><b>Manhã</b>08:30</figcaption></figure>
+      <figure><img src="hora-tarde.webp" alt="Posto à tarde" width="1100" height="800" loading="lazy"><figcaption><b>Tarde</b>14:00</figcaption></figure>
+      <figure><img src="hora-por.webp" alt="Posto no pôr do sol" width="1100" height="800" loading="lazy"><figcaption><b>Pôr do sol</b>18:12</figcaption></figure>
+      <figure><img src="hora-noite.webp" alt="Posto à noite" width="1100" height="800" loading="lazy"><figcaption><b>Noite</b>21:00</figcaption></figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="perto">
+    <div class="lado">
+      <img src="zoom-bomba.webp" alt="Câmera aproximada da bomba, com o teto quase transparente, o cabo DC conectado ao carro e o cabo AC guardado" width="1100" height="800" loading="lazy">
+      <div>
+        <h2 id="perto">Mais perto da bomba, sem o teto atrapalhar</h2>
+        <ul style="margin-top:22px">
+          <li><b>O teto quase some</b> ao aproximar: fica a 12%, e a bomba, a pistola e o cabo aparecem inteiros.</li>
+          <li><b>Sem perder nitidez:</b> o render é feito em resolução dobrada para aguentar o zoom.</li>
+          <li><b>Girar a câmera</b> pede um render por ângulo. Se valer a pena, dá para ter 4 vistas a 90°.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="comp">
+    <div class="cab">
+      <h2 id="comp">Ao vivo ou render?</h2>
+      <p>À esquerda, o carro desenhado no navegador. À direita, o mesmo momento renderizado no Blender. As diferenças são o anel e o pulso da recarga, que só existem ao vivo, e o reflexo no chão, que é do Cycles.</p>
+    </div>
+    <img src="comparacao.webp" alt="Quatro recortes: de dia e à noite, à esquerda o carro ao vivo e à direita o render do Blender" width="1120" height="880" loading="lazy" style="max-width:1120px">
+    <div class="rot-comp" style="max-width:1120px"><span>Ao vivo no navegador</span><span>Render do Blender (Cycles)</span></div>
+  </section>
+
+  <section aria-labelledby="var">
+    <div class="cab">
+      <h2 id="var">Cada posto, a sua maquete</h2>
+      <p>O mesmo script do Blender monta o posto a partir da lista de bombas e gera a pasta que a página lê: camadas, âncoras e peças da bomba. Outro posto é outra pasta, sem mudar o código.</p>
+    </div>
+    <div class="grade g2">
+      <figure><img src="var-fast.webp" alt="Mobi Fast com duas vagas sob a cobertura" width="1100" height="770" loading="lazy"><figcaption><b>Mobi Fast</b>2 vagas, 1 cobertura</figcaption></figure>
+      <figure><img src="var-mobi-garagem.webp" alt="Mobi simples numa vaga, sem cobertura" width="1100" height="770" loading="lazy"><figcaption><b>Mobi como garagem</b>1 vaga, sem cobertura</figcaption></figure>
+    </div>
+    <div class="plantas" aria-label="Regras de montagem por tipo de posto">
+      <div class="planta">
+        <svg viewBox="0 0 120 80" aria-hidden="true"><rect x="2" y="2" width="116" height="76" rx="10" fill="none" stroke="rgba(255,255,255,.14)"/><rect x="46" y="16" width="28" height="50" rx="3" fill="rgba(3,255,31,.22)"/><circle cx="60" cy="11" r="3" fill="#7DFF8C"/></svg>
+        <b>Mobi</b><small>1 vaga, garagem</small><span class="estado ok">Pronto</span>
+      </div>
+      <div class="planta">
+        <svg viewBox="0 0 120 80" aria-hidden="true"><rect x="2" y="2" width="116" height="76" rx="10" fill="none" stroke="rgba(255,255,255,.14)"/><rect x="30" y="16" width="28" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="62" y="16" width="28" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="26" y="12" width="68" height="40" rx="3" fill="none" stroke="#7DFF8C" stroke-dasharray="3 3"/><circle cx="60" cy="11" r="3" fill="#7DFF8C"/></svg>
+        <b>Mobi Fast ou Ultra</b><small>2 vagas, 1 cobertura</small><span class="estado ok">Pronto</span>
+      </div>
+      <div class="planta">
+        <svg viewBox="0 0 120 80" aria-hidden="true"><rect x="2" y="2" width="116" height="76" rx="10" fill="none" stroke="rgba(255,255,255,.14)"/><rect x="14" y="16" width="26" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="43" y="16" width="26" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="82" y="16" width="26" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="10" y="12" width="63" height="40" rx="3" fill="none" stroke="#7DFF8C" stroke-dasharray="3 3"/><circle cx="41" cy="11" r="3" fill="#7DFF8C"/><circle cx="95" cy="11" r="3" fill="#7DFF8C"/></svg>
+        <b>Fast + Mobi</b><small>2 vagas cobertas e 1 garagem</small><span class="estado">A construir</span>
+      </div>
+      <div class="planta">
+        <svg viewBox="0 0 120 80" aria-hidden="true"><rect x="2" y="2" width="116" height="76" rx="10" fill="none" stroke="rgba(255,255,255,.14)"/><rect x="8" y="16" width="24" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="34" y="16" width="24" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="62" y="16" width="24" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="88" y="16" width="24" height="50" rx="3" fill="rgba(3,255,31,.22)"/><rect x="5" y="12" width="56" height="40" rx="3" fill="none" stroke="#7DFF8C" stroke-dasharray="3 3"/><rect x="59" y="12" width="56" height="40" rx="3" fill="none" stroke="#7DFF8C" stroke-dasharray="3 3"/><circle cx="33" cy="11" r="3" fill="#7DFF8C"/><circle cx="87" cy="11" r="3" fill="#7DFF8C"/></svg>
+        <b>2 a 4 bombas</b><small>uma cobertura a cada par de vagas</small><span class="estado">A construir</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="peso">
+    <div class="cab">
+      <h2 id="peso">Leve o bastante</h2>
+      <p>Medido na sua máquina. Ainda falta testar num notebook comum e num celular; para aparelho fraco, a maquete cai para a imagem do período com os selos.</p>
+    </div>
+    <div class="numeros">
+      <div class="num"><strong>0,64 ms</strong><span>por quadro, com dois carros, desenhando a 1,5x (RTX 4070 Ti)</span></div>
+      <div class="num"><strong>~1 MB</strong><span>por período do dia (fundo, teto e reflexo)</span></div>
+      <div class="num"><strong>1,3 MB</strong><span>o carro hoje; comprimido, em torno de 300 KB</span></div>
+      <div class="num"><strong>~1 min</strong><span>de render por período, por layout</span></div>
+    </div>
+    <div class="limites">
+      <span><b>Câmera fixa.</b> Zoom sim; girar livre não.</span>
+      <span><b>Sombra e reflexo do carro</b> são aproximados (sem reflexo no chão).</span>
+      <span><b>Mudar a forma do posto</b> pede um novo render, automático, de alguns minutos.</span>
+      <span><b>Ao aparecer e sumir</b>, o carro fica translúcido; em produção, um efeito de dissolver mais limpo.</span>
+    </div>
+  </section>
+
+  <section id="plano" aria-labelledby="planoh">
+    <div class="duas">
+      <div>
+        <h2 id="planoh" style="margin-bottom:22px">Plano para produção</h2>
+        <ol class="passos">
+          <li><div><b>Gerador de layouts</b><span>Lista de bombas misturadas para cena, camadas e âncoras; de 1 a 4 bombas e a garagem.</span></div></li>
+          <li><div><b>Períodos do dia</b><span>De 6 a 8 renders por layout, com transição no horário do Brasil.</span></div></li>
+          <li><div><b>Motor como componente</b><span>O painel entrega o estado do posto e a maquete anima as mudanças; desenha só quando algo muda.</span></div></li>
+          <li><div><b>Integração no painel</b><span>Na variante A, com os mesmos IDs nos selos e nos cards.</span></div></li>
+          <li><div><b>Testes de aparelho</b><span>Notebook 1366×768 e celular, com a versão estática como reserva.</span></div></li>
+        </ol>
+      </div>
+      <aside class="decisoes" aria-labelledby="dec">
+        <h3 id="dec">Decisões suas</h3>
+        <ul>
+          <li><b>Cobertura em postos misturados:</b> proposta de uma a cada par de vagas, com a vaga sozinha como garagem.</li>
+          <li><b>Cor dos carros:</b> branco e prata, ou 3 a 4 cores neutras sorteadas.</li>
+          <li><b>Períodos do dia:</b> 6 ou 8.</li>
+          <li><b>Zoom basta</b>, ou vale pagar 4 vistas giradas?</li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <footer>
+    <span>Prova de conceito local · dados simulados</span>
+    <a class="btn prim" href="../">Abrir a demonstração</a>
+  </footer>
+</div>
+</body>
+</html>
