@@ -217,7 +217,12 @@ export async function criarMaquete(el, opcoes = {}) {
     cam.bottom = lerp(baseF.b, baseF.t, jan.V0); cam.top = lerp(baseF.b, baseF.t, jan.V1)
     cam.updateProjectionMatrix()
     for (const q of [quadFundo, quadTeto]) q.material.uniforms.janela.value.set(jan.U0, jan.V0, jan.U1, jan.V1)
+    // grade de pontinhos (CSS do elemento): presa ao render, cresce com o zoom e anda com o arrasto
+    const kTela = (cnv.w / img.w) / (jan.U1 - jan.U0), gx = (-jan.U0 / (jan.U1 - jan.U0)) * cnv.w, gy = cnv.h - (-jan.V0 / (jan.V1 - jan.V0)) * cnv.h
+    const gChave = kTela.toFixed(3) + ' ' + gx.toFixed(1) + ' ' + gy.toFixed(1)
+    if (gChave !== gradeChave) { gradeChave = gChave; el.style.setProperty('--grade-k', kTela.toFixed(3)); el.style.setProperty('--grade-x', gx.toFixed(1) + 'px'); el.style.setProperty('--grade-y', gy.toFixed(1) + 'px') }
   }
+  let gradeChave = ''
 
   // ---------------------------------------------------------- camadas renderizadas (fundo e teto), com cruzamento de períodos
   const tl = new THREE.TextureLoader()
@@ -242,20 +247,77 @@ export async function criarMaquete(el, opcoes = {}) {
 
   const telaCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
   const placa = () => new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
-    uniforms: { tA: { value: null }, tB: { value: null }, t: { value: 0 }, janela: { value: new THREE.Vector4(0, 0, 1, 1) }, opac: { value: 1 } },
+    uniforms: { tA: { value: null }, tB: { value: null }, t: { value: 0 }, janela: { value: new THREE.Vector4(0, 0, 1, 1) }, opac: { value: 1 }, chuva: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
-    fragmentShader: `uniform sampler2D tA, tB; uniform float t, opac; uniform vec4 janela; varying vec2 vUv;
+    fragmentShader: `uniform sampler2D tA, tB; uniform float t, opac, chuva; uniform vec4 janela; varying vec2 vUv;
       void main(){
         vec2 uv = janela.xy + vUv * (janela.zw - janela.xy);
         if (uv.x < 0. || uv.x > 1. || uv.y < 0. || uv.y > 1.) discard;     // fora do render
         vec4 c = mix(texture2D(tA, uv), texture2D(tB, uv), t);          // pré-multiplicado
         vec3 col = c.a > 1e-4 ? c.rgb / c.a : vec3(0.0);
+        // dia nublado: menos cor, mais escuro e um pouco mais frio (o verde da marca perde menos que o resto)
+        float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
+        float verde = smoothstep(0.08, 0.3, col.g - max(col.r, col.b));
+        vec3 nub = mix(col, vec3(l), 0.48 * (1.0 - 0.6 * verde)) * vec3(0.84, 0.9, 0.98) * 0.68;
+        col = mix(col, nub, chuva);
         gl_FragColor = vec4(col, c.a * opac);
         #include <colorspace_fragment>
       }`,
     transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
   }))
   const quadFundo = placa(), quadTeto = placa()
+  const chuva = { k: 0, alvo: 0 }, nuvem = { k: 0, alvo: 0 }      // chuva: gotas e respingos; nuvem: só o céu fechado
+  const quadChuva = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+    uniforms: { uT: { value: 0 }, uK: { value: 0 }, uDpr: { value: 1 }, janela: quadFundo.material.uniforms.janela, tA: { value: null }, tB: { value: null }, tMix: { value: 0 }, aspecto: { value: 1 }, noite: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+    fragmentShader: `uniform float uT, uK, uDpr, tMix, aspecto, noite; uniform vec4 janela; uniform sampler2D tA, tB; varying vec2 vUv;
+      float h1(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      // uma camada de gotas: colunas estreitas e altas, cada célula com no máximo um risco que desce
+      float gotas(vec2 px, float cel, float vel, float comp, float dens, float esp){
+        vec2 q = px; q.x += q.y * 0.17;                                  // vento: as gotas descem inclinadas
+        float alt = cel * 7.0;
+        vec2 g = vec2(q.x / cel, q.y / alt + uT * vel);
+        vec2 id = floor(g), f = fract(g);
+        if (h1(id) > dens) return 0.0;
+        float dx = abs(f.x - (0.15 + 0.7 * h1(id + 3.1))) * cel;        // distância ao risco, em pixels
+        float y = f.y - h1(id + 9.7) * (1.0 - comp);
+        if (y < 0.0 || y > comp) return 0.0;
+        return (1.0 - y / comp) * smoothstep(esp, 0.0, dx);            // cabeça (embaixo) mais forte, rabo some
+      }
+      // respingos: anéis achatados (no chão) que abrem e somem, presos ao render
+      float respingos(vec2 uv){
+        vec2 g = vec2(uv.x * 38.0, uv.y * 38.0 / aspecto);
+        vec2 id = floor(g), f = fract(g);
+        float r = h1(id + 1.7); if (r > 0.6) return 0.0;
+        float p = fract(uT * (1.4 + r) + h1(id + 5.3));
+        if (p > 0.55) return 0.0;
+        p /= 0.55;
+        vec2 c = vec2(0.2 + 0.6 * h1(id + 2.2), 0.2 + 0.6 * h1(id + 8.8));
+        vec2 d = (f - c) * vec2(1.0, 2.4);                               // achatado: o chão é visto de cima, inclinado
+        float raio = 0.04 + p * 0.22, dist = length(d);
+        float anel = smoothstep(0.06, 0.0, abs(dist - raio)) * (1.0 - p);
+        float pingo = smoothstep(0.07, 0.0, dist) * (1.0 - smoothstep(0.0, 0.25, p));      // o pingo bate antes de abrir o anel
+        return max(anel, pingo);
+      }
+      void main(){
+        if (uK < 0.002) discard;
+        vec2 px = gl_FragCoord.xy / uDpr;
+        float a = gotas(px, 7.0, 11.0, 0.22, 0.32, 0.7) * 0.16 + gotas(px + 31.0, 12.0, 8.5, 0.3, 0.24, 0.9) * 0.26 + gotas(px + 77.0, 21.0, 6.2, 0.34, 0.12, 1.25) * 0.36;
+        vec2 uv = janela.xy + vUv * (janela.zw - janela.xy);
+        vec4 fc = vec4(0.0);
+        if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) fc = mix(texture2D(tA, uv), texture2D(tB, uv), tMix);
+        float sp = respingos(uv) * smoothstep(0.9, 1.0, fc.a);
+        // sobre fundo escuro a gota é clara; sobre o piso claro, um cinza-azulado mais escuro (senão some)
+        float claro = smoothstep(0.18, 0.5, dot(fc.rgb, vec3(0.2126, 0.7152, 0.0722)));
+        vec3 corClara = mix(vec3(0.82, 0.88, 0.95), vec3(0.62, 0.72, 0.85), noite);
+        vec3 cor = mix(corClara, vec3(0.16, 0.2, 0.26), claro);
+        float alfa = clamp((a * (1.0 + 0.6 * claro) + sp * mix(0.55, 0.5, claro)) * uK, 0.0, 1.0);
+        gl_FragColor = vec4(cor, alfa);
+        #include <colorspace_fragment>
+      }`,
+    transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
+  }))
+  const cenaChuva = new THREE.Scene(); cenaChuva.add(quadChuva)
   const cenaFundo = new THREE.Scene(); cenaFundo.add(quadFundo)
   const cenaTeto = new THREE.Scene(); cenaTeto.add(quadTeto)
 
@@ -480,6 +542,10 @@ export async function criarMaquete(el, opcoes = {}) {
     // com motorista informado, o selo é um card: clicar avisa o painel (evento "mv-selo" no elemento da maquete)
     vg.sel.addEventListener('click', () => { if (vg.pessoa) el.dispatchEvent(new CustomEvent('mv-selo', { detail: { vaga: vg.i } })) })
   }
+  for (const vg of vagas) {
+    vg.info = selo('mv-selo-info'); vg.infoAte = -1
+    vg.info.addEventListener('click', () => { vg.infoAte = -1 })
+  }
   const ouvintes = []
   const avisa = (vg) => { for (const f of ouvintes) f({ vaga: vg.i, nome: vg.nome, estado: vg.estado }) }
 
@@ -506,11 +572,19 @@ export async function criarMaquete(el, opcoes = {}) {
       const ca = la ? la.cor : lb.cor, cb = lb ? lb.cor : la.cor
       l.color.setRGB(lerp(ca[0], cb[0], t), lerp(ca[1], cb[1], t), lerp(ca[2], cb[2], t))
     }
-    const noite = lerp(A.look === 'noite' ? 1 : 0, B.look === 'noite' ? 1 : 0, t)
+    const noiteP = lerp(A.look === 'noite' ? 1 : 0, B.look === 'noite' ? 1 : 0, t), noite = Math.max(noiteP, 0.55 * chuva.k)   // na chuva os faróis acendem
     for (const vg of vagas) {
       vg.carro.luzes.farol.forEach((m2) => (m2.emissiveIntensity = lerp(6, 16, noite)))
       vg.carro.luzes.base = { lanterna: lerp(3, 14, noite), halo: 0.55 * noite, noite }
     }
+    // nublado: o sol vira luz difusa, a sombra quase some e a panorâmica perde força (nuvem sozinha fecha menos que chuva)
+    const cinza = Math.max(chuva.k, 0.6 * nuvem.k)
+    sol.userData.forca *= 1 - 0.85 * cinza
+    solo.material.opacity *= 1 - 0.7 * cinza
+    cena.environmentIntensity *= 1 - 0.35 * cinza
+    for (const q of [quadFundo, quadTeto]) q.material.uniforms.chuva.value = cinza
+    const uc = quadChuva.material.uniforms
+    uc.tA.value = fundos[a]; uc.tB.value = fundos[b]; uc.tMix.value = t; uc.noite.value = noiteP
     faceTotem.material.color.setScalar(lerp(0.92, 1.0, noite))
   }
 
@@ -625,7 +699,7 @@ export async function criarMaquete(el, opcoes = {}) {
   const ICONE_ALERTA = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1Z" fill="currentColor"/><path d="M8 6v4" stroke="#200" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#200"/></svg>'
   function seloPessoa(vg, ps) {
     const tipo = vg.con != null ? (conectores[vg.con].dc ? 'CCS2' : 'Tipo 2') : ''
-    const linha = vg.estado === 'falha' ? `${tipo} · Interrompida` : vg.estado === 'conectando' ? `${tipo} · Conectando` : vg.estado === 'concluido' ? 'Terminou · ainda na vaga' : `${tipo} · ${vg.kw} kW`
+    const linha = vg.estado === 'falha' ? `${tipo} · Interrompida` : vg.estado === 'conectando' ? `${tipo} · Conectando` : vg.estado === 'concluido' ? 'Terminou · ainda na vaga' : `${tipo} · ${vg.kw} kW${vg.aviso ? ` <em class="mv-aviso">${vg.aviso}</em>` : ''}`
     const anel = vg.dc && vg.estado === 'carregando' ? `<i class="mv-pct" style="--p:${vg.pct.toFixed(0)}">${vg.pct.toFixed(0)}%</i>` : ''
     return `<b class="mv-av">${ps.iniciais}</b><span class="mv-tx"><b>${ps.nome}</b><small>${linha}</small></span>${anel}`
   }
@@ -644,6 +718,7 @@ export async function criarMaquete(el, opcoes = {}) {
         vg.sel.classList.toggle('falha', vg.estado === 'falha'); vg.sel.classList.toggle('pessoa', !!ps)
       }
       itens.push(telaSelo(vg.sel, vg.carro.raiz.position.clone().add(new THREE.Vector3(0, 0.2, 2.15)), on))
+      itens.push(telaSelo(vg.info, new THREE.Vector3(vg.pos.x, vg.pos.y, chao(vg.pos.x, vg.pos.y) + 0.35), tempo < vg.infoAte))
     }
     for (const b of bombas) {
       const emFoco = foco > 0.6 && bombaFoco === b.bi && zoom.k > 1.35
@@ -690,7 +765,28 @@ export async function criarMaquete(el, opcoes = {}) {
       arrasto.x = e.clientX; arrasto.y = e.clientY
     }
   })
-  const solta = (e) => { toques.delete(e.pointerId); if (toques.size < 2) dist0 = 0; if (!toques.size) arrasto = null; atualizaCursor() }
+  // clique (sem arrastar) numa vaga: avisa o painel com "mv-vaga" (a vaga e o estado dela)
+  let clique0 = null
+  el.addEventListener('pointerdown', (e) => { clique0 = toques.size === 0 && e.button === 0 && !(e.target.closest && e.target.closest('.mv-selo')) ? { x: e.clientX, y: e.clientY, t: performance.now() } : null }, true)
+  const raio = new THREE.Raycaster(), plano = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), alvoChao = new THREE.Vector3()
+  function vagaNoPonto(cx, cy) {
+    const r = el.getBoundingClientRect()
+    raio.setFromCamera(new THREE.Vector2(((cx - r.left) / cnv.w) * 2 - 1, -(((cy - r.top) / cnv.h) * 2 - 1)), cam)
+    for (const vg of vagas) {
+      plano.constant = -chao(vg.pos.x, vg.pos.y)
+      if (!raio.ray.intersectPlane(plano, alvoChao)) continue
+      if (Math.abs(alvoChao.x - vg.pos.x) < an.BAY_W / 2 && Math.abs(alvoChao.y - vg.pos.y) < an.BAY_D / 2) return vg
+    }
+    return null
+  }
+  const solta = (e) => {
+    if (clique0 && e.type === 'pointerup' && Math.hypot(e.clientX - clique0.x, e.clientY - clique0.y) < 6 && performance.now() - clique0.t < 600) {
+      const vg = vagaNoPonto(e.clientX, e.clientY)
+      if (vg) el.dispatchEvent(new CustomEvent('mv-vaga', { detail: { vaga: vg.i, estado: vg.estado } }))
+    }
+    clique0 = null
+    toques.delete(e.pointerId); if (toques.size < 2) dist0 = 0; if (!toques.size) arrasto = null; atualizaCursor()
+  }
   el.addEventListener('pointerup', solta); el.addEventListener('pointercancel', solta)
   el.addEventListener('dblclick', () => { zoom.alvo = 1; focoAlvo = 0; pan.u = pan.v = 0; atualizaCursor() })
   el.style.userSelect = 'none'
@@ -715,6 +811,15 @@ export async function criarMaquete(el, opcoes = {}) {
     renderer.clearDepth()
     renderer.render(cena, cam)
     renderer.render(cenaTeto, telaCam)
+    // chuva: transição suave ao ligar e desligar; a luz acompanha
+    let mudouClima = false
+    for (const c of [chuva, nuvem]) if (Math.abs(c.k - c.alvo) > 0.001) { c.k = lerp(c.k, c.alvo, Math.min(1, dt * 1.6)); if (Math.abs(c.k - c.alvo) < 0.002) c.k = c.alvo; mudouClima = true }
+    if (mudouClima) aplicaHora()
+    if (chuva.k > 0.002) {
+      const uc = quadChuva.material.uniforms
+      uc.uT.value = tempo; uc.uK.value = chuva.k; uc.uDpr.value = renderer.getPixelRatio(); uc.aspecto.value = ASPECTO
+      renderer.render(cenaChuva, telaCam)
+    }
     atualizaSelos()
   }
   function laco(agora) {
@@ -739,7 +844,8 @@ export async function criarMaquete(el, opcoes = {}) {
   return {
     posto: an.posto,
     quadroImagem: () => ({ ...img }),
-    _carro: (i) => vagas[i].carro,                              // só para inspeção (testes)                          // onde o render cai dentro do elemento (px), sem zoom
+    _carro: (i) => vagas[i].carro,
+    _telaDaVaga: (i) => { const p = vagas[i].pos.clone(); p.z = chao(p.x, p.y); p.project(cam); const r = el.getBoundingClientRect(); return { x: r.left + (p.x * 0.5 + 0.5) * cnv.w, y: r.top + (-p.y * 0.5 + 0.5) * cnv.h } },   // testes                              // só para inspeção (testes)                          // onde o render cai dentro do elemento (px), sem zoom
     vagas: vagas.map((v) => ({ nome: v.nome, dc: v.dc, bomba: v.bomba, kw: v.kw, natural: v.natural })),
     // conectores: um por saída de cabo; vagasNaturais = as vagas que ficam de frente para ele
     conectores: conectores.map((c) => ({ id: c.id, bomba: c.bomba, dc: c.dc, lado: c.lado, vagasNaturais: [...c.vagasNaturais] })),
@@ -750,11 +856,18 @@ export async function criarMaquete(el, opcoes = {}) {
     falha: (bi) => bombas[bi].falha,
     evento, setFalha,
     // dados que o painel manda para o selo (potência e carga do carro)
-    setDados(i, d) { const vg = vagas[i]; if (d.kw != null) vg.kw = d.kw; if (d.pct != null) vg.pct = d.pct; if (d.pessoa !== undefined) vg.pessoa = d.pessoa },   // pessoa: { nome, iniciais } ou null
+    setDados(i, d) { const vg = vagas[i]; if (d.kw != null) vg.kw = d.kw; if (d.pct != null) vg.pct = d.pct; if (d.pessoa !== undefined) vg.pessoa = d.pessoa; if (d.aviso !== undefined) vg.aviso = d.aviso },   // pessoa: { nome, iniciais } ou null
     getDados: (i) => ({ kw: vagas[i].kw, pct: vagas[i].pct }),
     setRealce(i) { for (const vg of vagas) vg.realce = vg.i === i },
+    // selo de informação sobre a vaga (html), por alguns segundos
+    mostrarVaga(i, html, seg = 5) { const vg = vagas[i]; if (vg.info.dataset.h !== html) { vg.info.innerHTML = html; vg.info.dataset.h = html } vg.infoAte = tempo + seg },
     ouvir(f) { ouvintes.push(f) },
     setHora(h) { hora = h; aplicaHora() },
+    // tempo chuvoso: on = true/false (transição de ~2 s); imediato = sem transição
+    setChuva(on, imediato) { chuva.alvo = on ? 1 : 0; nuvem.alvo = on ? 1 : nuvem.alvo; if (imediato) { chuva.k = chuva.alvo; nuvem.k = nuvem.alvo; aplicaHora() } },
+    getChuva: () => chuva.alvo > 0.5,
+    // clima de verdade: nuvens e chuva de 0 a 1 (garoa ~0,35, chuva forte 1)
+    setClima({ nuvens = 0, chuva: ch = 0 } = {}, imediato) { nuvem.alvo = clamp01(nuvens); chuva.alvo = clamp01(ch); if (imediato) { nuvem.k = nuvem.alvo; chuva.k = chuva.alvo; aplicaHora() } },
     getHora: () => hora,
     setPreco(v) { preco = v; desenhaTotem(telaTotem, preco, logoBranco, linhasTotem); texTotem.needsUpdate = true },
     setZoom(on, bi = 0) { bombaFoco = bi; calculaAlvoZoom(); focoAlvo = on ? 1 : 0; zoom.alvo = on ? 2.0 : 1; pan.u = pan.v = 0; atualizaCursor() },

@@ -17,7 +17,7 @@
   --text:#F2F5F2; --muted:#9AA39C; --dim:#6B746D;
   --green:#03FF1F; --green-ink:#7DFF8C; --green-soft:rgba(3,255,31,.09); --green-line:rgba(3,255,31,.30);
   --amber:#F5B54A; --red:#FF6A5F; --red-soft:rgba(255,106,95,.10); --red-line:rgba(255,106,95,.45);
-  --stage-a:#0B0F0D; --stage-b:#020302; --dots:rgba(255,255,255,.05);
+  --stage-a:#0B0F0D; --stage-b:#020302; --dots:rgba(255,255,255,.15);
   --vidro:rgba(8,11,9,.72); --vidro-2:rgba(22,27,24,.86); --modal:#0A0D0B;
 }
 [data-theme="light"]{
@@ -51,8 +51,9 @@ input,textarea{caret-color:var(--green)}
 .app{padding:14px clamp(16px,2.4vw,32px) 18px;max-width:1720px;margin:0 auto}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 384px;gap:14px;height:calc(100vh - 38px - 32px);min-height:620px}
 .palco{position:relative;border-radius:18px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 50% 42%,var(--stage-a),var(--stage-b) 72%),var(--stage-b)}
-.palco::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--dots) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
-.cena{position:absolute;inset:0;--mv-margem:74px 10px 56px 10px}
+/* área de canvas: grade de pontinhos atrás da maquete, presa ao render (anda e cresce com o zoom e o arrasto) */
+.cena::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,var(--dots) calc(1.1px * min(var(--grade-k,1),1.6)),transparent calc(1.1px * min(var(--grade-k,1),1.6) + .6px));background-size:calc(20px * var(--grade-k,1)) calc(20px * var(--grade-k,1));background-position:var(--grade-x,0) var(--grade-y,0);-webkit-mask:radial-gradient(ellipse at 50% 46%,#000 35%,rgba(0,0,0,.35) 85%);mask:radial-gradient(ellipse at 50% 46%,#000 35%,rgba(0,0,0,.35) 85%)}
+.cena{position:absolute;inset:0;--mv-margem:92px 10px 84px 10px}
 /* carregando o posto: um carro anda pela estrada até a bomba no ritmo do download e pluga quando termina */
 .carregando-cena{position:absolute;inset:0;display:grid;place-items:center;z-index:4;transition:opacity .45s ease;background:radial-gradient(ellipse at 50% 42%,var(--stage-a),var(--stage-b) 72%),var(--stage-b)}
 .carregando-cena.saindo{opacity:0}
@@ -192,11 +193,234 @@ dialog.modal.postos{width:min(1080px,calc(100vw - 32px))}
 .vivo.simulando i{background:var(--amber);animation:none}
 @keyframes pulso{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
 
-.palco-pe{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:center;gap:8px;z-index:3}
+.palco-pe{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:flex-end;gap:8px;z-index:3}
+/* simulação de ambiente: embaixo do "Ao vivo" (some quando o painel for de verdade) */
+.palco-amb{position:absolute;right:14px;top:54px;z-index:3;display:flex;justify-content:flex-end;max-width:62%}
+.palco-amb .chips{justify-content:flex-end}
 .chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .chips span{font-size:12.5px;color:var(--muted);margin-right:2px;padding:3px 8px;border-radius:999px;background:var(--vidro)}
 .chips button{padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;color:var(--muted);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .chips button[aria-pressed="true"]{color:var(--text);border-color:var(--line-2);background:var(--vidro-2)}
+.chips-div{width:1px;height:16px;background:var(--line-2);margin:0 2px}
+.chuva-btn{display:inline-flex;align-items:center;gap:6px}
+.chuva-btn svg{width:14px;height:14px}
+.chips .chuva-btn[aria-pressed="true"]{color:#CFE3FF;border-color:rgba(150,190,255,.45);background:rgba(60,90,140,.32)}
+/* palco no dia chuvoso: o fundo em volta da maquete fica mais frio e fechado */
+.palco{transition:background-color .8s}
+.palco.chovendo{--stage-a:#0B0E11;--stage-b:#030405}
+/* clima no selo "Ao vivo" */
+.vivo .clima{display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
+.vivo .clima svg{width:14px;height:14px}
+.vivo .clima[hidden]{display:none}
+/* selo da maquete: aviso de calor e informação da vaga livre */
+.mv-aviso{font-style:normal;color:#F5B54A}
+.mv-selo.mv-selo-info{border-color:var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.35);cursor:pointer}
+.mv-selo.mv-selo-info::after{background:var(--line-2)}
+.mv-selo-info .mv-ic{background:rgba(255,255,255,.1);color:#E8EDEA;font-style:normal;font-size:11px;font-weight:700}
+.mv-selo-info .mv-tx small{color:var(--muted)}
+.olho li.calor .oi{background:rgba(245,181,74,.12);color:var(--amber)}
+.calor-tag{font-style:normal;color:var(--amber)}
+/* movimento de hoje: carros por hora; o fantasma é um dia típico */
+.mov{position:relative;height:64px;display:grid;grid-template-columns:repeat(24,minmax(0,1fr));gap:3px;align-items:end;margin-top:4px}
+.mov span{position:relative;height:100%;display:flex;align-items:flex-end}
+.mov span i,.mov span b{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 1px 1px}
+.mov span i{border:1px dashed rgba(255,255,255,.18);border-bottom:0;background:rgba(255,255,255,.025)}
+.mov span b{background:linear-gradient(180deg,var(--green),rgba(3,255,31,.45))}
+.mov span.futuro b{display:none}
+.mov span.atual::after{content:"";position:absolute;left:50%;bottom:-6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--green)}
+.mov-eixo{display:flex;justify-content:space-between;margin-top:9px;font-size:11.5px;color:var(--dim)}
+/* no modal da linha do tempo: maior, e cada hora é um botão */
+.mov.mov-g{height:120px;gap:4px}
+.mov button{all:unset;position:relative;height:100%;display:flex;align-items:flex-end;cursor:pointer;border-radius:4px}
+.mov button i,.mov button b{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 1px 1px}
+.mov button i{border:1px dashed rgba(255,255,255,.18);border-bottom:0;background:rgba(255,255,255,.025)}
+.mov button b{background:linear-gradient(180deg,var(--green),rgba(3,255,31,.45))}
+.mov button:hover{background:rgba(255,255,255,.05)}
+.mov button.sel{background:rgba(3,255,31,.1);box-shadow:0 0 0 1px var(--green-line)}
+.mov button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.mov button.atual::after{content:"";position:absolute;left:50%;bottom:-6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--green)}
+.lt-grafico{padding-bottom:18px;border-bottom:1px solid var(--line)}
+.lt-comp{font-size:12.5px;color:var(--muted)}
+.lt-legenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:10px;font-size:12px;color:var(--muted)}
+.lt-legenda span{display:inline-flex;align-items:center;gap:6px}
+.lt-legenda .hj::before{content:"";width:10px;height:10px;border-radius:2px;background:var(--green)}
+.lt-legenda .tp::before{content:"";width:10px;height:10px;border-radius:2px;border:1px dashed rgba(255,255,255,.35)}
+.lt-legenda em{font-style:normal;color:var(--dim);margin-left:auto}
+.lt-hora{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:13.5px;color:var(--text)}
+.mov-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.link-verde{font-size:13px;font-weight:500;color:var(--green-ink);flex:none}
+.link-verde:hover{text-decoration:underline}
+.delta{display:inline-block;margin-right:8px;font-size:12px;font-weight:500;padding:1px 7px;border-radius:999px;vertical-align:1px}
+.delta.sobe{color:var(--green-ink);background:var(--green-soft)}
+.delta.desce{color:#FF9A90;background:var(--red-soft)}
+.delta.igual{color:var(--muted);background:var(--surface-2)}
+.nota-card{margin-top:10px;font-size:12.5px;color:var(--dim)}
+.vazio-lista{font-size:13.5px;color:var(--muted);padding:6px 0 2px;cursor:default}
+.recargas li.vazio-lista:hover{background:none}
+/* preço: ajustes (AC e taxa por carro parado) */
+.ajustes .aj-linha{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.ajustes .aj-linha:first-of-type{border-top:0;padding-top:2px}
+.ajustes .aj-linha .tx{display:flex;flex-direction:column;min-width:0}
+.ajustes .aj-linha .tx b{font-size:14px;font-weight:500}
+.ajustes .aj-linha .tx small{font-size:12.5px;color:var(--muted);line-height:1.4}
+.ajustes .aj-linha.off .campo-valor{opacity:.45;pointer-events:none}
+.aj-campos{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.ajustes .aj-linha.aj-dupla .aj-campos{grid-column:2 / -1;justify-content:flex-start;margin-top:-2px}
+/* suporte: o andamento do chamado */
+.chamado{margin:4px 0 12px;padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.22);border:1px solid var(--line)}
+.chamado .ch-tit{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);margin-bottom:10px}
+.chamado .ch-tit b{color:var(--text);font-weight:500}
+.ch-passos{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.ch-passos li{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dim);line-height:1.3}
+.ch-passos li::before{content:"";height:3px;border-radius:2px;background:var(--surface-3)}
+.ch-passos li.feito{color:var(--muted)}
+.ch-passos li.feito::before{background:var(--green-ink)}
+.ch-passos li.atual{color:var(--text)}
+.ch-passos li.atual::before{background:var(--green);box-shadow:0 0 8px rgba(3,255,31,.5)}
+.chamado .ch-nota{margin-top:10px;font-size:12.5px;color:var(--muted)}
+/* sino dos avisos e o modal */
+.sino{position:absolute;right:0;top:2px;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--muted);border:1px solid var(--line);background:var(--surface)}
+.sino:hover{color:var(--text);border-color:var(--line-2)}
+.sino svg{width:18px;height:18px}
+.sino b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--green);color:#03140A;font-size:11px;font-weight:700;display:grid;place-items:center}
+.sino b:empty{display:none}
+.av-lista{list-style:none;padding:0;display:grid;grid-template-columns:minmax(0,1fr)}
+.av-lista li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.av-lista li:first-child{border-top:0;padding-top:2px}
+.av-lista time{font-size:12.5px;color:var(--dim);padding-top:1px}
+.av-lista b{font-weight:500;font-size:14px}
+.av-lista small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.av-cfg .aj-linha{grid-template-columns:auto minmax(0,1fr) auto}
+/* posto sem conexão */
+.vivo.sem i{background:var(--dim);animation:none}
+.palco.offline .cena canvas{filter:saturate(.35) brightness(.72);transition:filter .6s}
+.alertas.cinza{border-color:var(--line-2);background:var(--surface-2)}
+.alertas.cinza h2{color:var(--text)}
+.col.parado-dados .vista{opacity:.55;pointer-events:none;transition:opacity .4s}
+/* retorno do investimento */
+.ret-num{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.ret-num b{font-size:22px;font-weight:500;letter-spacing:-.01em}
+.ret-num span{font-size:13px;color:var(--muted)}
+.ret-barra{height:8px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin:10px 0 8px}
+.ret-barra i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,rgba(3,255,31,.5),var(--green))}
+.ret-barra.meta i{background:linear-gradient(90deg,rgba(125,255,140,.35),var(--green-ink))}
+.ret-linha{font-size:13px;color:var(--muted);line-height:1.5}
+.ret-linha b{color:var(--text);font-weight:500}
+.ret-mes{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+/* linha do tempo */
+.lt-filtros{margin-bottom:6px}
+.lt{list-style:none;padding:0;display:grid;grid-template-columns:minmax(0,1fr)}
+.lt li{display:grid;grid-template-columns:46px 14px minmax(0,1fr);gap:8px;align-items:start;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.lt li:first-child{border-top:0}
+.lt time{font-size:12.5px;color:var(--dim);padding-top:2px}
+.lt li > i{width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--dim)}
+.lt li.recarga > i{background:var(--green)}
+.lt li.alerta > i{background:var(--red)}
+.lt li.acao > i{background:#8FB8FF}
+.lt li.app > i{background:var(--amber)}
+.mr-meses{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:end;margin:6px 0 4px;position:relative}
+.mr-meses .m{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;font-size:12.5px;color:var(--muted)}
+.mr-meses .m .mr-faixa{height:104px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
+.mr-meses .m i{width:100%;max-width:56px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--green),rgba(3,255,31,.35))}
+.mr-meses .m .mr-faixa::after{content:"";position:absolute;left:-7px;right:-7px;bottom:var(--meta);border-top:1px dashed rgba(245,181,74,.55)}
+.mr-meses .m.parcial i{background:repeating-linear-gradient(135deg,rgba(3,255,31,.55) 0 6px,rgba(3,255,31,.3) 6px 12px)}
+.mr-meses .m b{font-size:13px;font-weight:500;color:var(--text)}
+.mr-legenda{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
+.mr-legenda span{display:inline-flex;align-items:center;gap:6px}
+.mr-legenda span::before{content:"";width:14px;border-top:1px dashed rgba(245,181,74,.8)}
+/* a caminho e por perto: card no canvas, embaixo do posto */
+.prox-card{display:flex;align-items:stretch;gap:6px;min-width:0;max-width:calc(100% - 280px);padding:6px;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.32)}
+.prox-card[hidden]{display:none}
+.prox-card.espera{border-color:rgba(245,181,74,.5)}
+.prox-cab{display:flex;align-items:flex-start;gap:8px;flex:none;width:178px;padding:7px 8px 6px 9px;border-radius:10px;text-align:left}
+.prox-cab:hover{background:rgba(255,255,255,.03)}
+.px-tit{flex:1;display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.px-tit b{font-size:13px;font-weight:500;white-space:nowrap}
+.px-tit small{font-size:12px;color:var(--muted);line-height:1.35;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.px-tit small[hidden]{display:none}
+.prox-card .px-tit .px-espera{color:var(--amber)}
+.prox-cab svg{width:13px;height:13px;color:var(--muted);flex:none;transition:transform .2s}
+.prox-cab svg{margin-top:3px}
+.prox-card.fechado .prox-cab svg{transform:rotate(-90deg)}
+.prox-card.fechado{padding:4px}
+.prox-card.fechado .prox-lista{display:none}
+.prox-lista{list-style:none;margin:0;padding:0;display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.prox-lista::-webkit-scrollbar{display:none}
+.prox-lista li{flex:none}
+.px-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;width:204px;padding:7px 10px 3px;border-radius:11px;text-align:left;background:rgba(255,255,255,.035);border:1px solid var(--line);transition:background-color .15s,border-color .15s}
+.px-item:hover{background:rgba(255,255,255,.065);border-color:var(--line-2)}
+.px-item.perto{background:rgba(245,181,74,.05);border-color:rgba(245,181,74,.32)}
+.px-item.perto:hover{background:rgba(245,181,74,.09);border-color:rgba(245,181,74,.5)}
+.px-item:focus-visible{outline:2px solid var(--green);outline-offset:-2px}
+.px-item *{pointer-events:none}
+.px-item .nm{font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.px-item .eta{font-size:13px;font-weight:600;text-align:right;white-space:nowrap}
+.prox-lista .px-item .sb,.prox-lista .px-item .km{display:none}
+.px-item .sb{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.px-item .km{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.px-item.perto .eta{color:var(--amber)}
+.px-rota{display:block;grid-column:1 / -1;position:relative;height:22px;margin-top:3px}
+.px-rota::before{content:"";position:absolute;left:2px;right:16px;top:15px;border-top:1px dashed rgba(255,255,255,.16)}
+.px-rota .feito{position:absolute;left:2px;top:14px;height:2px;border-radius:2px;width:calc(var(--p) * (100% - 60px) + 20px);background:linear-gradient(90deg,rgba(3,255,31,0),rgba(3,255,31,.55));transition:width 1s linear}
+.px-item.perto .px-rota .feito,.px-det-rota.perto .px-rota .feito{background:linear-gradient(90deg,rgba(245,181,74,0),rgba(245,181,74,.6))}
+/* o carrinho: render de perfil (carroceria) e duas rodas que giram enquanto ele anda */
+.px-rota .car{position:absolute;bottom:3px;left:calc(var(--p) * (100% - 60px));width:42px;transition:left 1s linear;filter:drop-shadow(0 2px 2px rgba(0,0,0,.55))}
+.px-rota .car .cp{display:block;width:100%;height:auto}
+.px-rota .car .rd{position:absolute;top:75.66%;width:17.5%;height:auto;margin:-8.75% 0 0 -8.75%;animation:gira .7s linear infinite}
+.px-rota .car .rd.t{left:17.74%}
+.px-rota .car .rd.f{left:79.04%}
+.px-item.perto .px-rota .car .rd,.px-det-rota.perto .px-rota .car .rd{animation:none}
+.px-item.perto .px-rota .car{animation:px-espera 1.8s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){ .px-rota .car .rd,.px-item.perto .px-rota .car{animation:none} }
+@keyframes px-espera{50%{transform:translateY(-1.5px)}}
+.px-rota .px-pino{position:absolute;right:0;top:15px;transform:translateY(-50%);width:16px;height:16px;border-radius:50%;display:grid;place-items:center;background:#12301A;border:1px solid var(--green-line);color:var(--green-ink)}
+.px-rota .px-pino svg{width:9px;height:9px;display:block}
+.px-vazio-card{padding:10px 8px;font-size:12.5px;color:var(--muted)}
+/* detalhe da pessoa (modal) */
+.px-det-rota{padding:16px 16px 12px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
+.px-det-rota .px-rota{height:34px;margin:2px 0 12px}
+.px-det-rota .px-rota::before{top:24px}
+.px-det-rota .px-rota .feito{top:23px;width:calc(var(--p) * (100% - 96px) + 34px)}
+.px-det-rota .px-rota .car{width:68px;bottom:4px;left:calc(var(--p) * (100% - 96px))}
+.px-det-rota .px-rota .px-pino{width:22px;height:22px;top:24px}
+.px-det-rota .px-rota .px-pino svg{width:12px;height:12px}
+.px-det-linha{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.px-det-linha b{font-size:20px;font-weight:500;letter-spacing:-.01em}
+.px-det-linha span{font-size:13px;color:var(--muted)}
+.px-det-pe{display:flex;justify-content:flex-end;gap:8px}
+.px-det-pe .btn[disabled]{opacity:.6}
+/* ajuste: lista vertical que cresce para cima a partir do rodapé; o fim da rotinha é a bomba do posto */
+.prox-card{flex-direction:column;width:372px}
+.prox-cab{width:100%;align-items:center}
+.px-tit{flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:8px}
+.px-tit .px-espera{flex-basis:100%}
+.prox-lista{flex-direction:column;overflow-x:hidden;overflow-y:auto;max-height:min(280px,40vh)}
+.px-item{width:100%;padding:9px 11px 4px}
+.px-item .nm em{font-style:normal;font-weight:400;color:var(--muted);margin-left:7px}
+.px-rota{height:38px;margin-top:6px}
+.px-rota::before{top:31px;right:8px}
+.px-rota .feito{top:30px;width:calc(var(--p) * (100% - 64px) + 22px)}
+.px-rota .car{bottom:6px;left:calc(var(--p) * (100% - 64px))}
+.px-rota .px-pino{top:auto;bottom:6px;right:1px;transform:none;width:auto;height:auto;background:none;border:0;border-radius:0;display:block}
+.px-rota .px-pino img{display:block;height:28px;width:auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6)) drop-shadow(0 0 6px rgba(3,255,31,.22))}
+.px-det-rota .px-rota{height:54px}
+.px-det-rota .px-rota::before{top:45px;right:14px}
+.px-det-rota .px-rota .feito{top:44px;width:calc(var(--p) * (100% - 108px) + 36px)}
+.px-det-rota .px-rota .car{bottom:8px;left:calc(var(--p) * (100% - 108px))}
+.px-det-rota .px-rota .px-pino{top:auto;bottom:8px;width:auto;height:auto}
+.px-det-rota .px-rota .px-pino img{height:48px}
+/* modal */
+.px-lista{list-style:none;padding:0;display:grid;grid-template-columns:minmax(0,1fr)}
+.px-lista li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.px-lista li:first-child{border-top:0;padding-top:2px}
+.px-lista .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.px-lista .tx b{font-size:14.5px;font-weight:500}
+.px-lista .tx small{font-size:13px;color:var(--muted)}
+.px-lista .vl{display:flex;flex-direction:column;align-items:flex-end;flex:none;font-size:13px;color:var(--muted)}
+.px-lista .vl b{font-size:15px;font-weight:500;color:var(--text)}
+.px-lista .av.perto,.modal .cab .av.perto{background:#3A2E12;color:#FFD48A}
+.px-vazio{font-size:13.5px;color:var(--muted);padding:4px 0}
+.px-nota{font-size:12.5px;color:var(--dim);line-height:1.5}
 .zoom{margin-left:auto;display:flex;align-items:center;gap:6px}
 .zoom button{height:32px;min-width:32px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;font-size:13px;color:var(--muted)}
 .zoom button:hover{color:var(--text);border-color:var(--line-2)}
@@ -237,7 +461,7 @@ dialog.modal.postos{width:min(1080px,calc(100vw - 32px))}
 .rola:hover::-webkit-scrollbar-thumb,.col:hover::-webkit-scrollbar-thumb,.modal .corpo:hover::-webkit-scrollbar-thumb,.lista-postos:hover::-webkit-scrollbar-thumb,.regras-box:hover::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.16)}
 .rola::-webkit-scrollbar-thumb:hover,.col::-webkit-scrollbar-thumb:hover,.modal .corpo::-webkit-scrollbar-thumb:hover,.lista-postos::-webkit-scrollbar-thumb:hover,.regras-box::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.28)}
 @supports not selector(::-webkit-scrollbar){ .rola,.col,.modal .corpo,.lista-postos,.regras-box{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent} }
-.agora{padding:4px 2px 2px}
+.agora{position:relative;padding:4px 52px 2px 2px}
 .vistas{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:14px;background:#0B0E0C;border:1px solid var(--line);box-shadow:0 10px 18px -6px rgba(0,0,0,.8)}
 .vistas::before{content:"";position:absolute;inset:-14px -8px -1px;background:var(--bg);z-index:-1;border-radius:0 0 14px 14px}
 .vistas button{display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 6px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--muted);white-space:nowrap}
@@ -272,6 +496,7 @@ dialog.modal.postos{width:min(1080px,calc(100vw - 32px))}
 .alertas h2::before{content:"";width:16px;height:16px;flex:none;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5 15 14H1Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5 15 14H1Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat}
 .alertas p{font-size:14px;line-height:1.5}
 .alertas .acoes{display:flex;gap:8px;margin-top:10px}
+.btn[hidden],.alertas .acoes[hidden]{display:none !important}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid var(--line-2);font-size:13.5px;font-weight:500;background:var(--surface-2);text-decoration:none;white-space:nowrap}
 .btn:hover{border-color:var(--green-line)}
@@ -797,6 +1022,13 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
   .palco-topo{left:10px;top:10px;right:10px;max-width:none;align-items:stretch;gap:6px}
   .posto-card{min-width:0;padding:7px 10px}
   .vivo{top:66px;right:10px}
+  .vivo #periodoTxt,.vivo .clima .d{display:none}
+  .prox-card{max-width:none;width:100%;flex-direction:column}
+  .prox-cab{width:100%}
+  .px-tit{flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:8px}
+  .palco-amb{position:relative;right:auto;top:auto;order:1;max-width:none;padding:6px 10px 0}
+  .palco-amb .chips{justify-content:flex-start}
+  .palco-pe{order:2}
   .posto-tx b{font-size:14px}
   .vivo{font-size:12px;padding:4px 10px}
   .cena{position:relative;inset:auto;height:calc(72vw + 100px);--mv-margem:100px 4px 0 4px}
@@ -829,14 +1061,24 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
-      <div class="vivo vidro" id="vivo" aria-live="off"><i></i><b id="vivoTxt">Ao vivo</b><span id="horaTxt">--:--</span><span id="periodoTxt"></span></div>
+      <div class="vivo vidro" id="vivo" aria-live="off"><i></i><b id="vivoTxt">Ao vivo</b><span id="horaTxt">--:--</span><span id="periodoTxt"></span><span class="clima" id="climaTxt" hidden></span></div>
+      <div class="palco-amb">
+        <div class="chips" role="group" aria-label="Simular o ambiente: hora do dia e chuva">
+          <span>Simular</span>
+          <button type="button" data-h="8.5">Manhã</button><button type="button" data-h="14">Tarde</button>
+          <button type="button" data-h="18.2">Pôr do sol</button><button type="button" data-h="21">Noite</button>
+          <button type="button" id="agoraBtn" aria-pressed="true">Agora</button>
+          <i class="chips-div" aria-hidden="true"></i>
+          <button type="button" id="chuvaBtn" class="chuva-btn" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.6 10.2a3 3 0 0 1-.3-6 4 4 0 0 1 7.6.9 2.6 2.6 0 0 1 .2 5.1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.6 12.2 5 13.8M8.4 12.2l-.6 1.6M11.2 12.2l-.6 1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Chuva</button>
+        </div>
+      </div>
       <div class="cena" id="cena"><div class="carregando-cena" id="carregando" role="status" aria-live="polite">
         <div class="viagem" id="viagem" style="--p:0">
           <div class="estrada">
             <div class="ceu" aria-hidden="true"><div class="nuvens"></div><div class="nuvens n2"></div><div class="cenario longe"></div><div class="cenario"></div></div>
             <div class="calcada" aria-hidden="true"></div>
             <div class="pista"><i></i></div>
-            <div class="ponto-carga"><img id="carregBomba" alt="" onerror="this.remove()"></div>
+            <div class="ponto-carga"><img id="carregBomba" src="dados/bombas/fast/g00.webp" alt="" onerror="this.remove()"></div>
             <div class="carro-anda">
               <span class="vento" aria-hidden="true"><i></i><i></i><i></i></span>
               <img class="corpo" src="dados/carregamento/carro-corpo.webp" alt="" width="640" height="280" draggable="false">
@@ -848,12 +1090,11 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
         </div>
       </div></div>
       <div class="palco-pe">
-        <div class="chips" role="group" aria-label="Simular horário (só muda a luz)">
-          <span>Ver de</span>
-          <button type="button" data-h="8.5">Manhã</button><button type="button" data-h="14">Tarde</button>
-          <button type="button" data-h="18.2">Pôr do sol</button><button type="button" data-h="21">Noite</button>
-          <button type="button" id="agoraBtn" aria-pressed="true">Agora</button>
-        </div>
+        <section class="prox-card vidro" id="proxCard" aria-label="A caminho e por perto" hidden>
+          <button type="button" class="prox-cab" id="proxCab" aria-expanded="true" aria-controls="proxLista"><span class="px-tit"><b>A caminho e por perto</b><small id="proxSub"></small><small class="px-espera" id="proxEspera" hidden></small></span>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <ol class="prox-lista" id="proxLista"></ol>
+        </section>
         <div class="zoom" role="group" aria-label="Aproximação">
           <button type="button" id="zoomMenos" aria-label="Afastar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
           <button type="button" id="zoomPct" aria-pressed="false" title="Voltar a 100%">100%</button>
@@ -865,7 +1106,8 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
     </section>
 
     <aside class="col" aria-label="O posto agora">
-      <div class="agora" aria-live="polite"><p id="frase">…</p><small id="fraseSub"></small></div>
+      <div class="agora" aria-live="polite"><p id="frase">…</p><small id="fraseSub"></small>
+        <button class="sino" type="button" id="sinoBtn" aria-haspopup="dialog" aria-label="Avisos"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3ZM6.5 14h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b id="sinoN"></b></button></div>
 
       <div class="vistas" role="tablist" aria-label="Visões do painel">
         <button type="button" role="tab" id="aba-v-posto" aria-controls="v-posto" data-vista="posto" aria-selected="true">Posto <span class="vb" id="vbPosto"></span></button>
@@ -877,7 +1119,13 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
       <div class="card alertas" id="alertas" role="alert">
         <h2>Bomba sem comunicação</h2>
         <p id="alertaTxt"></p>
+        <div id="alertaChamado"></div>
         <div class="acoes"><button class="btn" type="button" id="alertaIr">Ir até a bomba</button><a class="btn perigo-cheio" href="#suporte" id="alertaSuporte">Chamar o suporte</a></div>
+      </div>
+
+      <div class="card">
+        <h2 id="bombasTit">Bomba</h2>
+        <div id="bombas"></div>
       </div>
 
       <div class="card">
@@ -886,14 +1134,16 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
         <div class="vagas-linha" id="vagasLinha"></div>
       </div>
 
+      <div class="card" id="cardMov">
+        <h2>Movimento de hoje <span class="resumo" id="movResumo"></span></h2>
+        <div class="mov" id="mov" role="img"></div>
+        <div class="mov-eixo"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+        <div class="mov-pe"><span id="movComp"></span><button type="button" class="link-verde" id="verLinha">Ver linha do tempo</button></div>
+      </div>
+
       <div class="card" id="cardOlho">
         <h2>Para ficar de olho</h2>
         <ul class="olho" id="olho"></ul>
-      </div>
-
-      <div class="card">
-        <h2 id="bombasTit">Bomba</h2>
-        <div id="bombas"></div>
       </div>
 
       </div>
@@ -913,6 +1163,12 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
           <div><dt>Energia entregue</dt><dd id="hojeKwh">0 kWh</dd></div>
           <div><dt>Recebido</dt><dd id="hojeRs">R$ 0,00</dd></div>
         </dl>
+        <p class="nota-card" id="hojeComp"></p>
+      </div>
+
+      <div class="card" id="cardRet">
+        <h2>Retorno do investimento <button type="button" id="verRetorno">Mês a mês</button></h2>
+        <div id="retorno"></div>
       </div>
 
       <div class="card">
@@ -959,6 +1215,10 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
 <dialog class="modal largo" id="modalBomba" aria-labelledby="mbNome" tabindex="-1"></dialog>
 <dialog class="modal largo" id="modalPreco" aria-labelledby="mpTit" tabindex="-1"></dialog>
 <dialog class="modal postos" id="modalPostos" aria-labelledby="mpoTit" tabindex="-1"></dialog>
+<dialog class="modal" id="modalProx" aria-labelledby="mpxTit" tabindex="-1"></dialog>
+<dialog class="modal" id="modalLinha" aria-labelledby="mlTit" tabindex="-1"></dialog>
+<dialog class="modal" id="modalRet" aria-labelledby="mrTit" tabindex="-1"></dialog>
+<dialog class="modal" id="modalAvisos" aria-labelledby="maTit" tabindex="-1"></dialog>
 
 <script type="module">
 import { criarMaquete } from './maquete.js'
@@ -1085,12 +1345,77 @@ function atualizaHora() {
   document.getElementById('vivoTxt').textContent = vivo ? 'Ao vivo' : 'Simulando'
   document.getElementById('horaTxt').textContent = vivo ? hhmm() : String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.round((h % 1) * 60)).padStart(2, '0')
   document.getElementById('periodoTxt').textContent = '· ' + periodoNome(h)
+  desenhaClima()
 }
 document.querySelectorAll('.chips [data-h]').forEach((b) => b.addEventListener('click', () => {
-  horaFixa = Number(b.dataset.h); document.querySelectorAll('.chips button').forEach((x) => x.setAttribute('aria-pressed', x === b)); atualizaHora()
+  horaFixa = Number(b.dataset.h); document.querySelectorAll('.chips [data-h], #agoraBtn').forEach((x) => x.setAttribute('aria-pressed', x === b)); atualizaHora()
 }))
-document.getElementById('agoraBtn').addEventListener('click', (e) => { horaFixa = null; document.querySelectorAll('.chips button').forEach((x) => x.setAttribute('aria-pressed', x === e.currentTarget)); atualizaHora() })
+document.getElementById('agoraBtn').addEventListener('click', (e) => { horaFixa = null; document.querySelectorAll('.chips [data-h], #agoraBtn').forEach((x) => x.setAttribute('aria-pressed', x === e.currentTarget)); atualizaHora() })
 setInterval(atualizaHora, 20000); atualizaHora()
+
+// ---------------------------------------------------------------- clima de verdade na cidade do posto (Open-Meteo, grátis e sem chave)
+// "Agora" segue o tempo de lá: nuvens fecham o céu, chuva desenha as gotas. O botão Chuva simula chuva por cima disso.
+// ?clima=off não consulta (fotos de teste); ?chuva=1 já abre chovendo
+var climaReal = null, calorSim = false
+const COORD = { 'Savassi|Belo Horizonte': [-19.937, -43.934], 'Jardim Canadá|Nova Lima': [-20.063, -43.975], 'Eldorado|Contagem': [-19.941, -44.04], 'Venda Nova|Belo Horizonte': [-19.812, -43.957],
+  'Serra|Belo Horizonte': [-19.938, -43.918], 'Centro|Belo Horizonte': [-19.919, -43.938], 'Centro|Betim': [-19.968, -44.198], 'Barro Preto|Belo Horizonte': [-19.922, -43.951], 'Cidade Industrial|Contagem': [-19.954, -44.012] }
+function climaDoCodigo(c) {                                               // códigos WMO do Open-Meteo
+  if (c >= 95) return { txt: 'temporal', nuvens: 1, chuva: 1, ic: 'chuva' }
+  if (c >= 80) return { txt: c >= 81 ? 'pancadas fortes' : 'pancadas de chuva', nuvens: 1, chuva: c >= 81 ? 0.95 : 0.7, ic: 'chuva' }
+  if (c >= 61 && c <= 67) return { txt: c === 61 ? 'chuva fraca' : c >= 65 ? 'chuva forte' : 'chuva', nuvens: 1, chuva: c === 61 ? 0.55 : c >= 65 ? 1 : 0.8, ic: 'chuva' }
+  if (c >= 51 && c <= 57) return { txt: 'garoa', nuvens: 0.9, chuva: 0.35, ic: 'chuva' }
+  if (c === 45 || c === 48) return { txt: 'neblina', nuvens: 0.8, chuva: 0, ic: 'nuvem' }
+  if (c === 3) return { txt: 'nublado', nuvens: 0.9, chuva: 0, ic: 'nuvem' }
+  if (c === 2) return { txt: 'parcialmente nublado', nuvens: 0.45, chuva: 0, ic: 'solnuvem' }
+  if (c === 1) return { txt: 'poucas nuvens', nuvens: 0.2, chuva: 0, ic: 'sol' }
+  return { txt: 'céu limpo', nuvens: 0, chuva: 0, ic: 'sol' }
+}
+const ICON_CLIMA = {
+  sol: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  solnuvem: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.2 4.6A2.6 2.6 0 0 1 10.6 6M3.6 3l.8.8M6.5 1.6v1.1M1.9 6h1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M5 13.5a2.5 2.5 0 0 1-.2-5 3.3 3.3 0 0 1 6.3.7 2.2 2.2 0 0 1 .2 4.3Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  nuvem: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.6 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.6.9 2.6 2.6 0 0 1 .2 5.1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  chuva: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.6 10.2a3 3 0 0 1-.3-6 4 4 0 0 1 7.6.9 2.6 2.6 0 0 1 .2 5.1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.6 12.2 5 13.8M8.4 12.2l-.6 1.6M11.2 12.2l-.6 1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+}
+async function buscaClima() {
+  if (q.get('clima') === 'off') return
+  const [lat, lon] = COORD[`${posto.bairro}|${posto.cidade}`] || [-19.92, -43.94]
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,cloud_cover,is_day&timezone=America%2FSao_Paulo`)
+    const c = (await r.json()).current
+    const k = climaDoCodigo(c.weather_code)
+    if (!k.chuva && c.cloud_cover != null) k.nuvens = Math.max(k.nuvens, Math.min(0.9, c.cloud_cover / 100 * 0.85))
+    climaReal = { ...k, temp: Math.round(c.temperature_2m), quando: hhmm() }
+  } catch { climaReal = null }                                            // sem internet ou serviço fora: fica sem clima
+  aplicaClima()
+}
+function aplicaClima(imediato) {
+  const forcada = document.getElementById('chuvaBtn').getAttribute('aria-pressed') === 'true'
+  if (forcada) mq.setClima({ nuvens: 1, chuva: 1 }, imediato)
+  else if (climaReal) mq.setClima({ nuvens: climaReal.nuvens, chuva: climaReal.chuva }, imediato)
+  else mq.setClima({}, imediato)
+  document.querySelector('.palco').classList.toggle('chovendo', forcada || !!(climaReal && climaReal.chuva))
+  desenhaClima(); if (window.__pronto) desenha()
+}
+function desenhaClima() {
+  const el2 = document.getElementById('climaTxt'), forcada = document.getElementById('chuvaBtn')?.getAttribute('aria-pressed') === 'true'
+  const t = temperatura()
+  let ic = null, txt = ''
+  if (forcada) { ic = 'chuva'; txt = `${t != null ? t + '°' : ''}<span class="d">${t != null ? ' · ' : ''}chuva simulada</span>` }
+  else if (climaReal) { ic = climaReal.ic; txt = `${t}°<span class="d">${calorSim ? ' simulado' : ''} · ${climaReal.txt}</span>` }
+  else if (calorSim) { ic = 'sol'; txt = '35°<span class="d"> simulado</span>' }
+  el2.hidden = !ic
+  const h = ic ? `${ICON_CLIMA[ic]}<span>${txt}</span>` : ''
+  if (el2.dataset.h !== h) { el2.innerHTML = h; el2.dataset.h = h }
+  el2.title = climaReal && !forcada ? `Tempo agora em ${posto.cidade} (atualizado às ${climaReal.quando})` : ''
+}
+// calor: acima de 33° as bombas DC baixam a potência para se proteger (5% por grau acima de 31°, até 30%)
+function temperatura() { return calorSim ? 35 : climaReal ? climaReal.temp : null }
+function fatorCalor() { const t = temperatura(); return t == null || t < 33 ? 1 : Math.max(0.7, 1 - (t - 31) * 0.05) }
+const chuvaBtn = document.getElementById('chuvaBtn')
+function ligaChuva(on, imediato) { chuvaBtn.setAttribute('aria-pressed', on); aplicaClima(imediato) }
+chuvaBtn.addEventListener('click', () => ligaChuva(chuvaBtn.getAttribute('aria-pressed') !== 'true'))
+if (q.get('chuva') === '1') ligaChuva(true, true)
+buscaClima(); setInterval(buscaClima, 15 * 60000)
 
 // zoom
 document.getElementById('zoomMais').addEventListener('click', () => mq.setZoomNivel(Math.min(mq.zoomLimites.max, mq.getZoom() * 1.25)))
@@ -1116,7 +1441,9 @@ let semente = 7; const rnd = () => (semente = (semente * 16807) % 2147483647) / 
 const brl = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const num = (v, d = 1) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d })
 const ACEL = 60                                   // 1 s de verdade = 1 min de recarga (para os números andarem na demonstração)
-const hoje = { motoristas: 3, kwh: 54.6, rs: 120.12 }
+// ?estado=vazio: o dia ainda sem recargas; ?estado=primeiro-dia: além disso, sem histórico (sem comparação e sem retorno)
+const diaVazio = ['vazio', 'primeiro-dia'].includes(new URLSearchParams(location.search).get('estado'))
+const hoje = diaVazio ? { motoristas: 0, kwh: 0, rs: 0 } : { motoristas: 3, kwh: 54.6, rs: 120.12 }
 const NOME_MODELO = { fast: 'Mobi Fast', ultra: 'Mobi Ultra Fast', mobi: 'Mobi' }
 // vagas (cada bomba atende 2, o padrão dos postos) e conectores (o motorista usa o que quiser da bomba da vaga)
 const pontos = mq.vagas.map((v, i) => ({ i, nome: `vaga ${i + 1}`, Nome: `Vaga ${i + 1}`, bomba: v.bomba, sessao: null, estado: 'vazia', parado: null, ultima: null }))
@@ -1136,11 +1463,12 @@ const sessoes = []
 let idSessao = 0
 // recargas que já terminaram hoje, antes de abrir a tela (horários contados a partir de agora)
 const haMin = (min) => hhmm(new Date(Date.now() - min * 60000))
-;[[3, 230, 21.4], [4, 140, 15.9], [2, 55, 17.3]].forEach(([m, min, kwh]) =>
+;(diaVazio ? [] : [[3, 230, 21.4], [4, 140, 15.9], [2, 55, 17.3]]).forEach(([m, min, kwh]) =>
   sessoes.push({ id: ++idSessao, m: MOTORISTAS[m], ponto: null, con: null, tipo: temDC ? 'CCS2' : 'Tipo 2', nomePonto: pontos[0].nome, inicio: haMin(min + 38), fim: haMin(min), kwh, valor: kwh * 2.2,
     reserva: Math.ceil(kwh * 2.2 / 10) * 10 + 10, cashback: 0, estado: 'terminou', kw: 0, pct: null, real: 38 * 60 / ACEL }))
 
 function escolheMotorista() {
+  if (proximoMot) { const m = proximoMot; proximoMot = null; return m }      // quem estava a caminho ou por perto e chegou
   const ocupados = new Set(sessoes.filter((s) => !['terminou', 'encerrada'].includes(s.estado)).map((s) => s.m))
   const hojeJa = new Set(sessoes.map((s) => s.m))
   const livres = MOTORISTAS.filter((m) => !ocupados.has(m))
@@ -1160,6 +1488,9 @@ function iniciaSessao(p, conId) {
 function encerraSessao(p) {
   const s = p.sessao; if (!s) return
   s.estado = s.porDono ? 'encerrada' : 'terminou'; s.fim = hhmm(); s.kw = 0
+  registra(s.porDono ? 'acao' : 'recarga', s.porDono ? `Você encerrou a recarga de <b>${medio(s.m.nome)}</b> · ${num(s.kwh)} kWh · ${brl(s.valor)}`
+    : `<b>${medio(s.m.nome)}</b> terminou${s.motivo === 'credito' ? ' (o valor reservado acabou)' : ''} · ${num(s.kwh)} kWh · ${brl(s.valor)}`)
+  if (s.motivo === 'credito') avisa('credito', 'Recarga parou por falta de crédito', `${medio(s.m.nome)}: o valor reservado no app (${brl(s.reserva)}) acabou.`)
   hoje.kwh += s.kwh; hoje.rs += s.valor
   if (s.con != null && conectores[s.con].uso === p.i) conectores[s.con].uso = null
   p.ultima = s; p.sessao = null
@@ -1170,10 +1501,15 @@ mq.ouvir(({ vaga, estado }) => {
   const p = pontos[vaga]; const anterior = p.estado; p.estado = estado
   const s = p.sessao
   if (s && ['chegando', 'conectando', 'carregando', 'falha'].includes(estado)) { s.estado = estado; s.t = s.t || {}; if (!s.t[estado]) s.t[estado] = hhmm() }
-  if (estado === 'carregando' && anterior === 'conectando') hoje.motoristas++
+  if (estado === 'carregando' && anterior === 'conectando') { hoje.motoristas++; if (s) registra('recarga', `<b>${medio(s.m.nome)}</b> começou a carregar na ${p.Nome} · ${s.tipo}`) }
   if (estado === 'desconectando' && s) encerraSessao(p)
-  if (estado === 'concluido') p.parado = { s: p.ultima, desde: hhmm(), real: 0, dur: 10 + rnd() * 14, avisado: null }   // terminou e o carro ficou na vaga
-  if (estado === 'saindo' || estado === 'vazia') { p.parado = null; mq.setDados(p.i, { pessoa: null }) }
+  if (estado === 'concluido') { p.parado = { s: p.ultima, desde: hhmm(), real: 0, dur: 10 + rnd() * 14, avisado: null }; if (p.ultima) registra('alerta', `<b>${medio(p.ultima.m.nome)}</b> terminou e o carro continua na ${p.Nome}`) }   // terminou e o carro ficou na vaga
+  if (estado === 'saindo' && p.parado && p.parado.s) {
+    const tx = taxaParado(p)
+    if (tx) { p.parado.s.taxa = tx; p.parado.s.valor += tx; hoje.rs += tx; registra('recarga', `<b>${medio(p.parado.s.m.nome)}</b> saiu da ${p.Nome} · taxa por carro parado ${brl(tx)}`) }
+  }
+  if (estado === 'saindo' || estado === 'vazia') { p.parado = null; mq.setDados(p.i, { pessoa: null, aviso: null }) }
+  if (estado === 'vazia') p.livre = 0
   if (pronto) desenha()
 })
 
@@ -1227,21 +1563,24 @@ setInterval(() => {
   const agora = performance.now(), dt = Math.min(1, (agora - ultimo) / 1000); ultimo = agora
   for (const p of pontos) {
     if (p.parado) p.parado.real += dt
+    if (p.livre == null) p.livre = (6 + rnd() * 30) * 60 / ACEL           // ao abrir a tela, a vaga já estava livre há um tempo
+    if (p.estado === 'vazia') p.livre += dt
     const s = p.sessao; if (!s) continue
     const c = conectores[s.con]
     if (p.estado === 'carregando') {
       // Mobi Ultra Fast: os 80 kW se dividem quando os dois conectores carregam ao mesmo tempo (hipótese a confirmar)
       const dividindo = c.modelo === 'ultra' && pontos.some((q) => q !== p && q.sessao && q.estado === 'carregando' && conectores[q.sessao.con].bomba === c.bomba)
       s.dividindo = dividindo
-      const alvoKw = c.kwMax * (dividindo ? 0.5 : 1) * (s.dc ? (s.pct < 80 ? 1 : 0.45) : 1)
+      const fc = s.dc ? fatorCalor() : 1; s.calor = fc < 1
+      const alvoKw = c.kwMax * (dividindo ? 0.5 : 1) * (s.dc ? (s.pct < 80 ? 1 : 0.45) : 1) * fc
       s.kw += (alvoKw * (0.94 + 0.06 * Math.sin(agora / 900 + p.i)) - s.kw) * Math.min(1, dt * 2)
       const kwhDt = s.kw * dt * ACEL / 3600
-      s.kwh += kwhDt; s.real += dt; s.valor += kwhDt * precoAgora(s.kwh).p
+      s.kwh += kwhDt; s.real += dt; s.valor += kwhDt * precoSess(s)
       if (s.dc) s.pct = Math.min(100, s.pct + kwhDt / s.m.bateria * 100)
       // pré-pago: quando o valor reservado acaba, a recarga para
       if (s.valor >= s.reserva) { s.valor = s.reserva; s.motivo = 'credito'; sair(p, rnd() < 0.5) }
     } else s.kw += (0 - s.kw) * Math.min(1, dt * 3)
-    mq.setDados(p.i, { kw: Math.round(s.kw), pct: Math.round(s.pct ?? 0) })
+    mq.setDados(p.i, { kw: Math.round(s.kw), pct: Math.round(s.pct ?? 0), aviso: s.calor && p.estado === 'carregando' ? 'calor' : null })
   }
   if (pronto) desenha(true)
 }, 250)
@@ -1265,6 +1604,8 @@ function sair(p, ficar = false) {
 function falhar(bi, on) {
   const b = bombas[bi]; if (b.falha === on) return
   b.falha = on; b.desde = on ? hhmm() : null; mq.setFalha(on, bi)
+  registra('alerta', on ? `${b.nome} parou de responder (sem comunicação)` : `${b.nome} voltou a responder`)
+  if (on) avisa('falha', `${b.nome} sem comunicação`, `Desde ${b.desde}. ${pontos.some((p) => p.bomba === bi && p.sessao) ? 'Há recargas interrompidas.' : 'Nenhuma recarga em andamento nela.'}`)
   desenha()
 }
 setInterval(() => {
@@ -1281,6 +1622,318 @@ setInterval(() => {
   if (tDemo >= proximaFalha && fimFalha == null && pontos.some((p) => p.estado === 'carregando')) { falhar(0, true); fimFalha = tDemo + 11 }
   if (fimFalha != null && tDemo >= fimFalha) { falhar(0, false); fimFalha = null; proximaFalha = tDemo + 110 }
 }, 500)
+
+// ---------------------------------------------------------------- linha do tempo do posto (o que aconteceu hoje)
+var eventos = [], proximoMot = null
+function registra(tipo, txt) { eventos.unshift({ h: hhmm(), tipo, txt }); if (eventos.length > 200) eventos.pop() }   // tipo: recarga, alerta, acao, app
+
+// ---------------------------------------------------------------- a caminho e por perto (estimativa pelo app; não vai para o 3D)
+// a caminho: traçou a rota para este posto no app (o dado que existe hoje).
+// por perto: app aberto a menos de 300 m e sem recarga iniciada (precisa da localização de quem autorizou).
+var proximos = [], idProx = 0
+const modalProx = document.getElementById('modalProx')
+function candidatoProx() {
+  const fora = new Set([...sessoes.filter((x) => !['terminou', 'encerrada'].includes(x.estado)).map((x) => x.m), ...proximos.map((x) => x.m)])
+  const lista = MOTORISTAS.filter((m) => !fora.has(m)); return lista.length ? lista[Math.floor(rnd() * lista.length)] : null
+}
+function novoProx(tipo) {
+  const m = candidatoProx(); if (!m) return
+  proximos.push(tipo === 'rota' ? { id: ++idProx, m, tipo, eta: 6 + Math.floor(rnd() * 14), km: 0, desde: hhmm(), real: 0 } : { id: ++idProx, m, tipo, metros: 80 + Math.floor(rnd() * 200), desde: hhmm(), real: 0 })
+  const p = proximos.at(-1); p.eta0 = p.eta || 1; if (p.tipo === 'rota') p.km = Math.round((p.eta * 0.45 + rnd()) * 10) / 10
+}
+function vagaLivre() { return pontos.find((p) => p.estado === 'vazia' && !bombas[p.bomba].falha && conectores.some((c) => c.bomba === p.bomba && c.uso == null)) }
+function chegaProx(x) {
+  const p = vagaLivre(); if (!p) return false
+  proximoMot = x.m; if (!chegar(p)) { proximoMot = null; return false }
+  registra('app', `${medio(x.m.nome)} ${x.tipo === 'rota' ? 'estava a caminho e chegou' : 'estava por perto e chegou'}`)
+  proximos = proximos.filter((y) => y !== x); return true
+}
+// abre a tela com alguém a caminho e alguém por perto
+novoProx('rota'); novoProx('perto')
+setInterval(() => {
+  if (!demoLigada) return
+  for (const x of [...proximos]) {
+    x.real += 1
+    if (x.tipo === 'rota' && x.real % 3 === 0) { x.eta -= 1; x.km = Math.max(0.2, Math.round((x.km - 0.4) * 10) / 10) }
+    if (x.tipo === 'rota' && x.eta <= 0 && !chegaProx(x)) { x.tipo = 'perto'; x.metros = 40; x.desde = hhmm(); x.real = 0 }   // chegou e não tinha vaga
+    else if (x.tipo === 'perto' && x.real > 6 && (x.avisado || rnd() < 0.08)) chegaProx(x)
+    if (x.tipo === 'perto' && proximos.includes(x) && x.real > 45) { proximos = proximos.filter((y) => y !== x); registra('app', `${medio(x.m.nome)} estava por perto e foi embora sem recarregar`) }
+  }
+  if (proximos.length < 3 && rnd() < 0.06) novoProx(rnd() < 0.7 ? 'rota' : 'perto')
+  desenhaProximos()
+}, 1000)
+// carrinho de lado, na cor do carro da pessoa; o posto é o pino no fim da rotinha
+const CORES_MINI = ['branco', 'prata', 'grafite', 'verde']
+const carrinho = (m) => `<img class="cp" src="dados/carregamento/mini-${CORES_MINI.includes(m.cor) ? m.cor : 'branco'}.webp" alt="" draggable="false"><img class="rd t" src="dados/carregamento/mini-roda.webp" alt="" draggable="false"><img class="rd f" src="dados/carregamento/mini-roda.webp" alt="" draggable="false">`
+const PINO = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7 .8 2.6 7h3L5 11.2 9.4 5h-3Z" fill="currentColor"/></svg>'
+const progRota = (x) => (x.tipo === 'perto' ? 1 : Math.min(0.94, Math.max(0.04, 1 - x.eta / x.eta0)))
+const emOrdem = () => [...proximos.filter((x) => x.tipo === 'perto').sort((a, b) => a.metros - b.metros), ...proximos.filter((x) => x.tipo === 'rota').sort((a, b) => a.eta - b.eta)]
+const rotinha = (x) => `<span class="px-rota" style="--p:${progRota(x).toFixed(3)}"><span class="feito"></span><span class="car">${carrinho(x.m)}</span><span class="px-pino"><img src="dados/bombas/${modeloPosto}/mini.webp" alt="" draggable="false"></span></span>`
+const proxCard = document.getElementById('proxCard'), proxLista = document.getElementById('proxLista')
+let proxFechado = null; try { const g = localStorage.getItem('painel-prox-fechado'); if (g != null) proxFechado = g === '1' } catch {}
+if (proxFechado == null) proxFechado = matchMedia('(max-width: 560px)').matches          // no celular começa fechado
+function marcaProx() { proxCard.classList.toggle('fechado', proxFechado); document.getElementById('proxCab').setAttribute('aria-expanded', !proxFechado) }
+document.getElementById('proxCab').addEventListener('click', () => { proxFechado = !proxFechado; try { localStorage.setItem('painel-prox-fechado', proxFechado ? '1' : '0') } catch {}; marcaProx() })
+marcaProx()
+function desenhaProximos() {
+  const lista = emOrdem(), rota = lista.filter((x) => x.tipo === 'rota'), perto = lista.filter((x) => x.tipo === 'perto')
+  proxCard.hidden = !lista.length
+  const espera = !vagaLivre() && perto.length > 0
+  proxCard.classList.toggle('espera', espera)
+  document.getElementById('proxSub').textContent = [rota.length ? `${rota.length} a caminho` : '', perto.length ? `${perto.length} por perto` : ''].filter(Boolean).join(' · ')
+  const pe = document.getElementById('proxEspera'); pe.hidden = !espera; pe.textContent = perto.length > 1 ? 'podem estar esperando vaga' : 'pode estar esperando vaga'
+  // uma linha por pessoa, atualizada no lugar (o carrinho anda; o clique não se perde)
+  lista.forEach((x, k) => {
+    let li = proxLista.querySelector(`li[data-px-id="${x.id}"]`)
+    if (!li) { li = document.createElement('li'); li.dataset.pxId = x.id; li.innerHTML = '<button type="button" class="px-item"></button>' }
+    const b = li.firstChild
+    b.className = `px-item ${x.tipo}`
+    const eta = x.tipo === 'perto' ? `por perto · ${x.metros} m` : `~${Math.max(1, x.eta)} min · ${num(x.km)} km`
+    const sub = x.m.carro, km = x.tipo === 'perto' ? `a ${x.metros} m` : `${num(x.km)} km`
+    const chave = [x.tipo, eta, km, x.avisado || ''].join('|')
+    if (b.dataset.h !== chave) {
+      if (!b.querySelector('.px-rota')) b.innerHTML = `<span class="nm"></span><span class="eta"></span><span class="sb"></span><span class="km"></span>${rotinha(x)}`
+      b.querySelector('.nm').innerHTML = `${medio(x.m.nome)}<em>${x.avisado ? `avisado às ${x.avisado}` : x.m.carro}</em>`; b.querySelector('.eta').textContent = eta
+      b.querySelector('.sb').textContent = x.avisado ? `${sub} · avisado às ${x.avisado}` : sub; b.querySelector('.km').textContent = km
+      b.setAttribute('aria-label', `${medio(x.m.nome)}, ${x.m.carro}, ${x.tipo === 'perto' ? `por perto, a ${x.metros} metros` : `chega em cerca de ${Math.max(1, x.eta)} minutos`}. Ver detalhes`)
+      b.dataset.h = chave
+    }
+    b.querySelector('.px-rota').style.setProperty('--p', progRota(x).toFixed(3))
+    if (proxLista.children[k] !== li) proxLista.insertBefore(li, proxLista.children[k] || null)
+  })
+  ;[...proxLista.children].forEach((li) => { if (!lista.some((x) => String(x.id) === li.dataset.pxId)) li.remove() })
+  if (modalProx.open) desenhaModalProx()
+}
+proxLista.addEventListener('click', (e) => { const li = e.target.closest('li[data-px-id]'); if (li) abreProx(Number(li.dataset.pxId)) })
+
+// detalhe de uma pessoa: onde está, quando chega, o histórico dela aqui e o aviso de vaga
+let proxSel = null
+function abreProx(id) { proxSel = proximos.find((x) => x.id === id) || null; if (!proxSel) return; modalProx.innerHTML = ''; desenhaModalProx(); modalProx.showModal(); modalProx.focus() }
+function desenhaModalProx() {
+  const x = proxSel; if (!x) return
+  const aqui = proximos.includes(x), sess = sessoes.find((y) => y.m === x.m && ativa(y))
+  const livre = vagaLivre()
+  let estado, acao
+  if (!aqui && sess) { estado = `<div class="px-det-linha"><b>Chegou e está recarregando</b><span>${sess.nomePonto}</span></div>`; acao = '<button class="btn prim" type="button" data-px="ver-mot">Ver a recarga</button>' }
+  else if (!aqui) { estado = `<div class="px-det-linha"><b>Saiu da lista</b><span>não está mais a caminho nem por perto</span></div>`; acao = '' }
+  else {
+    estado = `${rotinha(x)}<div class="px-det-linha"><b>${x.tipo === 'perto' ? `A ${x.metros} m do posto` : `Chega em ~${Math.max(1, x.eta)} min`}</b><span>${x.tipo === 'perto' ? `por perto desde ${x.desde}, sem recarregar` : `${num(x.km)} km · traçou a rota às ${x.desde}`}</span></div>`
+    acao = x.avisado ? `<button class="btn" type="button" disabled>Avisado às ${x.avisado}</button>`
+      : `<button class="btn prim" type="button" data-px="avisar">${livre ? `Avisar que a ${livre.Nome} está livre` : 'Avisar quando uma vaga liberar'}</button>`
+  }
+  const corpo = `<div class="px-det-rota ${aqui ? x.tipo : ""}">${estado}</div>
+    <section><h3>Quem é</h3><dl class="lista ic">${linhaIc('carro2', 'Carro', `${x.m.carro} · ${placaFmt(x.m.placa)}`)}${linhaIc('cal', 'Costuma vir', x.m.hor)}${linhaIc('raio', 'Recargas neste posto', `${x.m.rec} · ${num(x.m.kwh, 0)} kWh`)}${linhaIc('pessoa', 'Cliente desde', x.m.desde)}</dl></section>
+    ${acao ? `<div class="px-det-pe">${acao}</div>` : ''}
+    <p class="px-nota">Como sabemos: <b>a caminho</b> é quem traçou a rota para este posto no app iGreen; <b>por perto</b> é quem está com o app a menos de 300 m e ainda não iniciou recarga, só entre quem autorizou a localização. É uma estimativa, não uma fila confirmada.</p>`
+  const c = modalProx.querySelector('.corpo')
+  if (!c) modalProx.innerHTML = `<div class="cab"><span class="av ${x.tipo === 'perto' ? 'perto' : ''}">${iniciais(x.m.nome)}</span><div><h2 id="mpxTit">${medio(x.m.nome)}</h2><p>${x.tipo === 'perto' ? 'Por perto' : 'A caminho'} · ${posto.nome}</p></div><button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div><div class="corpo">${corpo}</div>`
+  else if (c.dataset.h !== corpo) { c.innerHTML = corpo; c.dataset.h = corpo }
+}
+modalProx.addEventListener('click', (e) => {
+  if (e.target === modalProx || e.target.closest('[data-fecha]')) { modalProx.close(); return }
+  const x = proxSel; if (!x) return
+  if (e.target.closest('[data-px="ver-mot"]')) { const sess = sessoes.find((y) => y.m === x.m && ativa(y)); if (sess) { modalProx.close(); abreMotorista(sess) } return }
+  if (!e.target.closest('[data-px="avisar"]') || !proximos.includes(x)) return
+  const livre = vagaLivre(); x.avisado = hhmm()
+  registra('acao', livre ? `Você avisou ${medio(x.m.nome)} que a ${livre.Nome} está livre` : `Você pediu para avisar ${medio(x.m.nome)} quando uma vaga liberar`)
+  desenhaProximos()
+})
+
+// ---------------------------------------------------------------- dia típico (média das últimas semanas no mesmo dia; exemplo) e movimento de hoje
+// carros por hora num dia típico deste posto; o dia todo dá ~8 carros
+const TIPICO = [0, 0, 0, 0, 0, 0.05, 0.2, 0.45, 0.5, 0.35, 0.3, 0.35, 0.45, 0.4, 0.3, 0.3, 0.35, 0.5, 0.75, 0.85, 0.7, 0.4, 0.2, 0.1]
+const KWH_CARRO = 17.5, primeiroDia = q.get('estado') === 'primeiro-dia'
+const DIA_TIPICO = ['um domingo típico', 'uma segunda típica', 'uma terça típica', 'uma quarta típica', 'uma quinta típica', 'uma sexta típica', 'um sábado típico']
+function tipicoAte(h) { let t = 0; for (let k = 0; k < 24; k++) t += k < Math.floor(h) ? TIPICO[k] : k === Math.floor(h) ? TIPICO[k] * (h % 1) : 0; return t }
+const horaDe = (hm) => Number(String(hm || '0').split(':')[0])
+const fezRecarga = (x) => x.estado !== 'chegando' && x.estado !== 'conectando'
+function porHora() { const v = Array(24).fill(0); for (const x of sessoes) if (fezRecarga(x)) v[horaDe(x.inicio)]++; return v }
+function delta(real, tip) {
+  if (primeiroDia || tip < 0.3) return ''
+  const d = Math.round((real - tip) / tip * 100)
+  return `<span class="delta ${d > 4 ? 'sobe' : d < -4 ? 'desce' : 'igual'}">${d > 0 ? '+' : ''}${d}%</span>`
+}
+// barras do movimento: no card são só para ver; no modal viram botões que filtram a linha do tempo pela hora
+function barrasMov(clicavel, sel) {
+  const a = agoraBR(), v = porHora(), mx = Math.max(1.2, ...v, ...TIPICO), hA = Math.floor(a.h)
+  return v.map((n, h) => {
+    const tit = `${String(h).padStart(2, '0')}h: ${n} carro${n === 1 ? '' : 's'}${primeiroDia ? '' : ` · típico ${num(TIPICO[h], 1)}`}`
+    const cls = `${h > hA ? 'futuro' : ''} ${h === hA ? 'atual' : ''} ${sel === h ? 'sel' : ''}`
+    const dentro = `${primeiroDia ? '' : `<i style="height:${TIPICO[h] / mx * 100}%"></i>`}<b style="height:${n / mx * 100}%"></b>`
+    return clicavel && h <= hA ? `<button type="button" class="${cls}" data-hora="${h}" aria-pressed="${sel === h}" aria-label="${tit}" title="${tit}">${dentro}</button>` : `<span class="${cls}" title="${tit}">${dentro}</span>`
+  }).join('')
+}
+function desenhaMov() {
+  const a = agoraBR(), v = porHora()
+  const html = barrasMov(false)
+  const box = document.getElementById('mov'); if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html }
+  const tot = v.reduce((x, y) => x + y, 0), tip = tipicoAte(a.h)
+  box.setAttribute('aria-label', `Carros por hora hoje: ${tot} até agora${primeiroDia ? '' : `; num dia típico seriam ${num(tip, 1)}`}`)
+  document.getElementById('movResumo').textContent = `${tot} carro${tot === 1 ? '' : 's'} até agora`
+  const pico = TIPICO.indexOf(Math.max(...TIPICO))
+  document.getElementById('movComp').innerHTML = primeiroDia ? 'Primeiro dia: ainda sem histórico para comparar'
+    : `${delta(tot, tip)}que ${DIA_TIPICO[a.dia]}`
+}
+document.getElementById('verLinha').addEventListener('click', () => abreLinha())
+
+// linha do tempo: o dia em acontecimentos (recargas, alertas, o que você fez e o que veio do app)
+const modalLinha = document.getElementById('modalLinha')
+let filtroLinha = 'todos'
+const FILTROS_LT = [['todos', 'Tudo'], ['recarga', 'Recargas'], ['alerta', 'Alertas'], ['acao', 'Suas ações'], ['app', 'App']]
+let horaLinha = null
+function desenhaLinha() {
+  const itens = eventos.filter((e) => (filtroLinha === 'todos' || e.tipo === filtroLinha) && (horaLinha == null || horaDe(e.h) === horaLinha))
+  const a = agoraBR(), tot = porHora().reduce((x, y) => x + y, 0), tip = tipicoAte(a.h)
+  const grafico = `<section class="lt-grafico"><div class="sec-cab"><h3>Carros por hora · ${tot} até agora</h3><span class="lt-comp">${primeiroDia ? 'primeiro dia, sem comparação' : `${delta(tot, tip)}que ${DIA_TIPICO[a.dia]}`}</span></div>
+      <div class="mov mov-g" role="group" aria-label="Carros por hora; escolha uma hora para filtrar">${barrasMov(true, horaLinha)}</div>
+      <div class="mov-eixo"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+      <div class="lt-legenda"><span class="hj">Hoje</span>${primeiroDia ? '' : '<span class="tp">Dia típico</span>'}<em>Toque numa hora para ver só o que aconteceu nela</em></div></section>`
+  const corpo = `${grafico}<section>${horaLinha != null ? `<p class="lt-hora">Mostrando das ${String(horaLinha).padStart(2, '0')}h às ${String(horaLinha + 1).padStart(2, '0')}h <button type="button" class="link-verde" data-hora-limpa>Ver o dia todo</button></p>` : ''}<div class="seg-dias lt-filtros" role="group" aria-label="Mostrar">${FILTROS_LT.map(([k, t]) => `<button type="button" data-lt="${k}" aria-pressed="${filtroLinha === k}">${t}</button>`).join('')}</div>
+    ${itens.length ? `<ol class="lt">${itens.map((e) => `<li class="${e.tipo}"><time>${e.h}</time><i aria-hidden="true"></i><span>${e.txt}</span></li>`).join('')}</ol>` : `<p class="px-vazio">${horaLinha != null ? 'Nada aconteceu nessa hora.' : 'Nada por aqui ainda hoje.'}</p>`}</section>`
+  const c = modalLinha.querySelector('.corpo')
+  if (!c) modalLinha.innerHTML = `<div class="cab"><div><h2 id="mlTit">Linha do tempo de hoje</h2><p>${posto.nome} · o mais recente em cima</p></div><button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div><div class="corpo">${corpo}</div>`
+  else if (c.dataset.h !== corpo) { c.innerHTML = corpo; c.dataset.h = corpo }
+}
+function abreLinha() { horaLinha = null; modalLinha.innerHTML = ''; desenhaLinha(); modalLinha.showModal(); modalLinha.focus() }
+modalLinha.addEventListener('click', (e) => {
+  if (e.target === modalLinha || e.target.closest('[data-fecha]')) { modalLinha.close(); return }
+  const b = e.target.closest('[data-lt]'); if (b) { filtroLinha = b.dataset.lt; desenhaLinha(); return }
+  const hb = e.target.closest('[data-hora]'); if (hb) { const h = Number(hb.dataset.hora); horaLinha = horaLinha === h ? null : h; desenhaLinha(); return }
+  if (e.target.closest('[data-hora-limpa]')) { horaLinha = null; desenhaLinha() }
+})
+setInterval(() => { if (modalLinha.open) desenhaLinha() }, 1000)
+
+// retorno do investimento (valores de exemplo: o real vem do contrato e do extrato do posto)
+const INVEST = { fast: 120000, ultra: 260000, mobi: 35000 }
+const RET = { inicio: 'jul/2026', meses: [['jul', 2480], ['ago', 2960], ['set', 3240]], meta: 3000, acumulado: 8680 }
+const investimento = () => bombas.reduce((a, b) => a + (INVEST[b.modelo] || 0), 0)
+function retornoMes() {                                                   // outubro até agora: base do mês + a sua parte do que entrou hoje
+  const hojeParte = (hoje.rs + pontos.reduce((a, p) => a + (p.sessao ? p.sessao.valor : 0), 0)) * 0.42
+  return primeiroDia ? hojeParte : 1960 + hojeParte
+}
+function desenhaRetorno() {
+  const inv = investimento(), mes = retornoMes(), acum = (primeiroDia ? 0 : RET.acumulado) + mes
+  const ritmo = (RET.meses.slice(-3).reduce((a, m) => a + m[1], 0) / 3)
+  const faltam = Math.ceil((inv - acum) / ritmo), fim = new Date(2026, 9 + faltam, 1)
+  const fimTxt = fim.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '').replace(' de ', '/')
+  const html = primeiroDia
+    ? `<div class="ret-num"><b>${brl(acum)}</b><span>de ${brl(inv)}</span></div><div class="ret-barra"><i style="width:${Math.min(100, acum / inv * 100)}%"></i></div>
+       <p class="ret-linha">O retorno começa a contar hoje. Com um mês de recargas, o painel mostra o ritmo e quando o investimento se paga.</p>`
+    : `<div class="ret-num"><b>${brl(acum)}</b><span>de ${brl(inv)} · ${Math.round(acum / inv * 100)}%</span></div><div class="ret-barra"><i style="width:${Math.min(100, acum / inv * 100)}%"></i></div>
+       <p class="ret-linha">No ritmo dos últimos 3 meses (${brl(ritmo)} por mês), o investimento se paga em <b>${fimTxt}</b>.</p>
+       <div class="ret-mes"><div class="ret-num"><span>Outubro até agora</span><span><b style="font-size:15px">${brl(mes)}</b> de ${brl(RET.meta)} da meta</span></div>
+         <div class="ret-barra meta"><i style="width:${Math.min(100, mes / RET.meta * 100)}%"></i></div></div>
+       <p class="nota-card">Sua parte, depois de energia, tributos e da sociedade. Valores de exemplo.</p>`
+  const box = document.getElementById('retorno'); if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html }
+  if (modalRet.open) desenhaModalRet()
+}
+const modalRet = document.getElementById('modalRet')
+function desenhaModalRet() {
+  const meses = [...RET.meses, ['out', retornoMes()]], mx = Math.max(RET.meta, ...meses.map((m) => m[1])) * 1.12
+  const inteiro = (v) => brl(Math.round(v)).replace(',00', '')
+  const corpo = `<section><h3>Sua parte por mês</h3><div class="mr-meses" style="--meta:${RET.meta / mx * 100}%">${meses.map(([m, v], k) => `<div class="m ${k === meses.length - 1 ? 'parcial' : ''}"><b>${inteiro(v)}</b><span class="mr-faixa"><i style="height:${v / mx * 100}%"></i></span><span>${m}${k === meses.length - 1 ? ' (até agora)' : ''}</span></div>`).join('')}</div>
+      <div class="mr-legenda"><span>Meta do mês: ${inteiro(RET.meta)}</span></div></section>
+    <section><h3>Como chegamos nesse número</h3><dl class="lista ic">${linhaIc('cal', 'Posto funcionando desde', RET.inicio)}${linhaIc('cartao', 'Investimento', brl(investimento()))}${linhaIc('volta', 'Já voltou', brl(RET.acumulado + retornoMes()))}${linhaIc('raio', 'Ritmo dos últimos 3 meses', brl(RET.meses.slice(-3).reduce((a, m) => a + m[1], 0) / 3) + ' por mês')}</dl>
+      <p class="nota-card">Sua parte é o que sobra para você depois da energia, dos tributos e da divisão da sociedade (Mobi Fast e Ultra Fast: 80% seu). Os valores aqui são de exemplo; os reais vêm do contrato e do extrato.</p></section>`
+  const c = modalRet.querySelector('.corpo')
+  if (!c) modalRet.innerHTML = `<div class="cab"><div><h2 id="mrTit">Retorno do investimento</h2><p>${posto.nome} · mês a mês</p></div><button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div><div class="corpo">${corpo}</div>`
+  else if (c.dataset.h !== corpo) { c.innerHTML = corpo; c.dataset.h = corpo }
+}
+document.getElementById('verRetorno').addEventListener('click', () => { modalRet.innerHTML = ''; desenhaModalRet(); modalRet.showModal(); modalRet.focus() })
+modalRet.addEventListener('click', (e) => { if (e.target === modalRet || e.target.closest('[data-fecha]')) modalRet.close() })
+
+// ---------------------------------------------------------------- suporte: o chamado anda sozinho (simulado) até a bomba voltar
+var chamado = null
+const PASSOS_CH = ['Chamado aberto', 'Diagnóstico remoto', 'Técnico a caminho', 'Resolvido']
+function abreChamado(bi) {
+  if (chamado && chamado.bi === bi && chamado.etapa < 3) return
+  chamado = { n: 4800 + Math.floor(rnd() * 190), bi, aberto: hhmm(), etapa: 0, real: 0, chega: null, fim: null }
+  registra('acao', `Você chamou o suporte · chamado #${chamado.n} (${bombas[bi].nome})`); avisa('suporte', `Chamado #${chamado.n} aberto`, 'O suporte iGreen recebeu e já está olhando a bomba.')
+  desenha()
+}
+function chamadoHTML(bi) {
+  if (!chamado || chamado.bi !== bi) return ''
+  const nota = chamado.etapa === 3 ? `A bomba voltou às ${chamado.fim}. O chamado foi encerrado.` : chamado.etapa === 2 ? `O técnico chega por volta das ${chamado.chega}. Você recebe um aviso quando ele chegar.` : chamado.etapa === 1 ? 'O suporte está testando a bomba a distância (internet, energia e o sistema dela).' : 'O suporte iGreen recebeu o chamado.'
+  return `<div class="chamado"><div class="ch-tit"><span><b>Chamado #${chamado.n}</b> · aberto às ${chamado.aberto}</span></div>
+    <ol class="ch-passos">${PASSOS_CH.map((t, k) => `<li class="${k < chamado.etapa ? 'feito' : k === chamado.etapa ? 'atual' : ''}">${t}</li>`).join('')}</ol><p class="ch-nota">${nota}</p></div>`
+}
+setInterval(() => {
+  if (!chamado || chamado.etapa === 3) { if (chamado && (chamado.real += 1) > 25) { chamado = null; desenha() } return }
+  chamado.real += 1
+  const b = bombas[chamado.bi]
+  if (!b.falha) { chamado.etapa = 3; chamado.fim = hhmm(); chamado.real = 0; registra('alerta', `Chamado #${chamado.n} resolvido: ${b.nome} voltou`); avisa('suporte', `Chamado #${chamado.n} resolvido`, `${b.nome} voltou a responder.`) }
+  else if (chamado.etapa === 0 && chamado.real >= 2) chamado.etapa = 1
+  else if (chamado.etapa === 1 && chamado.real >= 6) { chamado.etapa = 2; chamado.chega = hhmm(new Date(Date.now() + 40 * 60000)); registra('alerta', `Chamado #${chamado.n}: técnico a caminho, chega por volta das ${chamado.chega}`) }
+  desenha()
+}, 1000)
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href="#suporte"]'); if (!a || !(a.closest('#alertas') || a.closest('#modalBomba'))) return
+  const b = bombas.find((x) => x.falha); if (b) abreChamado(b.bi)
+})
+
+// ---------------------------------------------------------------- avisos fora do painel (app, WhatsApp, e-mail): o que foi enviado e como avisar
+var enviados = [], naoLidos = 0
+var cfgAvisos = { canais: { app: true, whatsapp: true, email: false }, falha: true, parado: true, paradoMin: 10, credito: false, suporte: true, resumo: true }
+const CANAIS_TXT = { app: 'app iGreen', whatsapp: 'WhatsApp', email: 'e-mail' }
+function avisa(tipo, tit, sub) {
+  if (!cfgAvisos[tipo]) return
+  const canais = Object.entries(cfgAvisos.canais).filter(([, v]) => v).map(([k]) => CANAIS_TXT[k])
+  if (!canais.length) return
+  enviados.unshift({ h: hhmm(), tit, sub, canais }); naoLidos++; desenhaSino()
+}
+function desenhaSino() { document.getElementById('sinoN').textContent = naoLidos ? String(naoLidos) : ''; document.getElementById('sinoBtn').setAttribute('aria-label', naoLidos ? `Avisos: ${naoLidos} novos` : 'Avisos') }
+const modalAvisos = document.getElementById('modalAvisos')
+let abaAvisos = 'recentes'
+function desenhaAvisos() {
+  const lista = enviados.length ? `<ol class="av-lista">${enviados.map((x) => `<li><time>${x.h}</time><span><b>${x.tit}</b><small>${x.sub}</small><small>Enviado por ${x.canais.join(' e ')}</small></span></li>`).join('')}</ol>`
+    : '<p class="px-vazio">Nenhum aviso enviado hoje. Quando algo pedir sua atenção, o aviso chega mesmo com o painel fechado.</p>'
+  const ch = (k, t, sub) => `<div class="aj-linha"><label class="chave"><input type="checkbox" data-av="c:${k}" ${cfgAvisos.canais[k] ? 'checked' : ''} aria-label="${t}"><span></span></label><span class="tx"><b>${t}</b><small>${sub}</small></span><span></span></div>`
+  const ev = (k, t, sub, extra = '') => `<div class="aj-linha"><label class="chave"><input type="checkbox" data-av="e:${k}" ${cfgAvisos[k] ? 'checked' : ''} aria-label="${t}"><span></span></label><span class="tx"><b>${t}</b><small>${sub}</small></span>${extra || '<span></span>'}</div>`
+  const cfg = `<section class="ajustes av-cfg"><h3>Por onde</h3>${ch('app', 'App iGreen', 'Notificação no celular')}${ch('whatsapp', 'WhatsApp', 'No número do seu cadastro')}${ch('email', 'E-mail', 'No e-mail do seu cadastro')}</section>
+    <section class="ajustes av-cfg"><h3>Quando</h3>${ev('falha', 'Bomba sem comunicação', 'Na hora, com as recargas afetadas')}
+      ${ev('parado', 'Carro parado na vaga', `Depois de ${cfgAvisos.paradoMin} min do fim da recarga`, campoValor('peq', 'pm-menos', 'pm-mais', 'data-av-min style="width:2.4ch"', cfgAvisos.paradoMin, 'minutos', '', 'min'))}
+      ${ev('credito', 'Recarga parou por falta de crédito', 'Quando o valor reservado no app acaba')}
+      ${ev('suporte', 'Andamento do suporte', 'Chamado aberto, técnico a caminho e resolvido')}
+      ${ev('resumo', 'Resumo do dia', 'Às 22h: recargas, energia e quanto entrou')}</section>`
+  const corpo = abaAvisos === 'recentes' ? `<section>${lista}</section>` : cfg
+  const abas = `<div class="abas" role="tablist" aria-label="Avisos">${[['recentes', 'Enviados hoje'], ['config', 'Como avisar']].map(([k, t]) => `<button type="button" role="tab" id="ava-${k}" aria-controls="avCorpo" data-ava="${k}" aria-selected="${abaAvisos === k}" tabindex="${abaAvisos === k ? 0 : -1}">${t}</button>`).join('')}</div>`
+  const c = modalAvisos.querySelector('.corpo')
+  if (!c || modalAvisos.dataset.aba !== abaAvisos) { modalAvisos.dataset.aba = abaAvisos; modalAvisos.innerHTML = `<div class="cab"><div><h2 id="maTit">Avisos</h2><p>Chegam mesmo com o painel fechado</p></div><button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>${abas}<div class="corpo" id="avCorpo" role="tabpanel" aria-labelledby="ava-${abaAvisos}">${corpo}</div>` }
+  else if (c.dataset.h !== corpo) { c.innerHTML = corpo; c.dataset.h = corpo }
+}
+document.getElementById('sinoBtn').addEventListener('click', () => { naoLidos = 0; desenhaSino(); modalAvisos.innerHTML = ''; modalAvisos.dataset.aba = ''; desenhaAvisos(); modalAvisos.showModal(); modalAvisos.focus() })
+modalAvisos.addEventListener('click', (e) => {
+  if (e.target === modalAvisos || e.target.closest('[data-fecha]')) { modalAvisos.close(); return }
+  const a = e.target.closest('[data-ava]'); if (a) { abaAvisos = a.dataset.ava; desenhaAvisos(); if (e.detail === 0) modalAvisos.querySelector(`[data-ava="${abaAvisos}"]`).focus(); return }
+  const p = e.target.closest('[data-p="pm-mais"],[data-p="pm-menos"]'); if (p) { cfgAvisos.paradoMin = Math.max(5, cfgAvisos.paradoMin + (p.dataset.p === 'pm-mais' ? 5 : -5)); desenhaAvisos() }
+})
+modalAvisos.addEventListener('keydown', (e) => {
+  if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || !e.target.closest('[role="tablist"]')) return
+  abaAvisos = abaAvisos === 'recentes' ? 'config' : 'recentes'; desenhaAvisos(); modalAvisos.querySelector(`[data-ava="${abaAvisos}"]`).focus(); e.preventDefault()
+})
+modalAvisos.addEventListener('change', (e) => {
+  const k = e.target.dataset.av; if (!k) return
+  const [t, n] = k.split(':'); if (t === 'c') cfgAvisos.canais[n] = e.target.checked; else cfgAvisos[n] = e.target.checked
+  desenhaAvisos()
+})
+setInterval(() => { if (modalAvisos.open && abaAvisos === 'recentes') desenhaAvisos() }, 1000)
+// carro parado: avisa uma vez quando passa do tempo combinado
+setInterval(() => {
+  for (const p of pontos) if (p.parado && !p.parado.avisoSino && minParado(p) >= cfgAvisos.paradoMin) {
+    p.parado.avisoSino = true; avisa('parado', `Carro parado na ${p.Nome}`, `${medio(p.parado.s.m.nome)} terminou às ${p.parado.s.fim} e continua na vaga.`)
+  }
+}, 1000)
+
+// ---------------------------------------------------------------- posto sem conexão (simulado) e você sem internet
+var semConexao = null                                                     // { desde, quem: 'posto' | 'voce' }
+function conexao(quem, on) {
+  if (on && !semConexao) { semConexao = { desde: hhmm(), quem }; registra('alerta', quem === 'posto' ? 'O posto ficou sem conexão' : 'Você ficou sem internet') }
+  else if (!on && semConexao && semConexao.quem === quem) { registra('alerta', quem === 'posto' ? `O posto voltou a se conectar (estava sem conexão desde ${semConexao.desde})` : 'Sua internet voltou'); semConexao = null }
+  document.querySelector('.palco').classList.toggle('offline', !!semConexao)
+  document.querySelector('.col').classList.toggle('parado-dados', !!semConexao)
+  desenha()
+}
+window.addEventListener('offline', () => conexao('voce', true)); window.addEventListener('online', () => conexao('voce', false))
 
 // ---------------------------------------------------------------- textos de estado
 const ESTADO_TXT = { vazia: 'Livre', chegando: 'Carro chegando', conectando: 'Conectando', carregando: 'Carregando', falha: 'Interrompida', desconectando: 'Encerrando', concluido: 'Terminou, carro na vaga', saindo: 'Carro saindo' }
@@ -1332,7 +1985,8 @@ function desenhaPontos() {
     if (temAcoes) d.querySelector('button').setAttribute('aria-expanded', ab); else d.querySelector('button').removeAttribute('aria-expanded')
     const alcance = pontos.filter((q) => q.bomba === c.bomba).map((q) => q.Nome)
     const txt = s ? `${ESTADO_TXT[p.estado] || p.estado} · ${p.Nome}` : bombas[c.bomba].falha ? 'Sem comunicação' : `Livre · alcança ${alcance.join(' e ')}`
-    const et = d.querySelector('.est'); if (et.textContent !== txt) et.textContent = txt
+    const txtH = txt + (s && s.calor && p.estado === 'carregando' ? ' <em class="calor-tag">· menos potência pelo calor</em>' : '')
+    const et = d.querySelector('.est'); if (et.dataset.h !== txtH) { et.innerHTML = txtH; et.dataset.h = txtH }
     const dir = s && p.estado === 'carregando'
       ? (s.dc ? `<span>${Math.round(s.kw)} kW${s.dividindo ? '<small class="dividindo">dividindo</small>' : ''}</span><span class="anel" style="--p:${Math.round(s.pct)}">${Math.round(s.pct)}%</span>` : `<span>${Math.round(s.kw)} kW</span>`) : ''
     const mot = s ? `<span class="av ${p.estado === 'falha' ? 'falha-av' : 'vivo-av'}">${iniciais(s.m.nome)}</span><span class="cm"><b>${medio(s.m.nome)}</b><small>${s.m.carro} · desde ${s.inicio}</small></span><span class="cv"><b>${num(s.kwh)} kWh</b>${brl(s.valor)}</span>` : ''
@@ -1369,7 +2023,7 @@ const quadroBomba = (modelo, k) => `dados/bombas/${modelo}/g${String(k).padStart
 function desenhaBombas() {
   const box = document.getElementById('bombas')
   const html = bombas.map((b) => `<div class="bomba ${b.falha ? 'falha' : ''}"><span class="mini"><img src="${quadroBomba(b.modelo, 0)}" alt="" onerror="this.remove()"></span>
-      <div class="info"><b>${b.nome}</b><span><i></i>${b.falha ? `Sem comunicação desde ${b.desde}` : 'Online · respondendo'}</span></div>
+      <div class="info"><b>${b.nome}</b><span><i></i>${b.falha ? `Sem comunicação desde ${b.desde}` : b.modelo !== 'mobi' && fatorCalor() < 1 ? 'Online · menos potência pelo calor' : 'Online · respondendo'}</span></div>
       <button class="btn" type="button" data-det="${b.bi}">Detalhes</button></div>`).join('')
   if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html }
 }
@@ -1406,7 +2060,7 @@ function estadoBombaHTML(bi) {
       <p>A bomba parou de responder ao sistema.${recarga.length ? ` ${recarga.length > 1 ? 'As recargas nela foram interrompidas' : 'A recarga nela foi interrompida'} e volta${recarga.length > 1 ? 'm' : ''} sozinha${recarga.length > 1 ? 's' : ''} quando a comunicação voltar.` : ' Enquanto isso, ninguém consegue iniciar uma recarga nela.'}</p>
       <h4>Possíveis causas</h4>
       <ul><li>Internet da bomba (chip 4G) sem sinal ou sem dados</li><li>Queda de energia no local ou disjuntor da bomba desligado</li><li>Bomba reiniciando depois de uma atualização</li></ul>
-      <div class="acoes"><a class="btn perigo-cheio" href="#suporte">Chamar o suporte</a><button class="btn" type="button" data-ir="${bi}">Ver na maquete</button></div>
+      ${chamadoHTML(bi) || `<div class="acoes"><a class="btn perigo-cheio" href="#suporte">Chamar o suporte</a><button class="btn" type="button" data-ir="${bi}">Ver na maquete</button></div>`}
     </div>`
   return `<div class="estado-ok">
       <div class="linha"><span class="pill">Online · respondendo</span><span>Última resposta agora</span></div>
@@ -1515,7 +2169,7 @@ function partesRecarga(s) {
       ${linhaIc('plug', 'Conector', tipoSess(s))}
       ${linhaIc('raio', 'Potência média', media ? `${num(media)} kW` : '—')}
       ${s.pct0 != null ? linhaIc('ok', 'Bateria', `${s.pct0}% → ${Math.round(s.pct)}%`) : linhaIc('ok', 'Bateria', 'O AC não informa')}
-      ${linhaIc('etiqueta', 'Preço do kWh', viva ? brl(precoAgora(s.kwh).p) : brl(s.valor / Math.max(0.1, s.kwh)))}
+      ${linhaIc('etiqueta', 'Preço do kWh', viva ? brl(precoSess(s)) : brl(s.valor / Math.max(0.1, s.kwh)))}
     </dl>`
   // pré-pago: o motorista reserva um valor no app antes de começar; o que sobra volta para o saldo dele
   const usado = Math.min(100, s.valor / Math.max(1, s.reserva) * 100)
@@ -1658,13 +2312,27 @@ modalMot.addEventListener('keydown', (e) => {
 modalMot.addEventListener('close', () => { sessaoAberta = null })
 // clicar no card do motorista na maquete
 el.addEventListener('mv-selo', (e) => { const p = pontos[e.detail.vaga]; if (p.sessao) abreMotorista(p.sessao) })
+// clique numa vaga da maquete: com carro, abre o motorista; livre, mostra há quanto tempo e quais conectores alcançam
+el.addEventListener('mv-vaga', (e) => {
+  const p = pontos[e.detail.vaga]
+  if (p.sessao) return abreMotorista(p.sessao)
+  if (p.parado && p.parado.s) return abreMotorista(p.parado.s)
+  if (p.estado !== 'vazia') return
+  const livres = conectores.filter((c) => c.bomba === p.bomba && c.uso == null)
+  const min = Math.max(1, Math.round((p.livre || 0) * ACEL / 60))
+  const sub = bombas[p.bomba].falha ? 'bomba sem comunicação' : livres.length ? `${livres.map((c) => c.nome).join(' e ')} alcança${livres.length > 1 ? 'm' : ''}` : 'os conectores estão na outra vaga'
+  mq.mostrarVaga(p.i, `<b class="mv-ic">P</b><span class="mv-tx"><b>${p.Nome} · livre há ${min} min</b><small>${sub}</small></span>`)
+})
 
 // ---------------------------------------------------------------- hoje até agora, frase e alerta
 function desenhaHoje() {
   const vivo = pontos.reduce((a, p) => a + (p.sessao ? p.sessao.kwh : 0), 0), vivoRs = pontos.reduce((a, p) => a + (p.sessao ? p.sessao.valor : 0), 0)
-  document.getElementById('hojeMot').textContent = hoje.motoristas
-  document.getElementById('hojeKwh').textContent = `${num(hoje.kwh + vivo)} kWh`
-  document.getElementById('hojeRs').textContent = brl(hoje.rs + vivoRs)
+  const a = agoraBR(), tip = tipicoAte(a.h), kwhT = hoje.kwh + vivo, rsT = hoje.rs + vivoRs
+  const poe = (id, h) => { const e = document.getElementById(id); if (e.dataset.h !== h) { e.innerHTML = h; e.dataset.h = h } }
+  poe('hojeMot', `${delta(hoje.motoristas, tip)}${hoje.motoristas}`)
+  poe('hojeKwh', `${delta(kwhT, tip * KWH_CARRO)}${num(kwhT)} kWh`)
+  poe('hojeRs', `${delta(rsT, tip * KWH_CARRO * 2.2)}${brl(rsT)}`)
+  document.getElementById('hojeComp').textContent = primeiroDia ? 'Primeiro dia: ainda sem histórico para comparar.' : `Comparado a ${DIA_TIPICO[a.dia]} até as ${hhmm()}.`
 }
 function desenhaFrase() {
   const fr = document.getElementById('frase'), sub = document.getElementById('fraseSub')
@@ -1672,6 +2340,21 @@ function desenhaFrase() {
   const carregando = pontos.filter((p) => p.estado === 'carregando')
   const chegando = pontos.filter((p) => ['chegando', 'conectando'].includes(p.estado))
   let txt, alerta = false
+  if (semConexao) {
+    txt = semConexao.quem === 'posto' ? 'Sem conexão com o posto' : 'Você está sem internet'
+    fr.textContent = txt; fr.classList.add('alerta')
+    sub.textContent = `Último dado recebido às ${semConexao.desde}`
+    const al0 = document.getElementById('alertas'); al0.classList.add('on', 'cinza')
+    al0.querySelector('h2').firstChild.textContent = semConexao.quem === 'posto' ? 'Posto sem conexão' : 'Sem internet'
+    document.getElementById('alertaTxt').textContent = semConexao.quem === 'posto'
+      ? `O posto parou de mandar dados às ${semConexao.desde}. Os números ficam parados no último dado; as bombas continuam funcionando sozinhas e mandam tudo quando a conexão voltar.`
+      : `Seu computador ficou sem internet às ${semConexao.desde}. O posto continua funcionando; o painel atualiza quando a internet voltar.`
+    document.getElementById('alertaChamado').innerHTML = ''; document.querySelector('#alertas .acoes').hidden = true
+    const vv = document.getElementById('vivo'); vv.classList.add('sem'); document.getElementById('vivoTxt').textContent = 'Sem conexão'
+    return
+  }
+  { const al0 = document.getElementById('alertas'); al0.classList.remove('cinza'); al0.querySelector('h2').firstChild.textContent = 'Bomba sem comunicação'; document.querySelector('#alertas .acoes').hidden = false
+    const vv = document.getElementById('vivo'); if (vv.classList.contains('sem')) { vv.classList.remove('sem'); atualizaHora() } }
   if (falhas.length) {
     const afetados = pontos.filter((p) => p.estado === 'falha').length
     txt = `${falhas[0].nome} sem comunicação${afetados ? ` · ${afetados} recarga${afetados > 1 ? 's' : ''} interrompida${afetados > 1 ? 's' : ''}` : ''}`; alerta = true
@@ -1686,6 +2369,9 @@ function desenhaFrase() {
   const al = document.getElementById('alertas')
   al.classList.toggle('on', falhas.length > 0)
   if (falhas.length) document.getElementById('alertaTxt').textContent = `A ${falhas[0].nome} parou de responder às ${falhas[0].desde}. As recargas nela foram interrompidas e voltam sozinhas quando a comunicação voltar.`
+  const chH = falhas.length ? chamadoHTML(falhas[0].bi) : '', ach = document.getElementById('alertaChamado')
+  if (ach.dataset.h !== chH) { ach.innerHTML = chH; ach.dataset.h = chH }
+  document.getElementById('alertaSuporte').hidden = !!chH
 }
 document.getElementById('alertaIr').addEventListener('click', () => { const b = bombas.find((x) => x.falha) || bombas[0]; irBomba(b.bi) })
 
@@ -1781,12 +2467,17 @@ const ICO = {
   credito: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="4" width="12" height="9" rx="1.8"/><path d="M2 7h12M5 10.5h2.5"/></svg>',
   produto: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2.5 9.6 6l3.9.4-2.9 2.6.8 3.8L8 10.9l-3.4 1.9.8-3.8L2.5 6.4 6.4 6Z" stroke-linejoin="round"/></svg>',
   pico: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 13.5h12M3.5 11V8.5M6.5 11V5.5M9.5 11V3M12.5 11V7"/></svg>',
+  calor: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 9.3V3.2a1.5 1.5 0 0 1 3 0v6.1a3 3 0 1 1-3 0Z"/><path d="M8 7v4" stroke-linecap="round"/></svg>',
 }
 function itensOlho() {
-  const itens = []
+  const itens = [], tc = temperatura()
+  if (tc != null && tc >= 33 && conectores.some((c) => c.dc))
+    itens.push({ k: 'calor', id: 'calor', txt: `<b>${tc}°${calorSim ? ' (simulado)' : ` em ${posto.cidade}`}</b>: as bombas DC baixam a potência para se proteger do calor, hoje até <b>${Math.round((1 - fatorCalor()) * 100)}% menos</b>. As recargas demoram um pouco mais.`,
+      acoes: [['bomba', 'Ver a bomba']] })
   for (const p of pontos) if (p.parado) {
     const s = p.parado.s
-    itens.push({ k: 'parado', id: 'parado' + p.i, txt: `<b>${medio(s.m.nome)}</b> terminou às ${s.fim} e continua na ${p.nome} há <b>${minParado(p)} min</b>, ocupando a vaga.`,
+    const tx = taxaParado(p)
+    itens.push({ k: 'parado', id: 'parado' + p.i, txt: `<b>${medio(s.m.nome)}</b> terminou às ${s.fim} e continua na ${p.nome} há <b>${minParado(p)} min</b>, ocupando a vaga.${tabela.ocupacao.ativo ? (tx ? ` Taxa até agora: <b>${brl(tx)}</b>.` : ` A taxa começa depois de ${tabela.ocupacao.tol} min.`) : ''}`,
       acoes: [[`avisar:${p.i}`, p.parado.avisado ? `Aviso enviado às ${p.parado.avisado}` : 'Avisar pelo app', !!p.parado.avisado], ['preco', 'Ver tabela de preços']] })
   }
   const cred = sessoes.filter((s) => s.motivo === 'credito').at(-1)
@@ -1803,14 +2494,20 @@ function desenhaOlho() {
 document.getElementById('olho').addEventListener('click', (e) => {
   const b = e.target.closest('[data-olho]'); if (!b || b.disabled) return
   const [a, v] = b.dataset.olho.split(':')
-  if (a === 'avisar') { const p = pontos[Number(v)]; if (p.parado) p.parado.avisado = hhmm(); desenhaOlho() }
+  if (a === 'avisar') { const p = pontos[Number(v)]; if (p.parado) { p.parado.avisado = hhmm(); registra('acao', `Você avisou <b>${medio(p.parado.s.m.nome)}</b> pelo app para liberar a ${p.Nome}`) } desenhaOlho() }
   if (a === 'preco') abrePreco()
+  if (a === 'bomba') { const b = bombas.find((x) => x.modelo !== 'mobi') || bombas[0]; abreBomba(b.bi) }
   if (a === 'mot') abreMotorista(sessoes.find((s) => s.id === Number(v)), 'recarga')
   if (a === 'oferta') { const m = [...new Set(sessoes.map((s) => s.m))].find((x) => !x.cx.includes('energia')); if (m) abreMotorista(sessoes.filter((s) => s.m === m).at(-1), 'produtos') }
 })
 
 // ---------------------------------------------------------------- divisão de hoje
 function desenhaDivisao() {
+  if (!sessoes.some((x) => x.valor > 0)) {
+    const h0 = '<p class="px-vazio">Ainda não entrou dinheiro hoje. A divisão aparece com a primeira recarga.</p>'
+    const b0 = document.getElementById('divHoje'); if (b0.dataset.h !== h0) { b0.innerHTML = h0; b0.dataset.h = h0 }
+    document.getElementById('divResumo').textContent = brl(0); return
+  }
   const t = { valor: 0, adm: 0, lp: 0, lm: 0, posto: 0 }, outros = new Map()
   for (const s of sessoes) {
     const d = divisao(s.valor, s.m)
@@ -1850,7 +2547,7 @@ function cartaoAtivo(s, parado) {
     : `Carregando · ${s.tipo} · ${pontos[s.ponto].Nome}`
   const anel = !parado && s.dc && s.pct != null ? `<span class="anel" style="--p:${Math.round(s.pct)}">${Math.round(s.pct)}%</span>` : ''
   const nums = parado
-    ? [['Energia', `${num(s.kwh)} kWh`], ['Valor', brl(s.valor)], ['Parado há', `${minParado(parado)} min`]]
+    ? [['Energia', `${num(s.kwh)} kWh`], taxaParado(parado) ? ['Taxa parado', brl(taxaParado(parado))] : ['Valor', brl(s.valor)], ['Parado há', `${minParado(parado)} min`]]
     : [['Potência', s.estado === 'carregando' ? `${Math.round(s.kw)} kW` : '—'], ['Energia', `${num(s.kwh)} kWh`], ['Valor', brl(s.valor)]]
   const pp = !parado && s.reserva ? `<span class="ma-pp"><span class="pp-barra"><i style="width:${Math.min(100, s.valor / s.reserva * 100).toFixed(1)}%"></i></span><small><b>${brl(s.valor)}</b> de ${brl(s.reserva)} reservados no app</small></span>` : ''
   return [est, `<span class="ma-topo"><span class="av ${est === 'falha' ? 'falha-av' : 'vivo-av'}">${iniciais(m.nome)}</span><span class="ma-id"><b>${medio(m.nome)}</b><small>${m.carro} · ${m.placa}</small></span>${anel}</span>
@@ -1907,6 +2604,7 @@ function desenhaRecargas() {
     if (ul.children[k] !== li) ul.insertBefore(li, ul.children[k] || null)
   })
   while (ul.children.length > ordem.length) ul.lastElementChild.remove()
+  if (!ordem.length) ul.innerHTML = `<li class="vazio-lista">${primeiroDia ? 'O primeiro dia do posto: as recargas aparecem aqui assim que terminarem.' : 'Nenhuma recarga terminou hoje ainda.'}</li>`
   const n = feitas.length
   document.getElementById('recargasResumo').textContent = n > 10 ? `10 últimas de ${n}` : n ? `${n} terminada${n > 1 ? 's' : ''}` : 'nenhuma ainda'
 }
@@ -1930,7 +2628,11 @@ let tabela = { base: 2.2, regras: [
   { id: 1, tipo: 'hora', dias: 'todos', de: 0, ate: 6, preco: 1.9, ativa: true },
   { id: 2, tipo: 'hora', dias: 'uteis', de: 18, ate: 21, preco: 2.6, ativa: true },
   { id: 3, tipo: 'qtd', kwh: 30, preco: 2.0, ativa: false },
-] }
+], ac: { ativo: false, desconto: 0.3 }, ocupacao: { ativo: false, tol: 10, valor: 0.5 } }
+// preço da recarga: o da tabela agora; no AC, menos o desconto (se ligado)
+const precoSess = (x) => { const p = precoAgora(x.kwh).p; return !x.dc && tabela.ac.ativo ? Math.max(0.5, Math.round((p - tabela.ac.desconto) * 100) / 100) : p }
+// taxa por carro parado depois de terminar: por minuto, passada a tolerância
+const taxaParado = (p) => (tabela.ocupacao.ativo && p.parado ? Math.max(0, minParado(p) - tabela.ocupacao.tol) * tabela.ocupacao.valor : 0)
 let idRegra = 3
 const historicoPreco = [
   { quando: 'Hoje · 08:00', txt: 'Preço padrão: R$ 2,10 → R$ 2,20' },
@@ -1964,6 +2666,8 @@ function desenhaPreco() {
   document.getElementById('precoRegra').innerHTML = (regra && regra.tipo === 'hora' ? `Agora vale a regra <b>${minusc(regraTxt(regra))}</b>.` : 'Agora vale o preço padrão.')
     + (prox ? ` Às ${String(prox.h).padStart(2, '0')}:00 passa para <b>${brl(prox.p)}</b>.` : '')
     + qtd.map((r) => ` Acima de ${r.kwh} kWh na mesma recarga: <b>${brl(r.preco)}</b>.`).join('')
+    + (tabela.ac.ativo ? ` No AC (Tipo 2): <b>${brl(Math.max(0.5, p - tabela.ac.desconto))}</b>.` : '')
+    + (tabela.ocupacao.ativo ? ` Carro parado depois de terminar: <b>${brl(tabela.ocupacao.valor)} por minuto</b> após ${tabela.ocupacao.tol} min.` : '')
 }
 setInterval(desenhaPreco, 20000)
 
@@ -1982,6 +2686,9 @@ function mudancas(a, b) {
     else if (o.ativa !== r.ativa) out.push(`${r.ativa ? 'Ligou' : 'Desligou'} a regra ${minusc(regraTxt(r))}`)
   }
   for (const o of a.regras) if (!b.regras.some((r) => r.id === o.id)) out.push(`Removeu a regra ${minusc(regraTxt(o))}`)
+  if (a.ac.ativo !== b.ac.ativo || (b.ac.ativo && a.ac.desconto !== b.ac.desconto)) out.push(b.ac.ativo ? `AC com ${brl(b.ac.desconto)} a menos por kWh` : 'AC volta ao mesmo preço do DC')
+  const oa = a.ocupacao, ob = b.ocupacao
+  if (oa.ativo !== ob.ativo || (ob.ativo && (oa.tol !== ob.tol || oa.valor !== ob.valor))) out.push(ob.ativo ? `Taxa por carro parado: ${brl(ob.valor)} por minuto depois de ${ob.tol} min` : 'Desligou a taxa por carro parado')
   return out
 }
 function graficoHTML(tb, dia) {
@@ -2046,6 +2753,14 @@ function desenhaModalPreco() {
       <div>
         <section class="linha-preco"><div><h3>Preço padrão</h3><p class="previa" id="mpPrevia"></p></div>
           ${campoValor('', 'menos', 'mais', 'id="mpBase"', fmtPreco(rasc.base), 'preço padrão do kWh')}</section>
+        <section class="ajustes"><h3>Ajustes</h3>
+          <div class="aj-linha ${rasc.ac.ativo ? '' : 'off'}"><label class="chave"><input type="checkbox" data-p="ac-liga" ${rasc.ac.ativo ? 'checked' : ''} aria-label="Preço diferente no AC"><span></span></label>
+            <span class="tx"><b>Preço menor no AC</b><small>O AC (Tipo 2) carrega mais devagar; vale para qualquer horário e regra.</small></span>
+            ${campoValor('peq', 'ac-menos', 'ac-mais', 'data-f="ac"', fmtPreco(rasc.ac.desconto), 'desconto no AC', 'R$', 'a menos')}</div>
+          <div class="aj-linha aj-dupla ${rasc.ocupacao.ativo ? '' : 'off'}"><label class="chave"><input type="checkbox" data-p="oc-liga" ${rasc.ocupacao.ativo ? 'checked' : ''} aria-label="Taxa por carro parado"><span></span></label>
+            <span class="tx"><b>Taxa por carro parado</b><small>Para quem terminou e continua na vaga, depois da tolerância.</small></span>
+            <span class="aj-campos">${campoValor('peq', 'oc-tol-menos', 'oc-tol-mais', 'data-f="octol" style="width:2.4ch"', rasc.ocupacao.tol, 'minutos de tolerância', '', 'min')}${campoValor('peq', 'oc-val-menos', 'oc-val-mais', 'data-f="ocval"', fmtPreco(rasc.ocupacao.valor), 'taxa por minuto', 'R$', 'por min')}</span></div>
+        </section>
         <section><div class="sec-cab"><h3>Ao longo do dia</h3>
             <div class="seg-dias" role="group" aria-label="Ver o dia">${[[1, 'Seg a sex'], [6, 'Sábado'], [0, 'Domingo']].map(([d, t]) => `<button type="button" data-p="dia" data-v="${d}" aria-pressed="${grupo === d}">${t}</button>`).join('')}</div></div>
           <div class="grafico" id="mpGrafico">${graficoHTML(rasc, dg)}</div>
@@ -2074,6 +2789,9 @@ document.getElementById('alterarPreco').addEventListener('click', abrePreco)
 const lePreco = (v) => { const n = parseFloat(String(v).replace(',', '.')); return n > 0 ? Math.round(n * 100) / 100 : null }
 modalPreco.addEventListener('input', (e) => {
   if (e.target.id === 'mpBase') { const v = lePreco(e.target.value); if (v) { rasc.base = v; atualizaPrevia() } return }
+  if (e.target.dataset.f === 'ac') { const v = lePreco(e.target.value); if (v != null && v < rasc.base) { rasc.ac.desconto = v; atualizaPrevia() } return }
+  if (e.target.dataset.f === 'ocval') { const v = lePreco(e.target.value); if (v) { rasc.ocupacao.valor = v; atualizaPrevia() } return }
+  if (e.target.dataset.f === 'octol') { const v = parseInt(e.target.value, 10); if (v >= 0) { rasc.ocupacao.tol = v; atualizaPrevia() } return }
   const f = e.target.dataset.f; if (!f || !form) return
   if (f === 'preco') { const v = lePreco(e.target.value); if (v) form.r.preco = v }
   if (f === 'kwh') { const v = parseInt(e.target.value, 10); if (v > 0) form.r.kwh = v }
@@ -2081,6 +2799,8 @@ modalPreco.addEventListener('input', (e) => {
 modalPreco.addEventListener('change', (e) => {
   const f = e.target.dataset.f
   if (f && form && ['dias', 'de', 'ate'].includes(f)) { form.r[f] = f === 'dias' ? e.target.value : Number(e.target.value); desenhaModalPreco() }
+  if (e.target.dataset.p === 'ac-liga') { rasc.ac.ativo = e.target.checked; desenhaModalPreco(); return }
+  if (e.target.dataset.p === 'oc-liga') { rasc.ocupacao.ativo = e.target.checked; desenhaModalPreco(); return }
   if (e.target.dataset.p === 'liga') { const r = rasc.regras.find((x) => x.id === Number(e.target.closest('[data-r]').dataset.r)); r.ativa = e.target.checked; desenhaModalPreco() }
 })
 modalPreco.addEventListener('click', (e) => {
@@ -2091,6 +2811,12 @@ modalPreco.addEventListener('click', (e) => {
     case 'mais': rasc.base = Math.round((rasc.base + 0.05) * 100) / 100; break
     case 'menos': rasc.base = Math.max(0.5, Math.round((rasc.base - 0.05) * 100) / 100); break
     case 'dia': diaFaixa = Number(b.dataset.v); break
+    case 'ac-mais': rasc.ac.desconto = Math.min(rasc.base - 0.5, Math.round((rasc.ac.desconto + 0.05) * 100) / 100); break
+    case 'ac-menos': rasc.ac.desconto = Math.max(0.05, Math.round((rasc.ac.desconto - 0.05) * 100) / 100); break
+    case 'oc-tol-mais': rasc.ocupacao.tol += 5; break
+    case 'oc-tol-menos': rasc.ocupacao.tol = Math.max(0, rasc.ocupacao.tol - 5); break
+    case 'oc-val-mais': rasc.ocupacao.valor = Math.round((rasc.ocupacao.valor + 0.05) * 100) / 100; break
+    case 'oc-val-menos': rasc.ocupacao.valor = Math.max(0.05, Math.round((rasc.ocupacao.valor - 0.05) * 100) / 100); break
     case 'nova': modalPreco.querySelector('.regras-box') && (modalPreco.querySelector('.regras-box').scrollTop = 0); form = { novo: true, r: { id: ++idRegra, tipo: 'hora', dias: 'uteis', de: 18, ate: 21, kwh: 30, preco: rasc.base, ativa: true } }; break
     case 'editar': form = { novo: false, r: copia(r) }; break
     case 'remover': rasc.regras = rasc.regras.filter((x) => x !== r); if (form && form.r.id === r.id) form = null; break
@@ -2111,6 +2837,7 @@ modalPreco.addEventListener('click', (e) => {
       const mud = mudancas(tabela, rasc); if (!mud.length) return
       tabelaAnterior = copia(tabela); tabela = copia(rasc)
       mud.forEach((t) => historicoPreco.unshift({ quando: `Hoje · ${hhmm()}`, txt: t }))
+      registra('acao', `Você mudou a tabela de preços: ${minusc(mud[0])}${mud.length > 1 ? ` e mais ${mud.length - 1}` : ''}`)
       modalPreco.close(); desenhaPreco()
       const ret = document.getElementById('precoRetorno'); ret.classList.add('on'); clearTimeout(tmDesfazer); tmDesfazer = setTimeout(() => ret.classList.remove('on'), 8000)
       return
@@ -2121,21 +2848,31 @@ modalPreco.addEventListener('click', (e) => {
 document.getElementById('precoDesfazer').addEventListener('click', () => {
   if (!tabelaAnterior) return
   tabela = tabelaAnterior; tabelaAnterior = null
-  historicoPreco.unshift({ quando: `Hoje · ${hhmm()}`, txt: 'Desfez a última alteração da tabela' })
+  historicoPreco.unshift({ quando: `Hoje · ${hhmm()}`, txt: 'Desfez a última alteração da tabela' }); registra('acao', 'Você desfez a última mudança na tabela de preços')
   document.getElementById('precoRetorno').classList.remove('on'); desenhaPreco()
 })
 
 function desenha(soNumeros) {
-  desenhaPontos(); desenhaOlho(); desenhaBombas(); desenhaHoje(); desenhaDivisao(); desenhaFrase(); desenhaAtivos(); desenhaRecargas(); desenhaAbasVisao()
+  if (semConexao) { desenhaFrase(); return }
+  desenhaPontos(); desenhaOlho(); desenhaBombas(); desenhaHoje(); desenhaDivisao(); desenhaFrase(); desenhaAtivos(); desenhaRecargas(); desenhaAbasVisao(); desenhaMov(); desenhaRetorno()
   if (modalMot.open) desenhaMotorista(false)
   if (modalBomba.open && bombaAberta != null) { const e = document.getElementById('mbEstado'), h = estadoBombaHTML(bombaAberta); if (e && e.dataset.h !== h) { e.innerHTML = h; e.dataset.h = h } }
   if (!soNumeros) desenhaPreco()
+}
+// a linha do tempo começa com o que já tinha acontecido hoje
+{
+  const ant = [{ h: '08:00', tipo: 'acao', txt: 'Você mudou o preço padrão de R$ 2,10 para R$ 2,20' }]
+  for (const x of sessoes.filter((y) => !ativa(y))) {
+    ant.push({ h: x.inicio, tipo: 'recarga', txt: `<b>${medio(x.m.nome)}</b> começou a carregar · ${x.tipo}` })
+    ant.push({ h: x.fim, tipo: 'recarga', txt: `<b>${medio(x.m.nome)}</b> terminou · ${num(x.kwh)} kWh · ${brl(x.valor)}` })
+  }
+  eventos.push(...ant.sort((a, b) => b.h.localeCompare(a.h)))
 }
 pronto = true
 desenha()
 
 // começa com um carro já carregando (a tela abre no meio do dia)
-{
+if (!diaVazio) {
   const cdc = conectores.find((c) => c.dc) || conectores[0], p = pontos.find((q) => cdc.vagasNaturais.includes(q.i)) || pontos[0]
   chegar(p, cdc.id); const s = p.sessao; s.reserva = 80
   s.kwh = 9.6; s.valor = 9.6 * precoAgora().p; if (s.pct != null) s.pct = 46; s.inicio = hhmm(new Date(Date.now() - 17 * 60000)); s.real = 17 * 60 / ACEL; s.nova = false
@@ -2150,6 +2887,11 @@ pontos.forEach((p) => bt(`Carro na ${p.nome}`, () => chegar(p)))
 pontos.forEach((p) => bt(`Sair da ${p.nome}`, () => sair(p)))
 pontos.forEach((p) => bt(`Terminar e ficar na ${p.nome}`, () => sair(p, true)))
 bombas.forEach((b) => bt(`Falha: ${b.nome}`, () => falhar(b.bi, !b.falha)))
+const conexBt = bt('Simular posto sem conexão', () => { conexao('posto', !(semConexao && semConexao.quem === 'posto')); conexBt.textContent = semConexao ? 'Reconectar o posto' : 'Simular posto sem conexão' })
+const estadoAtual = q.get('estado')
+bt(estadoAtual === 'vazio' ? 'Voltar ao dia normal' : 'Ver um dia ainda sem recargas', () => { const u = new URL(location.href); if (estadoAtual === 'vazio') u.searchParams.delete('estado'); else u.searchParams.set('estado', 'vazio'); location.href = u })
+bt(estadoAtual === 'primeiro-dia' ? 'Voltar ao dia normal' : 'Ver o primeiro dia do posto', () => { const u = new URL(location.href); if (estadoAtual === 'primeiro-dia') u.searchParams.delete('estado'); else u.searchParams.set('estado', 'primeiro-dia'); location.href = u })
+const calorBt = bt('Simular dia quente (35°)', () => { calorSim = !calorSim; calorBt.textContent = calorSim ? 'Voltar à temperatura real' : 'Simular dia quente (35°)'; desenhaClima(); desenha() })
 const pausa = bt('Pausar o dia de demonstração', () => { demoLigada = !demoLigada; pausa.textContent = demoLigada ? 'Pausar o dia de demonstração' : 'Retomar o dia de demonstração' })
 
 // atalhos de exemplo (o CRM não faz parte deste esboço)
