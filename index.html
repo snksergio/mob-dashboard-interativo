@@ -293,7 +293,19 @@ dialog.modal.postos{width:min(1080px,calc(100vw - 32px))}
 .av-cfg .aj-linha{grid-template-columns:auto minmax(0,1fr) auto}
 /* posto sem conexão */
 .vivo.sem i{background:var(--dim);animation:none}
-.palco.offline .cena canvas{filter:saturate(.35) brightness(.72);transition:filter .6s}
+.palco.offline .cena canvas,.palco.offline .cena svg.mv-planta{filter:saturate(.35) brightness(.72);transition:filter .6s}
+/* troca 3D | 2D (rodapé) e o aviso da visão */
+.zoom .visao-mq{display:flex;gap:2px;padding:3px;border-radius:11px;border:1px solid var(--line);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.zoom .visao-mq button{height:26px;min-width:34px;padding:0 9px;border:0;border-radius:8px;background:none;font-size:12.5px;font-weight:600;color:var(--muted);backdrop-filter:none;-webkit-backdrop-filter:none}
+.zoom .visao-mq button:hover{color:var(--text)}
+.zoom .visao-mq button[aria-pressed="true"]{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.aviso-visao{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:10px;padding:6px 6px 6px 14px;border-radius:999px;font-size:13px;color:var(--muted);white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.aviso-visao[hidden]{display:none}
+.aviso-visao #avisoVisaoBtn{white-space:nowrap;flex:none;font-size:13px;font-weight:600;color:var(--green-ink);padding:4px 10px;border-radius:999px;background:var(--green-soft)}
+.aviso-visao .x{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;color:var(--muted)}
+.aviso-visao .x:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.aviso-visao .x svg{width:12px;height:12px}
+@media (max-width: 560px){ .aviso-visao{top:auto;bottom:8px;white-space:normal;width:calc(100% - 20px);border-radius:14px} }
 .alertas.cinza{border-color:var(--line-2);background:var(--surface-2)}
 .alertas.cinza h2{color:var(--text)}
 .col.parado-dados .vista{opacity:.55;pointer-events:none;transition:opacity .4s}
@@ -1062,6 +1074,7 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
         </button>
       </div>
       <div class="vivo vidro" id="vivo" aria-live="off"><i></i><b id="vivoTxt">Ao vivo</b><span id="horaTxt">--:--</span><span id="periodoTxt"></span><span class="clima" id="climaTxt" hidden></span></div>
+      <div class="aviso-visao vidro" id="avisoVisao" role="status" hidden><span id="avisoVisaoTxt"></span><button type="button" id="avisoVisaoBtn"></button><button type="button" class="x" id="avisoVisaoX" aria-label="Fechar o aviso"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
       <div class="palco-amb">
         <div class="chips" role="group" aria-label="Simular o ambiente: hora do dia e chuva">
           <span>Simular</span>
@@ -1096,6 +1109,7 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
           <ol class="prox-lista" id="proxLista"></ol>
         </section>
         <div class="zoom" role="group" aria-label="Aproximação">
+          <div class="visao-mq" role="group" aria-label="Visão da maquete"><button type="button" data-vmq="3d" title="Maquete 3D">3D</button><button type="button" data-vmq="2d" title="Planta vista de cima, mais leve">2D</button></div>
           <button type="button" id="zoomMenos" aria-label="Afastar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
           <button type="button" id="zoomPct" aria-pressed="false" title="Voltar a 100%">100%</button>
           <button type="button" id="zoomMais" aria-label="Aproximar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
@@ -1221,7 +1235,6 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
 <dialog class="modal" id="modalAvisos" aria-labelledby="maTit" tabindex="-1"></dialog>
 
 <script type="module">
-import { criarMaquete } from './maquete.js'
 
 // ---------------------------------------------------------------- postos de exemplo (cada um é uma pasta gerada pelo Blender)
 // est/n/rs: situação agora e receita de hoje (exemplos; o posto aberto usa os dados ao vivo); x/y: posição no mapa (%)
@@ -1237,6 +1250,26 @@ const POSTOS = [
   { id: 'fast-ultra', nome: 'Centro Logístico', equip: 'Mobi Fast + Mobi Ultra Fast · com cobertura', bairro: 'Cidade Industrial', cidade: 'Contagem', x: 31, y: 61, est: 'carregando', n: 1, rs: 276.1 },
 ]
 const q = new URLSearchParams(location.search)
+// ---------------------------------------------------------------- visão da maquete: 3D ou 2D (a planta vista de cima)
+// ?visao= ou a escolha guardada vencem; sem escolha, abre em 2D quando não há WebGL, a internet está lenta,
+// o aparelho é simples ou a tela é de celular
+function escolheVisaoMq() {
+  const p = q.get('visao'); if (p === '2d' || p === '3d') return { v: p, motivo: null }
+  let g = null; try { g = localStorage.getItem('painel-visao-maquete') } catch {}
+  if (g === '2d' || g === '3d') return { v: g, motivo: null }
+  let webgl = false; try { const c = document.createElement('canvas'); webgl = !!(c.getContext('webgl2') || c.getContext('webgl')) } catch {}
+  const con = navigator.connection || {}
+  if (!webgl) return { v: '2d', motivo: 'Este navegador não mostra 3D' }
+  if (con.saveData || ['slow-2g', '2g', '3g'].includes(con.effectiveType)) return { v: '2d', motivo: 'A internet está lenta' }
+  if ((navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) return { v: '2d', motivo: 'Este aparelho é mais simples' }
+  if (matchMedia('(max-width: 560px)').matches) return { v: '2d', motivo: 'No celular a planta fica mais fácil de ler' }
+  return { v: '3d', motivo: null }
+}
+const VISAO_MQ = escolheVisaoMq()
+function trocaVisaoMq(v) {
+  try { localStorage.setItem('painel-visao-maquete', v) } catch {}
+  const u = new URL(location.href); u.searchParams.set('visao', v); location.href = u
+}
 const postoId = POSTOS.some((p) => p.id === q.get('posto')) ? q.get('posto') : 'fast'
 const posto = POSTOS.find((p) => p.id === postoId)
 // carregando: o carro anda até a bomba do modelo do posto no ritmo do download
@@ -1247,7 +1280,7 @@ const viagem = document.getElementById('viagem')
 // o download avisa o quanto já veio (pReal); a tela mostra no máximo o que o tempo mínimo deixa, suavizado, para dar
 // tempo de ver o carro andar. ?carregamento=0.6 congela a tela nesse ponto (para ver e fotografar)
 const ETAPAS = [[0, 'buscando o posto'], [0.2, 'montando a maquete'], [0.55, 'acendendo as luzes'], [0.8, 'ligando as bombas'], [0.97, 'chegando']]
-const MIN_CARGA = q.has('captura') ? 0 : 4600, T0_CARGA = performance.now()
+const MIN_CARGA = q.has('captura') ? 0 : VISAO_MQ.v === '2d' ? 1600 : 4600, T0_CARGA = performance.now()
 let pReal = 0, pVisto = 0, pintaFeito = null
 function pinta(f) {
   viagem.style.setProperty('--p', f.toFixed(4)); document.getElementById('carregPct').textContent = `${Math.round(f * 100)}%`
@@ -1325,7 +1358,12 @@ const hhmm = (d = new Date()) => fmtH.format(d)
 const periodoNome = (h) => (h < 5 || h >= 19.6 ? 'noite' : h < 10.5 ? 'manhã' : h < 17.6 ? 'tarde' : 'pôr do sol')
 
 const el = document.getElementById('cena')
-const mq = await criarMaquete(el, { dados: `dados/${postoId}/`, hora: horaBrasil(), aoProgresso: progresso })
+// cada motor só é baixado quando é usado: na 2D, o three.js e as camadas do Blender nem chegam
+// 2D: a planta em imagens (render do alto, ou a variação ilustrada com ?estilo=render|ia) quando o posto já tem; senão, a planta desenhada
+const ESTILO_2D = q.get('estilo') === 'render' ? 'planta' : 'planta-ia'
+const temImagem2d = VISAO_MQ.v === '2d' && await fetch(`dados/${postoId}/${ESTILO_2D}/planta.json`).then((r) => r.ok).catch(() => false)
+const motor = VISAO_MQ.v !== '2d' ? (await import('./maquete.js')).criarMaquete : temImagem2d ? (await import('./planta-imagem.js')).criarPlantaImagem : (await import('./planta2d.js')).criarPlanta
+const mq = await motor(el, { dados: `dados/${postoId}/`, pasta: ESTILO_2D, hora: horaBrasil(), aoProgresso: progresso })
 // ?carregamento=0.6 deixa a tela de carregamento parada nesse ponto (para ver e fotografar)
 if (!q.has('carregamento')) { // chegou: o carro pluga na bomba, a tela some e a maquete aparece
   progresso(1); await cargaVista()
@@ -1335,6 +1373,24 @@ if (!q.has('carregamento')) { // chegou: o carro pluga na bomba, a tela some e a
   setTimeout(() => { cc.classList.add('saindo'); setTimeout(() => cc.remove(), 460) }, demora)
 }
 window.maquete = mq
+// troca 3D | 2D no rodapé e o aviso quando a 2D foi escolhida sozinha (ou quando o 3D está pesado)
+document.querySelectorAll('[data-vmq]').forEach((b) => {
+  b.setAttribute('aria-pressed', b.dataset.vmq === VISAO_MQ.v)
+  b.addEventListener('click', () => { if (b.dataset.vmq !== VISAO_MQ.v) trocaVisaoMq(b.dataset.vmq) })
+})
+function avisoVisao(txt, botao, para) {
+  const a = document.getElementById('avisoVisao'); a.hidden = false
+  document.getElementById('avisoVisaoTxt').textContent = txt
+  const b = document.getElementById('avisoVisaoBtn'); b.textContent = botao; b.onclick = () => trocaVisaoMq(para)
+  document.getElementById('avisoVisaoX').onclick = () => { a.hidden = true; try { localStorage.setItem('painel-visao-maquete', VISAO_MQ.v) } catch {} }
+}
+if (VISAO_MQ.motivo) avisoVisao(`${VISAO_MQ.motivo}: abrimos a visão 2D, mais leve.`, 'Ver em 3D', '3d')
+else if (VISAO_MQ.v === '3d' && !q.has('captura')) {
+  // 3D escolhido sozinho: se os primeiros segundos ficarem travados, sugere a 2D (sem trocar sozinho)
+  let quadros = 0; const t0 = performance.now()
+  const conta = () => { quadros++; if (performance.now() - t0 < 4000) requestAnimationFrame(conta); else if (quadros / 4 < 22) { let g = null; try { g = localStorage.getItem('painel-visao-maquete') } catch {}; if (!g) avisoVisao('A maquete 3D está pesada neste aparelho.', 'Ver em 2D', '2d') } }
+  requestAnimationFrame(conta)
+}
 
 let horaFixa = null
 function atualizaHora() {

@@ -1,0 +1,65 @@
+{
+ "elev": 62,
+ "pxm": 140,
+ "w": 2273,
+ "h": 1530,
+ "cx": -0.11931085586547852,
+ "cy": 3.089739635586738,
+ "cima": [
+  0,
+  0.882947564125061,
+  0.4694715738296509
+ ],
+ "teto": true,
+ "saida": {
+  "w": 1529,
+  "h": 1029
+ },
+ "ajuste": {
+  "sx": 0.6709,
+  "sy": 0.6772,
+  "dx": 2.2843,
+  "dy": -6.7798
+ },
+ "imagens": {
+  "tarde": "planta-tarde.webp",
+  "noite": "planta-noite.webp",
+  "teto": "teto-tarde.webp",
+  "tetoNoite": "teto-noite.webp"
+ },
+ "carros": "carro-ia",
+ "sombraCarro": true,
+ "tetoOpacidade": 0.6,
+ "medida": {
+  "render": {
+   "x0": 405,
+   "x1": 1900,
+   "y0": 583,
+   "y1": 1187
+  },
+  "ilustrada": {
+   "x0": 274,
+   "x1": 1277,
+   "y0": 388,
+   "y1": 797
+  },
+  "redimensionado": false
+ },
+ "preco": {
+  "x": 1370,
+  "y": 768,
+  "w": 59,
+  "h": 24,
+  "fundo": "#222a2e",
+  "base": 789,
+  "fonte": 22.5,
+  "fundoNoite": "#121e24"
+ },
+ "tetoRet": [
+  300,
+  190,
+  1706,
+  762
+ ],
+ "origem": "Variação ilustrada: o render de cima refeito em estilo diorama pelo gerador de imagens, com a mesma disposição. ajuste = render → esta imagem (maquete-viva/ferramentas/encaixe.mjs)."
+}
