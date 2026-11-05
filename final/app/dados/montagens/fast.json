@@ -1,0 +1,25 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v1",
+  "postoId": "fast",
+  "nome": "Unidade Avenida",
+  "ilha": false,
+  "cobertura": true,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "ua-fast-1",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "ua-fast-1-vaga-1",
+          "ua-fast-1-vaga-2"
+        ]
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": "fast",
+  "geradoEm": "2026-11-01T16:13:35.848Z"
+}

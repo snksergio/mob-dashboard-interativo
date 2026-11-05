@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meu posto · iGreen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Meu posto (29/10, pedido do Sergio): a entrada do dono no menu novo do app (a página entra dentro do app, por isso
+   não tem cabeçalho próprio). No primeiro acesso ele ainda não tem o posto montado: a tela explica o que vai ficar
+   aqui, com um exemplo, e leva a escolher o posto (os postos da conta já vêm com as bombas compradas) e ao construtor.
+   Depois de montado, o posto abre direto no painel */
+:root{
+  --bg:#000; --surface:rgba(255,255,255,.05); --surface-2:rgba(255,255,255,.075); --surface-3:rgba(255,255,255,.11);
+  --line:rgba(255,255,255,.1); --line-2:rgba(255,255,255,.17);
+  --text:#F2F5F2; --muted:#A3ACA5; --dim:#78817A;
+  --green:#03FF1F; --green-ink:#7DFF8C; --green-soft:rgba(3,255,31,.09); --green-line:rgba(3,255,31,.30);
+  --modal:#0A0D0B; --vidro:rgba(8,11,9,.72);
+}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--text);font:400 15px/1.5 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:10px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{max-width:1240px;margin:0 auto;padding:0 clamp(16px,3vw,40px) 40px;min-height:100vh;display:flex;flex-direction:column}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:11px;border:1px solid var(--line-2);font-size:14px;font-weight:500;background:var(--surface-2);text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--green-line)}
+.btn svg{width:15px;height:15px}
+.btn.prim{color:#04140A;border-color:transparent;background:var(--green);font-weight:600}
+.btn.prim:hover{background:#3BFF52}
+.btn.grande{height:48px;padding:0 24px;font-size:15px;border-radius:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.link{font-size:13px;color:var(--dim);text-decoration:underline;text-underline-offset:3px}
+.link:hover{color:var(--text)}
+
+/* raios: Mobi 1, Mobi Fast 2, Mobi Ultra Fast 3 (o mesmo componente do painel e do construtor) */
+.raios{display:inline-flex;align-items:center;flex:none;color:var(--green-ink);--recorte:#101511}
+.raios svg{width:12px;height:16px;flex:none;margin-left:-6px;overflow:visible}
+.raios svg:first-child{margin-left:0}
+.raios path{fill:currentColor;stroke:var(--recorte);stroke-width:1.6px;paint-order:stroke;stroke-linejoin:round}
+
+/* ---------------------------------------------------------------- primeiro acesso: o que vai ficar aqui */
+.vazio{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(24px,5vw,72px);align-items:center;padding:clamp(28px,7vh,80px) 0}
+.vazio .texto{max-width:520px}
+.selo{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--green-ink);padding:5px 12px;border-radius:999px;background:var(--green-soft);border:1px solid var(--green-line)}
+.selo i{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.vazio h2{font-size:clamp(30px,3.6vw,44px);line-height:1.08;font-weight:500;letter-spacing:-.025em;margin:18px 0 14px}
+.vazio .texto > p{font-size:16px;color:var(--muted);line-height:1.6;max-width:46ch}
+/* os 3 passos numa linha do tempo: o número de cada um ligado ao próximo por um traço */
+.passos{list-style:none;padding:0;margin:30px 0 32px;display:grid;gap:22px;counter-reset:p}
+.passos li{position:relative;display:grid;grid-template-columns:34px minmax(0,1fr);gap:2px 16px;counter-increment:p}
+.passos li::before{content:counter(p);grid-row:span 2;position:relative;z-index:1;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:600;color:var(--green-ink);background:#07120A;border:1px solid var(--green-line)}
+.passos li:not(:last-child)::after{content:"";position:absolute;left:16.5px;top:38px;bottom:-20px;width:1.5px;border-radius:2px;background:linear-gradient(var(--green-line),rgba(3,255,31,.1))}
+.passos b{font-size:15px;font-weight:500;padding-top:2px}
+.passos span{font-size:14px;color:var(--muted)}
+.vazio .acao{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.vazio .acao small{font-size:13px;color:var(--dim)}
+/* o exemplo: o posto se montando (o mesmo vídeo do carregamento) e dois cartões do painel por cima, como prévia */
+.exemplo{position:relative;border-radius:24px;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 46%,#121A15,#030504 72%);aspect-ratio:1.08;overflow:hidden;display:grid;place-items:center}
+.exemplo::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,rgba(255,255,255,.12) .9px,transparent 1.4px);background-size:18px 18px;-webkit-mask:radial-gradient(ellipse at 50% 50%,#000 30%,transparent 80%);mask:radial-gradient(ellipse at 50% 50%,#000 30%,transparent 80%)}
+.exemplo video{position:relative;width:88%;aspect-ratio:1;object-fit:cover;mix-blend-mode:lighten}
+.exemplo .tag{position:absolute;left:16px;top:16px;font-size:12px;color:var(--muted);padding:4px 10px;border-radius:999px;background:var(--vidro);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.mini{position:absolute;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:var(--vidro);border:1px solid var(--line-2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 16px 36px -14px rgba(0,0,0,.8)}
+.mini b{font-size:14px;font-weight:500;display:block}
+.mini small{font-size:12px;color:var(--muted)}
+.mini .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:#03140A;background:var(--green)}
+.mini .anel{position:relative;width:30px;height:30px;border-radius:50%;background:conic-gradient(var(--green) 0 64%,rgba(3,255,31,.14) 0);display:grid;place-items:center;font-size:9.5px;font-weight:600}
+.mini .anel::before{content:"";position:absolute;width:24px;height:24px;border-radius:50%;background:#0B0F0D}
+.mini .anel span{position:relative}
+.mini.m1{right:6%;top:14%}
+.mini.m2{left:6%;bottom:12%}
+.mini .ok{width:8px;height:8px;border-radius:50%;background:var(--green)}
+
+/* ---------------------------------------------------------------- escolher o posto: lista com busca e filtro */
+.escolher{flex:1;padding:clamp(28px,6vh,64px) 0 0;display:flex;flex-direction:column}
+.escolher[hidden],.vazio[hidden]{display:none}
+.cab-etapa small{font-size:13px;color:var(--green-ink)}
+.cab-etapa h2{font-size:clamp(26px,2.8vw,34px);line-height:1.12;font-weight:500;letter-spacing:-.02em;margin:6px 0 8px;outline:none}
+.cab-etapa p{font-size:15px;color:var(--muted)}
+.filtros{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:26px 0 14px}
+.busca{position:relative;flex:1 1 280px;max-width:420px}
+.busca svg{position:absolute;left:13px;top:50%;width:16px;height:16px;transform:translateY(-50%);color:var(--dim);pointer-events:none}
+.busca input{width:100%;height:42px;padding:0 14px 0 38px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);outline:none}
+.busca input::placeholder{color:var(--dim)}
+.busca input:focus{border-color:var(--green-line);background:var(--surface-2)}
+.chips{display:flex;gap:4px;padding:4px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.chips button{height:32px;padding:0 12px;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.chips button:hover{color:var(--text)}
+.chips button[aria-pressed="true"]{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.chips em{font-style:normal;font-size:12px;color:var(--dim)}
+.lista{list-style:none;padding:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:rgba(255,255,255,.02)}
+.lista li + li{border-top:1px solid var(--line)}
+.linha{display:grid;grid-template-columns:22px minmax(180px,1.1fr) minmax(0,1.6fr) 170px;align-items:center;gap:18px;width:100%;padding:14px 18px;text-align:left;transition:background-color .15s}
+.linha:hover{background:var(--surface)}
+.linha[aria-pressed="true"]{background:var(--green-soft);box-shadow:inset 3px 0 0 var(--green)}
+.marcador{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);display:grid;place-items:center}
+.linha[aria-pressed="true"] .marcador{border-color:var(--green);background:var(--green)}
+.linha[aria-pressed="true"] .marcador::after{content:"";width:7px;height:7px;border-radius:50%;background:#03140A}
+.linha .nome{min-width:0}
+.linha .nome b{display:block;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.linha .nome small{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bombas{display:flex;flex-wrap:wrap;gap:6px}
+.bombas > span{display:inline-flex;align-items:center;gap:7px;font-size:13px;padding:4px 10px 4px 8px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.estado{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);justify-self:end}
+.estado i{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.estado.montado{color:var(--green-ink)}
+.estado.montado i{background:var(--green)}
+.nada{padding:28px 18px;text-align:center;color:var(--muted);font-size:14px}
+.nada button{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+.barra-acao{position:sticky;bottom:0;margin-top:auto;padding:18px 0 4px;display:flex;align-items:center;gap:14px;background:linear-gradient(to top,#000 calc(100% - 16px),transparent)}   /* (4/11) no celular a barra tem 2 linhas: a de cima ficava transparente sobre a lista */
+.barra-acao .info{font-size:14px;color:var(--muted)}
+.barra-acao .info b{color:var(--text);font-weight:500}
+.barra-acao .btn.prim{margin-left:auto}
+.rodape-demo{padding-top:18px;text-align:right}
+.rodape-demo[hidden]{display:none}
+
+@media (max-width: 900px){
+  .vazio{grid-template-columns:1fr;padding-top:24px}
+  .exemplo{order:-1;aspect-ratio:1.2}
+  .mini.m1{top:8%}
+  .linha{grid-template-columns:22px minmax(0,1fr);gap:10px 14px}
+  .linha .bombas,.linha .estado{grid-column:2;justify-self:start}
+}
+@media (max-width: 560px){
+  .barra-acao{flex-wrap:wrap}
+  .barra-acao .btn.prim{width:100%}
+  .vazio .acao,.vazio .acao .btn{width:100%}
+  .mini{padding:8px 10px}
+  .mini.m2{display:none}
+  .chips{width:100%}
+  .chips button{flex:1;justify-content:center}
+}
+@media (prefers-reduced-motion: reduce){ .linha{transition:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- primeiro acesso: ainda não há posto montado -->
+  <section class="vazio" id="vazio" aria-labelledby="vazioTit" hidden>
+    <div class="texto">
+      <span class="selo"><i></i>Seu posto ao vivo</span>
+      <h2 id="vazioTit">Aqui vai ficar o seu posto</h2>
+      <p>Monte o seu eletroposto como ele é de verdade, com as suas bombas, as vagas e a cobertura. Depois, acompanhe tudo ao vivo: quem está carregando, quanto rendeu e se alguma bomba precisa de atenção.</p>
+      <ol class="passos">
+        <li><b>Escolha o posto</b><span>Os seus postos já vêm com as bombas que você comprou.</span></li>
+        <li><b>Monte do seu jeito</b><span>Arraste as bombas para o mapa e escolha as vagas e a cobertura.</span></li>
+        <li><b>Acompanhe ao vivo</b><span>O posto aparece em 3D, com as recargas acontecendo na hora.</span></li>
+      </ol>
+      <div class="acao"><button class="btn prim grande" type="button" id="comecar">Montar meu posto</button><small>Leva poucos minutos e dá para mudar depois.</small></div>
+    </div>
+    <figure class="exemplo" aria-label="Exemplo de um posto montado">
+      <video id="exVideo" muted loop playsinline poster="dados/carregamento/obra/montando-pronto.webp"><source src="dados/carregamento/obra/montando.webm" type="video/webm"><source src="dados/carregamento/obra/montando.mp4" type="video/mp4"></video>
+      <span class="tag">Exemplo</span>
+      <div class="mini m1" aria-hidden="true"><span class="av">FB</span><span><b>Fernanda B.</b><small>Tipo 2 · 7 kW</small></span><span class="anel"><span>64%</span></span></div>
+      <div class="mini m2" aria-hidden="true"><span class="ok"></span><span><b>Mobi Fast 1 · Online</b><small>2 carros carregando agora</small></span></div>
+    </figure>
+  </section>
+
+  <!-- escolher o posto -->
+  <section class="escolher" id="escolher" aria-labelledby="escTit" hidden>
+    <div class="cab-etapa"><small id="escEtapa">Passo 1 de 2</small><h2 id="escTit" tabindex="-1">Qual posto você quer montar?</h2><p id="escTx">Estes são os postos da sua conta, com as bombas que você comprou para cada um.</p></div>
+    <div class="filtros">
+      <label class="busca"><span class="sr">Buscar posto</span><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="search" id="busca" placeholder="Buscar pelo nome ou endereço" autocomplete="off"></label>
+      <div class="chips" role="group" aria-label="Filtrar postos" id="filtro"></div>
+    </div>
+    <ul class="lista" id="postos" aria-label="Postos da conta"></ul>
+    <div class="barra-acao">
+      <button class="btn" type="button" id="voltarVazio">Voltar</button>
+      <span class="info" id="escInfo" aria-live="polite">Escolha um posto para continuar.</span>
+      <button class="btn prim grande" type="button" id="continuar" disabled>Montar este posto</button>
+    </div>
+  </section>
+  <p class="rodape-demo" id="rodapeDemo" hidden><button class="link" type="button" id="recomecar">Ver como no primeiro acesso</button></p>
+</div>
+
+<script type="module">
+const $ = (s) => document.querySelector(s)
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+const q = new URLSearchParams(location.search)
+const MODELOS = { ultra: { nome: 'Mobi Ultra Fast', raios: 3 }, fast: { nome: 'Mobi Fast', raios: 2 }, mobi: { nome: 'Mobi', raios: 1 } }
+const RAIO = 'M7 .8 2.6 7h3L5 11.2 9.4 5h-3Z'
+const raios = (m) => `<span class="raios" aria-hidden="true">${`<svg viewBox="0 0 12 12"><path d="${RAIO}"/></svg>`.repeat(MODELOS[m].raios)}</span>`
+// os postos da conta: no protótipo, o cadastro do painel (dados/postos.json), com as bombas compradas de cada um
+const REG = await fetch('dados/postos.json', { cache: 'no-store' }).then((r) => r.json())
+const POSTOS = REG.postos
+// os postos que o dono já montou (o construtor marca ao criar). ?primeira=1 volta ao primeiro acesso
+const ler = () => { try { return JSON.parse(localStorage.getItem('meu-posto-montados') || '[]') } catch { return [] } }
+if (q.get('primeira') === '1') { try { localStorage.removeItem('meu-posto-montados') } catch {}; history.replaceState(null, '', location.pathname) }
+let montados = ler().filter((id) => POSTOS.some((p) => p.id === id))
+const cliente = q.get('cliente') === '1' || (() => { try { return sessionStorage.getItem('modo-cliente') === '1' } catch { return false } })()
+let escolhido = null, filtro = 'todos', termo = ''
+
+// a busca ignora acentos e maiúsculas
+const normal = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+function bombasDe(p) {
+  const n = {}; for (const b of p.bombas) n[b.modelo] = (n[b.modelo] || 0) + 1
+  return ['ultra', 'fast', 'mobi'].filter((m) => n[m]).map((m) => `<span>${raios(m)}${n[m]}× ${MODELOS[m].nome}</span>`).join('')
+}
+function desenhaFiltro() {
+  const n = { todos: POSTOS.length, montar: POSTOS.filter((p) => !montados.includes(p.id)).length, montados: montados.length }
+  $('#filtro').innerHTML = [['todos', 'Todos'], ['montar', 'Para montar'], ['montados', 'Montados']]
+    .map(([k, t]) => `<button type="button" data-f="${k}" aria-pressed="${filtro === k}">${t}<em>${n[k]}</em></button>`).join('')
+}
+function desenhaPostos() {
+  const t = normal(termo.trim())
+  const lista = POSTOS.filter((p) => (filtro === 'todos' || (filtro === 'montados') === montados.includes(p.id)) && (!t || normal(`${p.nome} ${p.end}`).includes(t)))
+    .sort((a, b) => montados.includes(b.id) - montados.includes(a.id))
+  $('#postos').innerHTML = lista.length ? lista.map((p) => {
+    const ok = montados.includes(p.id), n = p.bombas.length
+    return `<li><button type="button" class="linha" data-posto="${p.id}" aria-pressed="${escolhido === p.id}">
+      <span class="marcador" aria-hidden="true"></span>
+      <span class="nome"><b>${esc(p.nome)}</b><small>${esc(p.end)} · ${n} bomba${n > 1 ? 's' : ''}</small></span>
+      <span class="bombas">${bombasDe(p)}</span>
+      <span class="estado ${ok ? 'montado' : ''}"><i></i>${ok ? 'Montado' : 'Ainda não montado'}</span></button></li>`
+  }).join('') : `<li class="nada">Nenhum posto ${t ? `com “${esc(termo.trim())}”` : 'aqui'}. <button type="button" id="limpar">Ver todos</button></li>`
+}
+function atualizaAcao() {
+  const p = POSTOS.find((x) => x.id === escolhido), ok = p && montados.includes(p.id)
+  $('#continuar').disabled = !p
+  $('#continuar').textContent = ok ? 'Abrir o painel' : 'Montar este posto'
+  $('#escInfo').innerHTML = !p ? 'Escolha um posto para continuar.' : ok ? `<b>${esc(p.nome)}</b> já está montado. Dá para editar pelo painel.` : `<b>${esc(p.nome)}</b> · em seguida você monta as bombas no mapa.`
+}
+function mostra(etapa) {
+  $('#vazio').hidden = etapa !== 'vazio'; $('#escolher').hidden = etapa !== 'escolher'
+  const v = $('#exVideo')
+  if (etapa === 'vazio' && !matchMedia('(prefers-reduced-motion: reduce)').matches) v.play().catch(() => {}); else v.pause()
+  // primeiro acesso: o passo 1 de 2 (o posto, depois o mapa); com posto montado, é a lista dos postos
+  const primeira = !montados.length
+  $('#escEtapa').hidden = !primeira
+  $('#escTit').textContent = primeira ? 'Qual posto você quer montar?' : 'Seus postos'
+  $('#escTx').textContent = primeira ? 'Estes são os postos da sua conta, com as bombas que você comprou para cada um.' : 'Abra o painel de um posto montado ou monte outro.'
+  $('#voltarVazio').hidden = !primeira
+  $('#rodapeDemo').hidden = cliente || primeira
+  if (etapa === 'escolher') { desenhaFiltro(); desenhaPostos(); atualizaAcao() }
+}
+$('#comecar').addEventListener('click', () => { history.pushState(null, '', '?etapa=escolher'); mostra('escolher'); $('#escTit').focus() })
+$('#voltarVazio').addEventListener('click', () => { history.pushState(null, '', location.pathname); mostra('vazio') })
+window.addEventListener('popstate', () => mostra(new URLSearchParams(location.search).get('etapa') === 'escolher' || montados.length ? 'escolher' : 'vazio'))
+$('#busca').addEventListener('input', (e) => { termo = e.target.value; desenhaPostos() })
+$('#filtro').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (!b) return; filtro = b.dataset.f; desenhaFiltro(); desenhaPostos() })
+$('#postos').addEventListener('click', (e) => {
+  if (e.target.closest('#limpar')) { termo = ''; $('#busca').value = ''; filtro = 'todos'; desenhaFiltro(); desenhaPostos(); return }
+  const b = e.target.closest('[data-posto]'); if (!b) return
+  escolhido = b.dataset.posto
+  for (const x of document.querySelectorAll('[data-posto]')) x.setAttribute('aria-pressed', String(x === b))
+  atualizaAcao()
+})
+$('#postos').addEventListener('dblclick', (e) => { if (e.target.closest('[data-posto]')) $('#continuar').click() })
+$('#continuar').addEventListener('click', () => {
+  if (!escolhido) return
+  location.href = montados.includes(escolhido) ? `painel.html?posto=${escolhido}&visao=3d` : `construtor.html?posto=${escolhido}&de=inicio`
+})
+$('#recomecar').addEventListener('click', () => { try { localStorage.removeItem('meu-posto-montados') } catch {}; montados = []; escolhido = null; mostra('vazio') })
+mostra(q.get('etapa') === 'escolher' || montados.length ? 'escolher' : 'vazio')
+</script>
+</body>
+</html>

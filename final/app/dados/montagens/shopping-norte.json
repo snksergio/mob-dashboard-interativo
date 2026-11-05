@@ -1,0 +1,57 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "shopping-norte",
+  "nome": "Shopping Norte",
+  "ilha": true,
+  "cobertura": true,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "sn-fast-1",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "sn-fast-1-vaga-1",
+          "sn-fast-1-vaga-2"
+        ],
+        "coberta": true
+      },
+      {
+        "bombaId": "sn-fast-2",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "sn-fast-2-vaga-1",
+          "sn-fast-2-vaga-2"
+        ],
+        "coberta": true
+      }
+    ],
+    "fundos": [
+      {
+        "bombaId": "sn-fast-3",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "sn-fast-3-vaga-1",
+          "sn-fast-3-vaga-2"
+        ],
+        "coberta": true
+      },
+      {
+        "bombaId": "sn-mobi-1",
+        "modelo": "mobi",
+        "vagas": 2,
+        "vagasIds": [
+          "sn-mobi-1-vaga-1",
+          "sn-mobi-1-vaga-2"
+        ],
+        "coberta": true
+      }
+    ]
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-01T10:34:56.221Z"
+}

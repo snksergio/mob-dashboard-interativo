@@ -1,0 +1,26 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "mobi",
+  "nome": "Garagem Jardim",
+  "ilha": false,
+  "cobertura": true,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "gj-mobi-1",
+        "modelo": "mobi",
+        "vagas": 2,
+        "vagasIds": [
+          "gj-mobi-1-vaga-1",
+          "gj-mobi-1-vaga-2"
+        ],
+        "coberta": true
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-01T16:13:37.766Z"
+}

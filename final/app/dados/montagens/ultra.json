@@ -1,0 +1,26 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "ultra",
+  "nome": "Estrada Norte",
+  "ilha": false,
+  "cobertura": true,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "en-ultra-1",
+        "modelo": "ultra",
+        "vagas": 2,
+        "vagasIds": [
+          "en-ultra-1-vaga-1",
+          "en-ultra-1-vaga-2"
+        ],
+        "coberta": true
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-01T16:13:40.981Z"
+}

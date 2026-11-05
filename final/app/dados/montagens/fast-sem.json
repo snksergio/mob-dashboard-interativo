@@ -1,0 +1,26 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "fast-sem",
+  "nome": "Mercado do Bairro",
+  "ilha": false,
+  "cobertura": false,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "mb-fast-1",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "mb-fast-1-vaga-1",
+          "mb-fast-1-vaga-2"
+        ],
+        "coberta": false
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-01T16:13:39.636Z"
+}

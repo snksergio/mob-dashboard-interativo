@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remontar as maquetes da V3</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 24px 16px; background: #101412; color: #dfe6e1; font: 14px/1.5 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { color: #9aa79f; margin: 0 0 16px; }
+  pre { background: #0a0d0b; border: 1px solid #243028; border-radius: 8px; padding: 12px; white-space: pre-wrap; min-height: 200px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Remontar as maquetes da V3</h1>
+<p>Monta de novo, com as peças de Lego de agora (<code>lego/</code>), cada maquete do cadastro (<code>app/dados</code>) e
+grava por cima dos arquivos dela, na mesma pasta: o cadastro não muda. Serve para as maquetes ganharem o que as peças
+ou o montador ganharam. Abra pelo app (<code>/montador/web/remontar.html</code>), que é quem grava os arquivos.
+<code>?so=m-xxxxxxxx,m-yyyyyyyy</code> remonta só essas.</p>
+<pre id="log"></pre>
+</main>
+<script type="module">
+import { montarMaquete } from './montar-soltas.js'
+const log = (t) => { document.getElementById('log').textContent += t + '\n'; console.log(t) }
+// a assinatura do construtor (app/fila-maquetes.mjs): sem um posto que a use, a montagem sai dela
+const coberta = (m, b) => (b.coberta !== undefined ? !!b.coberta : !!m.cobertura && b.modelo !== 'mobi')
+const marca = (m, b) => { const antes = !!m.cobertura && b.modelo !== 'mobi', agora = coberta(m, b); return agora === antes ? '' : agora ? 'c' : 's' }
+function assinatura(m) {
+  const lista = (f) => (f === 'fundos' && !m.ilha ? [] : (m.fileiras && m.fileiras[f]) || [])
+  const fila = (f) => lista(f).map((b) => b.modelo + b.vagas + marca(m, b)).join(',')
+  return `${[...lista('frente'), ...lista('fundos')].some((b) => coberta(m, b)) ? 1 : 0}|${fila('frente')}|${fila('fundos')}`
+}
+function daAssinatura(a) {
+  const [c, fr, fu] = a.split('|'), cobertura = c === '1'
+  const bomba = (t) => {
+    const x = t.match(/^([a-z]+)(\d)([cs]?)$/), b = { modelo: x[1], vagas: Number(x[2]) }
+    b.coberta = x[3] ? x[3] === 'c' : cobertura && b.modelo !== 'mobi'
+    return b
+  }
+  const lista = (s) => (s ? s.split(',').map(bomba) : [])
+  return { cobertura, ilha: !!fu, fileiras: { frente: lista(fr), fundos: lista(fu) } }
+}
+const so = (new URLSearchParams(location.search).get('so') || '').split(',').filter(Boolean)
+const REG = await fetch('../../dados/postos.json', { cache: 'no-store' }).then((r) => r.json())
+const resultado = window.resultado = []
+for (const q of REG.maquetes) {
+  if (so.length && !so.includes(q.pasta)) continue
+  const posto = REG.postos.find((p) => p.maquete === q.pasta && p.montagem)
+  let m = posto ? await fetch('../../dados/' + posto.montagem, { cache: 'no-store' }).then((r) => r.json()) : daAssinatura(q.assinatura)
+  m = { cobertura: !!m.cobertura, ilha: !!m.ilha, fileiras: { frente: m.fileiras.frente || [], fundos: m.ilha ? m.fileiras.fundos || [] : [] } }
+  if (assinatura(m) !== q.assinatura) { log(`${q.pasta}: a montagem (${assinatura(m)}) não bate com o cadastro (${q.assinatura}), fica como está`); resultado.push({ pasta: q.pasta, erro: 'assinatura' }); continue }
+  const t0 = performance.now()
+  try {
+    const r = await montarMaquete(m, {})
+    let n = 0
+    for (const [arq, blob] of Object.entries(r.arquivos)) {
+      const x = await fetch(`../../api/maquete/arquivo?pasta=${q.pasta}&arq=${encodeURIComponent(arq)}`, { method: 'POST', body: blob }).then((y) => y.json())
+      if (!x.ok) throw new Error(`${arq}: ${x.erro}`)
+      n++
+    }
+    const pr = JSON.parse(await r.arquivos['pronto.json'].text())
+    const s = ((performance.now() - t0) / 1000).toFixed(1)
+    log(`${q.pasta} ${q.nome || ''} (${q.assinatura}): ${n} arquivos em ${s} s · horários ${pr.horarios.join(', ')} · aproximadas ${r.faltas.length}`)
+    resultado.push({ pasta: q.pasta, s: Number(s), horarios: pr.horarios, faltas: r.faltas })
+  } catch (e) { log(`${q.pasta}: ERRO ${e.message || e}`); resultado.push({ pasta: q.pasta, erro: String(e.message || e) }) }
+}
+log('FIM'); window.pronto = true
+</script>
+</body>
+</html>

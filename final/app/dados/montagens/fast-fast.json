@@ -1,0 +1,36 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "fast-fast",
+  "nome": "Terminal Rodoviário",
+  "ilha": false,
+  "cobertura": true,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "tr-fast-2",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "tr-fast-2-vaga-1",
+          "tr-fast-2-vaga-2"
+        ],
+        "coberta": true
+      },
+      {
+        "bombaId": "tr-fast-1",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "tr-fast-1-vaga-1",
+          "tr-fast-1-vaga-2"
+        ],
+        "coberta": true
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": "fast-fast",
+  "geradoEm": "2026-11-01T16:13:48.961Z"
+}

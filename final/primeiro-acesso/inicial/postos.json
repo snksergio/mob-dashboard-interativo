@@ -1,0 +1,29 @@
+{
+  "versao": 1,
+  "modeloAtual": "v14.2",
+  "maquetes": [],
+  "postos": [
+    {
+      "id": "lagoa",
+      "nome": "Posto Lagoa",
+      "end": "Pampulha, Belo Horizonte",
+      "equip": "3 bombas · ainda não montado",
+      "bairro": "Pampulha",
+      "cidade": "Belo Horizonte",
+      "x": 44,
+      "y": 38,
+      "est": "livre",
+      "n": 0,
+      "rs": 0,
+      "bombas": [
+        { "id": "lg-fast-1", "modelo": "fast" },
+        { "id": "lg-fast-2", "modelo": "fast" },
+        { "id": "lg-mobi-1", "modelo": "mobi" }
+      ],
+      "cobertura": true,
+      "maquete": null,
+      "montagem": null,
+      "ilha": false
+    }
+  ]
+}

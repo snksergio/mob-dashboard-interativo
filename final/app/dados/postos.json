@@ -1,0 +1,373 @@
+{
+  "versao": 1,
+  "modeloAtual": "v14.2",
+  "maquetes": [
+    {
+      "pasta": "m-7d8f9d8b",
+      "assinatura": "0|fast2,ultra2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "2 bombas · sem cobertura"
+    },
+    {
+      "pasta": "m-be048a4a",
+      "assinatura": "1|fast2,fast2|fast2,mobi2c",
+      "modelo": "pecas",
+      "ilha": true,
+      "nome": "4 bombas em ilha · com cobertura"
+    },
+    {
+      "pasta": "m-d66e1d07",
+      "assinatura": "1|ultra2,fast1,mobi1c,fast2|fast2,ultra1",
+      "modelo": "pecas",
+      "ilha": true,
+      "nome": "6 bombas em ilha · com cobertura"
+    },
+    {
+      "pasta": "m-5c89c7e0",
+      "assinatura": "1|fast2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "1 bomba · com cobertura"
+    },
+    {
+      "pasta": "m-00e1fa1a",
+      "assinatura": "1|mobi2c|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "1 bomba · com cobertura"
+    },
+    {
+      "pasta": "m-92c0172d",
+      "assinatura": "0|fast2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "1 bomba · sem cobertura"
+    },
+    {
+      "pasta": "m-cad9ce14",
+      "assinatura": "1|ultra2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "1 bomba · com cobertura"
+    },
+    {
+      "pasta": "m-8861b12f",
+      "assinatura": "0|ultra2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "1 bomba · sem cobertura"
+    },
+    {
+      "pasta": "m-b9f4fd42",
+      "assinatura": "1|fast2,mobi2c|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "2 bombas · com cobertura"
+    },
+    {
+      "pasta": "m-3942a255",
+      "assinatura": "0|fast1,mobi2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "2 bombas · sem cobertura"
+    },
+    {
+      "pasta": "m-7ae6e388",
+      "assinatura": "1|fast2,fast2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "2 bombas · com cobertura"
+    },
+    {
+      "pasta": "m-c95ed495",
+      "assinatura": "1|fast2|mobi1c",
+      "modelo": "pecas",
+      "ilha": true,
+      "nome": "2 bombas em ilha · com cobertura"
+    },
+    {
+      "pasta": "m-855652b4",
+      "assinatura": "1|fast1,mobi2|",
+      "modelo": "pecas",
+      "ilha": false,
+      "nome": "2 bombas · cobertura em parte"
+    }
+  ],
+  "postos": [
+    {
+      "id": "fast",
+      "nome": "Unidade Avenida",
+      "end": "Savassi, Belo Horizonte",
+      "equip": "1 bomba · com cobertura",
+      "bairro": "Savassi",
+      "cidade": "Belo Horizonte",
+      "x": 57,
+      "y": 55,
+      "est": "carregando",
+      "n": 2,
+      "rs": 162.4,
+      "bombas": [
+        {
+          "id": "ua-fast-1",
+          "modelo": "fast"
+        }
+      ],
+      "cobertura": true,
+      "maquete": "m-5c89c7e0",
+      "montagem": "montagens/fast.json",
+      "ilha": false
+    },
+    {
+      "id": "mobi",
+      "nome": "Garagem Jardim",
+      "end": "Jardim Canadá, Nova Lima",
+      "equip": "1 bomba · com cobertura",
+      "bairro": "Jardim Canadá",
+      "cidade": "Nova Lima",
+      "x": 63,
+      "y": 86,
+      "est": "livre",
+      "n": 0,
+      "rs": 38.2,
+      "bombas": [
+        {
+          "id": "gj-mobi-1",
+          "modelo": "mobi"
+        }
+      ],
+      "cobertura": true,
+      "maquete": "m-00e1fa1a",
+      "montagem": "montagens/mobi.json",
+      "ilha": false
+    },
+    {
+      "id": "fast-sem",
+      "nome": "Mercado do Bairro",
+      "end": "Eldorado, Contagem",
+      "equip": "1 bomba · sem cobertura",
+      "bairro": "Eldorado",
+      "cidade": "Contagem",
+      "x": 25,
+      "y": 47,
+      "est": "carregando",
+      "n": 1,
+      "rs": 96.5,
+      "bombas": [
+        {
+          "id": "mb-fast-1",
+          "modelo": "fast"
+        }
+      ],
+      "cobertura": false,
+      "maquete": "m-92c0172d",
+      "montagem": "montagens/fast-sem.json",
+      "ilha": false
+    },
+    {
+      "id": "ultra",
+      "nome": "Estrada Norte",
+      "end": "Venda Nova, Belo Horizonte",
+      "equip": "1 bomba · com cobertura",
+      "bairro": "Venda Nova",
+      "cidade": "Belo Horizonte",
+      "x": 49,
+      "y": 15,
+      "est": "carregando",
+      "n": 2,
+      "rs": 410.8,
+      "bombas": [
+        {
+          "id": "en-ultra-1",
+          "modelo": "ultra"
+        }
+      ],
+      "cobertura": true,
+      "maquete": "m-cad9ce14",
+      "montagem": "montagens/ultra.json",
+      "ilha": false
+    },
+    {
+      "id": "ultra-sem",
+      "nome": "Posto Serra",
+      "end": "Serra, Belo Horizonte",
+      "equip": "1 bomba · sem cobertura",
+      "bairro": "Serra",
+      "cidade": "Belo Horizonte",
+      "x": 66,
+      "y": 63,
+      "est": "alerta",
+      "n": 0,
+      "rs": 188,
+      "bombas": [
+        {
+          "id": "ps-ultra-1",
+          "modelo": "ultra"
+        }
+      ],
+      "cobertura": false,
+      "maquete": "m-8861b12f",
+      "montagem": "montagens/ultra-sem.json",
+      "ilha": false
+    },
+    {
+      "id": "fast-mobi",
+      "nome": "Centro Comercial",
+      "end": "Centro, Belo Horizonte",
+      "equip": "2 bombas em ilha · com cobertura",
+      "bairro": "Centro",
+      "cidade": "Belo Horizonte",
+      "x": 52,
+      "y": 47,
+      "est": "carregando",
+      "n": 3,
+      "rs": 221.3,
+      "bombas": [
+        {
+          "id": "cc-fast-1",
+          "modelo": "fast"
+        },
+        {
+          "id": "cc-mobi-1",
+          "modelo": "mobi"
+        }
+      ],
+      "cobertura": true,
+      "maquete": "m-c95ed495",
+      "montagem": "montagens/fast-mobi.json",
+      "ilha": true
+    },
+    {
+      "id": "fast-mobi-sem",
+      "nome": "Praça da Matriz",
+      "end": "Centro, Betim",
+      "equip": "2 bombas · cobertura em parte",
+      "bairro": "Centro",
+      "cidade": "Betim",
+      "x": 9,
+      "y": 53,
+      "est": "livre",
+      "n": 0,
+      "rs": 74.9,
+      "bombas": [
+        {
+          "id": "pm-fast-1",
+          "modelo": "fast"
+        },
+        {
+          "id": "pm-mobi-1",
+          "modelo": "mobi"
+        }
+      ],
+      "cobertura": true,
+      "montagem": "montagens/fast-mobi-sem.json",
+      "ilha": false,
+      "maquete": "m-855652b4"
+    },
+    {
+      "id": "fast-fast",
+      "nome": "Terminal Rodoviário",
+      "end": "Barro Preto, Belo Horizonte",
+      "equip": "2 bombas · com cobertura",
+      "bairro": "Barro Preto",
+      "cidade": "Belo Horizonte",
+      "x": 45,
+      "y": 54,
+      "est": "carregando",
+      "n": 2,
+      "rs": 305.6,
+      "bombas": [
+        {
+          "id": "tr-fast-1",
+          "modelo": "fast"
+        },
+        {
+          "id": "tr-fast-2",
+          "modelo": "fast"
+        }
+      ],
+      "cobertura": true,
+      "maquete": "m-7ae6e388",
+      "montagem": "montagens/fast-fast.json",
+      "ilha": false
+    },
+    {
+      "id": "fast-ultra",
+      "nome": "Centro Logístico",
+      "end": "Cidade Industrial, Contagem",
+      "equip": "2 bombas · sem cobertura",
+      "bairro": "Cidade Industrial",
+      "cidade": "Contagem",
+      "x": 31,
+      "y": 61,
+      "est": "carregando",
+      "n": 1,
+      "rs": 276.1,
+      "bombas": [
+        {
+          "id": "cl-fast-1",
+          "modelo": "fast"
+        },
+        {
+          "id": "cl-ultra-1",
+          "modelo": "ultra"
+        }
+      ],
+      "cobertura": false,
+      "maquete": "m-7d8f9d8b",
+      "montagem": "montagens/fast-ultra.json",
+      "ilha": false
+    },
+    {
+      "id": "shopping-norte",
+      "nome": "Shopping Norte",
+      "end": "Av. Cristiano Machado, Belo Horizonte",
+      "equip": "4 bombas em ilha · com cobertura",
+      "bairro": "Cidade Nova",
+      "cidade": "Belo Horizonte",
+      "x": 60,
+      "y": 31,
+      "est": "carregando",
+      "n": 4,
+      "rs": 612.3,
+      "bombas": [
+        {
+          "id": "sn-fast-1",
+          "modelo": "fast"
+        },
+        {
+          "id": "sn-fast-2",
+          "modelo": "fast"
+        },
+        {
+          "id": "sn-fast-3",
+          "modelo": "fast"
+        },
+        {
+          "id": "sn-fast-4",
+          "modelo": "fast"
+        },
+        {
+          "id": "sn-ultra-1",
+          "modelo": "ultra"
+        },
+        {
+          "id": "sn-ultra-2",
+          "modelo": "ultra"
+        },
+        {
+          "id": "sn-mobi-1",
+          "modelo": "mobi"
+        },
+        {
+          "id": "sn-mobi-2",
+          "modelo": "mobi"
+        }
+      ],
+      "cobertura": true,
+      "maquete": "m-be048a4a",
+      "montagem": "montagens/shopping-norte.json",
+      "ilha": true
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "igreen-painel-eletroposto-v3",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Painel do eletroposto iGreen (V3): maquete 3D e 2D montada no navegador com peças reutilizáveis",
+  "scripts": {
+    "start": "node app.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

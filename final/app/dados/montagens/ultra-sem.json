@@ -1,0 +1,26 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "ultra-sem",
+  "nome": "Posto Serra",
+  "ilha": false,
+  "cobertura": false,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "ps-ultra-1",
+        "modelo": "ultra",
+        "vagas": 2,
+        "vagasIds": [
+          "ps-ultra-1-vaga-1",
+          "ps-ultra-1-vaga-2"
+        ],
+        "coberta": false
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-01T16:13:42.904Z"
+}

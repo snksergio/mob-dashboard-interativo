@@ -1,0 +1,36 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "fast-ultra",
+  "nome": "Centro Logístico",
+  "ilha": false,
+  "cobertura": false,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "cl-fast-1",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "cl-fast-1-vaga-1",
+          "cl-fast-1-vaga-2"
+        ],
+        "coberta": false
+      },
+      {
+        "bombaId": "cl-ultra-1",
+        "modelo": "ultra",
+        "vagas": 2,
+        "vagasIds": [
+          "cl-ultra-1-vaga-1",
+          "cl-ultra-1-vaga-2"
+        ],
+        "coberta": false
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-01T00:55:46.209Z"
+}

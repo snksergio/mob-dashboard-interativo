@@ -1,5 +1,11 @@
 # Painel do eletroposto · iGreen Mob (protótipo)
 
+> **Versão final (V3): pasta [`final/`](final/).** O pacote completo para o time de desenvolvimento, com o código, as peças,
+> o [README](final/README.md) e a [ARQUITETURA](final/ARQUITETURA.md). Aberto no navegador:
+> https://snksergio.github.io/mob-dashboard-interativo/final/online/
+>
+> O que está na raiz, descrito abaixo, é a V1, mantida como referência.
+
 Protótipo navegável do painel em tempo real para o dono de eletroposto. Os dados são simulados: um dia de demonstração gera chegadas, recargas e uma falha.
 
 - **Painel:** https://snksergio.github.io/mob-dashboard-interativo/

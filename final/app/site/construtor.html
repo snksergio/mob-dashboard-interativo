@@ -1,0 +1,1353 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Montar o posto · iGreen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Construtor do posto: o dono organiza as bombas que comprou dentro das regras da maquete
+   (módulos de 1 ou 2 vagas, até duas fileiras com as bombas no meio). O resultado é a montagem que o painel usa. */
+:root{
+  /* 29/10: superfícies e bordas um pouco mais claras (o Sergio achou tudo muito preto, com informação se perdendo) */
+  --bg:#000; --surface:rgba(255,255,255,.05); --surface-2:rgba(255,255,255,.075); --surface-3:rgba(255,255,255,.11);
+  --line:rgba(255,255,255,.1); --line-2:rgba(255,255,255,.17);
+  --text:#F2F5F2; --muted:#9AA39C; --dim:#6B746D;
+  --green:#03FF1F; --green-ink:#7DFF8C; --green-soft:rgba(3,255,31,.09); --green-line:rgba(3,255,31,.30);
+  --amber:#F5B54A; --red:#FF6A5F; --red-soft:rgba(255,106,95,.10); --red-line:rgba(255,106,95,.45);
+  --stage-a:#0B0F0D; --stage-b:#020302; --dots:rgba(255,255,255,.13); --modal:#0A0D0B; --vidro:rgba(8,11,9,.78);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:400 15px/1.45 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:8px}
+::selection{background:rgba(3,255,31,.28);color:var(--text)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------------------------------------------------------------- moldura */
+.app{height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px;padding:14px clamp(14px,1.8vw,24px) 16px}
+.topo{display:flex;align-items:center;gap:14px;min-width:0}
+/* topo: voltar, "Como funciona" e o botão principal com a mesma altura (29/10, rodada 2) */
+.topo .btn,.topo .ajuda{height:38px}
+.voltar{padding:0 14px 0 10px}
+.titulo{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.titulo h1{font-size:20px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+.titulo small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.posto-sel{position:relative;display:inline-flex;align-items:center;gap:8px;padding:7px 34px 7px 12px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);font-size:14px;font-weight:500;appearance:none;cursor:pointer;max-width:260px}
+.posto-sel-w{position:relative}
+.posto-sel-w::after{content:"";position:absolute;right:13px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.posto-sel option{background:#111;color:#eee}
+.topo .fim{margin-left:auto;display:flex;align-items:center;gap:10px}
+.salvo{font-size:12px;color:var(--dim);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 13px;border-radius:10px;border:1px solid var(--line-2);font-size:14px;font-weight:500;background:var(--surface-2);text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--green-line)}
+.btn svg{width:15px;height:15px}
+.btn.prim{color:#04140A;border-color:transparent;background:var(--green);font-weight:600}
+.btn.prim:hover{background:#3BFF52}
+.btn.perigo{color:var(--red);border-color:var(--red-line)}
+.btn.perigo:hover{background:var(--red-soft)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.grade{display:grid;grid-template-columns:286px minmax(0,1fr) 300px;gap:14px;min-height:0}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding-right:4px;margin-right:-4px}
+.col::-webkit-scrollbar{width:10px}
+.col::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.card h2{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;font-size:15px;font-weight:500;color:var(--text)}
+.card h2 small{font-size:12px;font-weight:400;color:var(--muted)}
+.nota{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* raios: Mobi 1, Mobi Fast 2, Mobi Ultra Fast 3 (o mesmo componente do painel) */
+.raios{display:inline-flex;align-items:center;flex:none;color:var(--green-ink);--recorte:#0D110F}
+.raios svg{width:14px;height:19px;flex:none;margin-left:-7px;overflow:visible}
+.raios svg:first-child{margin-left:0}
+.raios svg + svg{filter:drop-shadow(-1.5px .5px 1.2px rgba(0,0,0,.75))}
+.raios path{fill:currentColor;stroke:var(--recorte);stroke-width:1.6px;paint-order:stroke;stroke-linejoin:round}
+
+/* ---------------------------------------------------------------- bombas compradas */
+.bombas{list-style:none;padding:0;display:grid;gap:6px}
+/* a bomba da lista tem cara de peça de arrastar (29/10): a alça de pontos, a mão de pegar e um leve "levantar" no hover */
+.bomba{display:grid;grid-template-columns:14px 44px minmax(0,1fr) auto;align-items:center;gap:9px;width:100%;padding:8px 10px 8px 7px;border-radius:12px;border:1px solid var(--line-2);background:rgba(255,255,255,.045);text-align:left;touch-action:none;cursor:grab;transition:border-color .15s,background-color .15s,transform .15s,box-shadow .15s}
+.bomba:hover{border-color:var(--green-line);background:rgba(3,255,31,.06);transform:translateY(-1px);box-shadow:0 8px 18px -10px rgba(0,0,0,.7)}
+.bomba .alca{display:grid;place-items:center;color:var(--dim);transition:color .15s}
+.bomba .alca svg{width:10px;height:16px}
+.bomba:hover .alca{color:var(--green-ink)}
+.bomba .ic{display:grid;place-items:center;height:40px;border-radius:10px;background:#0E1511}
+.bomba .tx{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.bomba .tx b{font-size:14px;font-weight:500}
+.bomba .tx small{font-size:12px;color:var(--muted)}
+.bomba .st{font-size:12px;color:var(--green-ink);display:inline-flex;align-items:center;gap:5px}
+.bomba .st svg{width:14px;height:14px}
+.bomba .tx b,.bomba .tx small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bomba.sem-alca{grid-template-columns:44px minmax(0,1fr) auto;padding-left:8px;cursor:pointer}   /* a lista do "+": é só clicar */
+.bomba.no-mapa{background:transparent;border-color:var(--line);cursor:pointer}
+.bomba.no-mapa:hover{transform:none;box-shadow:none;background:rgba(255,255,255,.03);border-color:var(--line-2)}
+.bomba.no-mapa .alca{visibility:hidden}
+.bomba.no-mapa .tx b{color:var(--muted)}
+.bomba.no-mapa .st{color:var(--muted)}
+.bomba.sel{border-color:var(--green-line);background:var(--green-soft);opacity:1}
+/* a dica de arrastar: a mãozinha centralizada em cima e o texto em duas linhas */
+.dica-arraste{margin:12px 0 4px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.dica-arraste svg{width:22px;height:22px;color:var(--green-ink)}
+.dica-arraste span{max-width:30ch}
+/* suas bombas em dois grupos (29/10, rodada 2): as que faltam pôr (para arrastar) e as que já estão no mapa, como as
+   camadas do Figma (clicar acha e escolhe a bomba no mapa) */
+.grupo-tit{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--muted);margin:2px 0 8px}
+.grupo-tit em{font-style:normal;font-size:11px;color:var(--dim);padding:0 7px;border-radius:999px;background:var(--surface-2)}
+.grupo-tit + .bombas,.grupo-tit + .camadas{margin-bottom:6px}
+.grupo-tit.depois{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.camadas{list-style:none;padding:0;display:grid;gap:2px}
+.camada{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:9px;text-align:left;font-size:14px}
+.camada:hover{background:rgba(255,255,255,.05)}
+.camada[aria-current="true"]{background:var(--green-soft);box-shadow:inset 0 0 0 1px var(--green-line)}
+.camada .tx{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.camada .tx b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.camada .tx small{font-size:12px;color:var(--muted)}
+.camada .raios{justify-content:center}
+.vazio-grupo{font-size:13px;color:var(--muted);padding:10px 12px;border-radius:12px;border:1px dashed var(--line-2);text-align:center}
+
+/* estrutura */
+.linha-op{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.linha-op:first-of-type{border-top:0;padding-top:2px}
+.linha-op .tx{display:flex;flex-direction:column;min-width:0}
+.linha-op .tx b{font-size:14px;font-weight:500}
+.linha-op .tx small{font-size:12px;color:var(--muted);line-height:1.4}
+.seg{display:inline-flex;padding:3px;gap:2px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line);flex:none}
+.seg button{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed="true"]{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.seg.largo{display:grid;grid-template-columns:1fr 1fr;width:100%}
+/* cobertura: duas escolhas com a foto da maquete */
+.cob-ops{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cob-op{display:flex;flex-direction:column;gap:2px;padding:6px 6px 10px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.025);text-align:left;transition:border-color .15s,background-color .15s}
+.cob-op:hover{border-color:var(--line-2)}
+.cob-op[aria-pressed="true"]{border-color:var(--green-line);background:var(--green-soft)}
+.cob-op img{display:block;width:100%;height:auto;aspect-ratio:5/4;object-fit:contain;border-radius:8px;background:radial-gradient(ellipse at 50% 55%,#18201B,#080B09 80%);margin-bottom:6px}
+.cob-op b{font-size:13px;font-weight:500;padding:0 4px}
+.cob-op small{font-size:12px;color:var(--muted);padding:0 4px;line-height:1.35}
+
+/* ---------------------------------------------------------------- palco */
+.palco{position:relative;border-radius:18px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 50% 45%,var(--stage-a),var(--stage-b) 75%),var(--stage-b);min-height:420px}
+.palco::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,var(--dots) 1.1px,transparent 1.7px);background-size:20px 20px;-webkit-mask:radial-gradient(ellipse at 50% 46%,#000 35%,rgba(0,0,0,.35) 85%);mask:radial-gradient(ellipse at 50% 46%,#000 35%,rgba(0,0,0,.35) 85%)}
+#mapa{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+#mapa.pan{cursor:grab}
+#mapa .teto{transition:opacity .25s}
+/* o telhado some quando a pessoa vai mexer: bomba escolhida, arrastando, ou com o ponteiro sobre uma bomba ou um "+" */
+#mapa.editando .teto,#mapa:has(.slot:hover) .teto,#mapa:has(.mod:hover) .teto{opacity:.14}
+#mapa.pan:active{cursor:grabbing}
+.ferr{position:absolute;left:12px;top:12px;display:flex;gap:6px;z-index:2}
+.ferr button,.zoom button{height:34px;min-width:34px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;font-size:13px;color:var(--muted)}
+.ferr button:hover,.zoom button:hover{color:var(--text);border-color:var(--line-2)}
+.ferr button:disabled{opacity:.4;cursor:default}
+.ferr svg,.zoom svg{width:15px;height:15px}
+.canto-d{position:absolute;right:12px;top:12px;z-index:2;display:flex;gap:8px}
+.giro{display:flex;gap:6px}
+.giro button{height:34px;width:34px;border-radius:10px;border:1px solid var(--line);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;color:var(--muted)}
+.giro button:hover{color:var(--text);border-color:var(--line-2)}
+.giro button:disabled{opacity:.4;cursor:default}
+.giro svg{width:16px;height:16px}
+.vistas{display:flex;gap:2px;padding:3px;border-radius:11px;border:1px solid var(--line);background:var(--vidro);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.vistas button{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted)}
+.vistas button[aria-pressed="true"]{background:var(--surface-3);color:var(--text)}
+.zoom{position:absolute;right:12px;bottom:12px;z-index:2;display:flex;gap:6px}
+#zoomPct{min-width:58px;color:var(--text)}
+.status{position:absolute;left:12px;bottom:12px;right:240px;z-index:2;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);pointer-events:none}
+.status span{padding:7px 12px;border-radius:10px;background:var(--vidro);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status span:empty{display:none}
+/* arrastando */
+.fantasma{position:fixed;left:0;top:0;z-index:50;pointer-events:none;display:flex;align-items:center;gap:8px;padding:7px 12px 7px 8px;border-radius:12px;background:var(--vidro);border:1px solid var(--green-line);font-size:13px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+.fantasma[hidden]{display:none}
+body.arrastando,body.arrastando *{cursor:grabbing !important}
+
+/* ---------------------------------------------------------------- propriedades */
+.sel-cab{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sel-cab img{width:46px;height:52px;object-fit:cover;object-position:50% 38%;border-radius:12px;background:#0E1511}
+.sel-cab .tx{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.sel-cab .tx b{font-size:16px;font-weight:500}
+.sel-cab .tx small{font-size:12px;color:var(--muted)}
+.campo{display:grid;gap:7px;padding:12px 0;border-top:1px solid var(--line)}
+.campo > span{font-size:13px;color:var(--muted)}
+.campo .nota{margin-top:-2px}
+.ordem{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px}
+.ordem .btn{padding:8px 0;font-size:16px}
+.ordem b{font-size:14px;font-weight:500;text-align:center;min-width:86px}
+.resumo{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.resumo li{padding:10px 11px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.resumo b{font-size:20px;font-weight:500;letter-spacing:-.01em}
+.resumo small{font-size:12px;color:var(--dim)}
+.fileira-tit{font-size:12px;color:var(--dim);margin-top:10px}
+.maquete-st{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:13px;color:var(--muted);line-height:1.45}
+.maquete-st b{color:var(--text);font-weight:500}
+.maquete-st i{flex:none;width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--amber)}
+.maquete-st.ok i{background:var(--green)}
+
+/* ---------------------------------------------------------------- modais */
+dialog.modal{margin:auto;border:1px solid var(--line-2);border-radius:20px;background:var(--modal);color:var(--text);padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 48px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+dialog.modal[open]{display:flex;flex-direction:column;animation:abre .22s ease-out}
+@keyframes abre{from{opacity:0;transform:translateY(8px) scale(.985)}}
+dialog.modal:focus,dialog.modal:focus-visible{outline:none}   /* o foco vai para o modal ao abrir; o contorno verde em volta dele todo ficava estranho */
+dialog.modal::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
+.modal .cab{display:flex;align-items:center;gap:16px;padding:22px 26px;border-bottom:1px solid var(--line)}
+.modal .cab h2{font-size:20px;font-weight:500;letter-spacing:-.01em}
+.modal .cab p{font-size:14px;color:var(--muted);margin-top:2px}
+.modal .fechar{margin-left:auto;align-self:flex-start;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--muted);border:1px solid var(--line)}
+.modal .fechar:hover{color:var(--text);border-color:var(--line-2)}
+.modal .fechar svg{width:15px;height:15px}
+.modal .corpo{padding:22px 26px;overflow:auto;display:grid;gap:18px}
+.modal .pe{display:flex;align-items:center;gap:10px;padding:16px 26px;border-top:1px solid var(--line)}
+.modal .pe .esp{flex:1}
+/* formatos prontos: até seis, cada um com a prévia desenhada como o mapa (com as peças da maquete) */
+.modelos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.modelo{display:flex;flex-direction:column;gap:4px;padding:8px 8px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);text-align:left;transition:border-color .15s,background-color .15s}
+.modelo:hover{border-color:var(--line-2);background:rgba(255,255,255,.05)}
+.modelo[aria-pressed="true"]{border-color:var(--green-line);background:var(--green-soft)}
+.modelo .prev{display:grid;place-items:center;aspect-ratio:4/3;border-radius:10px;overflow:hidden;margin-bottom:6px;background:radial-gradient(ellipse at 50% 45%,#1A231D,#060807 78%)}
+.modelo .prev svg{width:100%;height:100%}
+.modelo .prev .zero{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;border:1.5px dashed var(--green-line);color:var(--green-ink);font-size:24px}
+.modelo b{font-size:14px;font-weight:500;padding:0 4px}
+.modelo small{font-size:12px;color:var(--muted);line-height:1.4;padding:0 4px}
+.modelo .tag{align-self:flex-start;margin:2px 4px 0;font-size:11px;color:var(--green-ink);background:var(--green-soft);border-radius:999px;padding:1px 8px}
+/* menu do botão direito numa bomba do mapa */
+.menu-ctx{position:fixed;z-index:45;min-width:230px;padding:6px;border-radius:14px;border:1px solid var(--line-2);background:var(--modal);box-shadow:0 20px 50px rgba(0,0,0,.55)}
+.menu-ctx[hidden]{display:none}
+.menu-ctx h3{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--text);padding:6px 8px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.menu-ctx button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:9px;font-size:14px;text-align:left}
+.menu-ctx button:hover,.menu-ctx button:focus-visible{background:var(--surface-2);outline:0}
+.menu-ctx button:disabled{opacity:.4;cursor:default;background:none}
+.menu-ctx button svg{width:15px;height:15px;color:var(--muted);flex:none}
+.menu-ctx button kbd{margin-left:auto;font:500 11px/1 "Instrument Sans",sans-serif;color:var(--dim)}
+.menu-ctx button[aria-checked="true"]::after{content:"";margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--green)}
+.menu-ctx .perigo{color:var(--red)}
+.menu-ctx .perigo svg{color:var(--red)}
+.menu-ctx hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+/* tour do construtor: a parte da tela em destaque e o cartão com o passo */
+.tour{position:fixed;inset:0;z-index:80}
+.tour[hidden]{display:none}
+.tour-alvo{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.66),0 0 0 2px var(--green-line);transform-origin:0 0;pointer-events:none}
+.tour-cartao{position:fixed;width:320px;padding:18px 18px 14px;border-radius:16px;border:1px solid var(--line-2);background:var(--modal);box-shadow:0 24px 60px rgba(0,0,0,.6);transition:left .25s,top .25s}
+.tour-cartao small{font-size:12px;color:var(--green-ink)}
+.tour-cartao h3{font-size:17px;font-weight:500;letter-spacing:-.01em;margin:4px 0 6px}
+.tour-cartao p{font-size:14px;color:var(--muted);line-height:1.5}
+.tour-pe{display:flex;align-items:center;gap:8px;margin-top:14px}
+.tour-pe .pular{font-size:13px;color:var(--muted);padding:6px 4px}
+.tour-pe .pular:hover{color:var(--text)}
+.tour-pontos{display:flex;gap:4px;margin-right:auto}
+.tour-pontos i{width:6px;height:6px;border-radius:50%;background:var(--line-2)}
+.tour-pontos i.on{background:var(--green);width:16px;border-radius:999px}
+.ajuda{height:38px;padding:0 13px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:500;color:var(--text)}
+.ajuda:hover{color:var(--text);border-color:var(--line-2)}
+.ajuda svg{width:15px;height:15px}
+/* confirmar: o posto montado, sem termos de bastidor, e o progresso enquanto ele é criado */
+.conf-resumo{display:flex;flex-wrap:wrap;gap:6px}
+.conf-resumo span{font-size:12.5px;color:var(--text);padding:4px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.criando{display:grid;gap:8px}
+.criando b{font-size:15px;font-weight:500}
+.criando small{font-size:13px;color:var(--muted)}
+.barra{height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.barra i{display:block;height:100%;width:100%;border-radius:inherit;background:var(--green);transform:scaleX(0);transform-origin:left center;transition:transform .3s}
+.texto-link{font-size:13px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.texto-link:hover{color:var(--text)}
+.conf-mini{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#070A08}
+.conf-mini svg{display:block;width:100%;height:auto}
+/* enquanto a maquete é montada (confirmar), o desenho dá lugar ao vídeo do posto se montando (o mesmo do painel) */
+.conf-mini .obra-video{display:block;width:min(100%,440px);aspect-ratio:1;margin:0 auto;object-fit:cover;mix-blend-mode:lighten}
+.aviso{display:flex;gap:10px;padding:12px 14px;border-radius:12px;font-size:14px;line-height:1.5;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.aviso b{color:var(--text);font-weight:500}
+.aviso.ok{border-color:var(--green-line);background:var(--green-soft)}
+.aviso.novo{border-color:rgba(245,181,74,.4);background:rgba(245,181,74,.06)}
+.pop{position:fixed;z-index:40;width:290px;padding:10px;border-radius:14px;border:1px solid var(--line-2);background:var(--modal);box-shadow:0 20px 50px rgba(0,0,0,.55)}
+.pop[hidden]{display:none}
+.pop h3{font-size:13px;font-weight:500;color:var(--muted);padding:4px 6px 8px}
+.pop .bombas{max-height:260px;overflow:auto}
+
+@media (max-width: 1100px){
+  .app{height:auto;min-height:100vh}
+  .grade{grid-template-columns:1fr}
+  .palco{order:-1;height:62vh}
+  .col{overflow:visible}
+  .status{right:12px;bottom:56px}
+}
+@media (max-width: 860px){ .modelos{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width: 560px){
+  .topo{flex-wrap:wrap}
+  .topo .fim{width:100%;margin-left:0}
+  .salvo{display:none}
+  .modelos{grid-template-columns:1fr}
+  .tour-cartao{left:16px !important;right:16px;width:auto;top:auto !important;bottom:16px}
+  /* (4/11) o rodapé da confirmação: os botões dividem a linha (o principal ficava cortado) e "Baixar a montagem" vai
+     para a linha de cima */
+  .modal .pe{flex-wrap:wrap;padding:14px 18px;gap:8px}
+  .modal .pe .esp{display:none}
+  .modal .pe .texto-link{width:100%;text-align:center;padding:2px 0 4px}
+  .modal .pe .btn{flex:1;justify-content:center}
+}
+@media (prefers-reduced-motion: reduce){ dialog.modal[open]{animation:none} .bomba,.tour-alvo,.tour-cartao{transition:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topo">
+    <!-- voltar: no primeiro acesso, para a escolha do posto (meu-posto.html); vindo do painel, para o painel -->
+    <a class="btn voltar" href="painel.html" id="voltar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Voltar</a>
+    <div class="titulo"><h1 id="tituloTela">Montar o posto</h1><small id="postoEnd"></small></div>
+    <label class="posto-sel-w" id="postoSelW"><span class="sr">Posto</span><select class="posto-sel" id="postoSel"></select></label>
+    <div class="fim">
+      <span class="salvo" id="salvo" aria-live="polite"></span>
+      <button class="ajuda" type="button" id="verTour"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6.4 6.3a1.7 1.7 0 1 1 2.4 1.6c-.5.2-.8.6-.8 1.1v.4M8 11.4v.1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Como funciona</button>
+      <button class="btn prim" type="button" id="confirmar">Criar meu posto</button>
+    </div>
+  </header>
+
+  <div class="grade">
+    <aside class="col" aria-label="Bombas e estrutura">
+      <section class="card" id="cardBombas">
+        <h2>Suas bombas <small id="invResumo"></small></h2>
+        <div id="inventario"></div>
+      </section>
+      <section class="card" id="cardFileiras">
+        <h2>Fileiras</h2>
+        <!-- as duas escolhas com o render da maquete (fileira e ilha de 2 bombas, sem cobertura), como as da cobertura -->
+        <div class="cob-ops" role="group" aria-label="Fileiras">
+          <button type="button" class="cob-op" data-ilha="0"><img src="dados/construtor/fileira-uma.webp" alt="" width="300" height="224"><b>Uma fileira</b><small>Bombas no fundo, vagas para a entrada</small></button>
+          <button type="button" class="cob-op" data-ilha="1"><img src="dados/construtor/fileira-ilha.webp" alt="" width="300" height="224"><b>Ilha</b><small>Bombas no meio, vagas dos dois lados</small></button>
+        </div>
+      </section>
+      <section class="card" id="cardCobertura">
+        <h2>Cobertura</h2>
+        <div class="cob-ops" role="group" aria-label="Cobertura">
+          <button type="button" class="cob-op" data-cob="1"><img src="dados/construtor/cobertura-com.webp" alt="" width="300" height="240"><b>Com cobertura</b><small>Placas solares sobre as vagas</small></button>
+          <button type="button" class="cob-op" data-cob="0"><img src="dados/construtor/cobertura-sem.webp" alt="" width="300" height="240"><b>Sem cobertura</b><small>Bombas ao ar livre</small></button>
+        </div>
+        <p class="nota" style="margin-top:8px" id="cobNota">Cobre todas as bombas, o Mobi também. Para cobrir só algumas, escolha a bomba no mapa.</p>
+      </section>
+      <section class="card" id="cardFormatos">
+        <h2>Formatos prontos</h2>
+        <p class="nota" style="margin-bottom:10px">Comece de um formato pronto com as suas bombas e ajuste o que quiser depois.</p>
+        <button class="btn" type="button" id="abrirModelos" style="width:100%">Ver formatos prontos</button>
+      </section>
+    </aside>
+
+    <section class="palco" aria-label="Mapa do posto">
+      <svg id="mapa" role="img" aria-label="Montagem do posto vista em perspectiva"></svg>
+      <div class="ferr">
+        <button type="button" id="desfazer" aria-label="Desfazer" title="Desfazer (Ctrl+Z)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 4 2.5 7l3 3M3 7h6.5a3.5 3.5 0 0 1 0 7H7" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" id="refazer" aria-label="Refazer" title="Refazer (Ctrl+Shift+Z)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 4 13.5 7l-3 3M13 7H6.5a3.5 3.5 0 0 0 0 7H9" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div class="canto-d">
+        <div class="giro" role="group" aria-label="Girar a vista">
+          <button type="button" id="giroE" aria-label="Girar a vista para a esquerda" title="Girar para a esquerda (Q)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.4 6.6A4.9 4.9 0 1 1 3.6 10M3.2 2.9v3.7h3.7" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button type="button" id="giroD" aria-label="Girar a vista para a direita" title="Girar para a direita (E)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M12.6 6.6A4.9 4.9 0 1 0 12.4 10M12.8 2.9v3.7H9.1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="vistas" role="group" aria-label="Vista"><button type="button" data-vista="iso" aria-pressed="true">Perspectiva</button><button type="button" data-vista="planta" aria-pressed="false">De cima</button></div>
+      </div>
+      <div class="status" aria-live="polite"><span id="status"></span></div>
+      <div class="zoom">
+        <button type="button" id="centralizar" aria-label="Enquadrar o posto" title="Enquadrar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" id="zoomMenos" aria-label="Afastar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+        <button type="button" id="zoomPct" title="Voltar a 100%">100%</button>
+        <button type="button" id="zoomMais" aria-label="Aproximar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      </div>
+    </section>
+
+    <aside class="col" aria-label="Detalhes">
+      <section class="card" id="cardSel" hidden></section>
+      <section class="card" id="cardDica">
+        <h2>Ajuste cada bomba</h2>
+        <p class="nota">Clique numa bomba do mapa para escolher 1 ou 2 vagas, a fileira e a posição. O botão direito abre as mesmas opções ali mesmo.</p>
+      </section>
+      <section class="card" id="cardPosto">
+        <h2>Seu posto</h2>
+        <ul class="resumo" id="resumo"></ul>
+      </section>
+      <section class="card">
+        <h2>Regras</h2>
+        <p class="nota">Cada bomba entra uma vez, com 1 ou 2 vagas, lado a lado. São no máximo duas fileiras, com as bombas no meio e as vagas para fora.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div class="fantasma" id="fantasma" hidden></div>
+<div class="pop" id="popBombas" hidden role="dialog" aria-label="Escolher bomba"><h3 id="popTit">Pôr qual bomba aqui?</h3><ul class="bombas" id="popLista"></ul></div>
+<div class="menu-ctx" id="menuCtx" hidden role="menu" aria-label="Opções da bomba"></div>
+<div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tourTit"><div class="tour-alvo" id="tourAlvo"></div><div class="tour-cartao" id="tourCartao"></div></div>
+<dialog class="modal largo" id="modalModelos" aria-labelledby="mmTit" tabindex="-1"></dialog>
+<dialog class="modal largo" id="modalConf" aria-labelledby="mcTit" tabindex="-1"></dialog>
+
+<script type="module">
+// ================================================================ dados
+// O cadastro manda: cada posto tem as bombas compradas (id físico, modelo). O construtor só organiza; não cria bomba.
+const MODELOS = {
+  mobi: { nome: 'Mobi', raios: 1, desc: 'AC 7 kW · 1 conector' },
+  fast: { nome: 'Mobi Fast', raios: 2, desc: 'AC 7 kW + DC 40 kW · 2 conectores' },
+  ultra: { nome: 'Mobi Ultra Fast', raios: 3, desc: 'DC 80 kW · 2 conectores' },
+}
+// o cadastro (dados/postos.json) é o mesmo do painel: os postos, as bombas compradas de cada um e as maquetes que já existem.
+// Quem decide a maquete é o formato (assinatura: cobertura e, por fileira, modelo e vagas de cada bomba), não as bombas:
+// o mesmo formato em outro posto usa a mesma maquete
+let REG = await fetch('dados/postos.json', { cache: 'no-store' }).then((r) => r.json())
+const rotulos = (bombas) => { const n = { mobi: 0, fast: 0, ultra: 0 }; return bombas.map((b) => ({ id: b.id, modelo: b.modelo, rotulo: `${MODELOS[b.modelo].nome.replace('Mobi ', '')} ${++n[b.modelo]}`.replace(/^Mobi (\d)/, 'Mobi $1') })) }
+// atual: o posto já tem maquete (a montagem dele abre pronta); montagem: o arquivo da montagem salva pelo construtor
+const POSTOS = REG.postos.map((p) => ({ id: p.id, nome: p.nome, end: p.end, bombas: rotulos(p.bombas), atual: !!p.maquete, cobertura: p.cobertura, maquete: p.maquete, montagem: p.montagem }))
+const MONTAGENS = {}
+await Promise.all(POSTOS.filter((p) => p.montagem).map(async (p) => { MONTAGENS[p.id] = await fetch('dados/' + p.montagem, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null) }))
+const comMaquete = (id) => !!(POSTOS.find((p) => p.id === id) || {}).maquete
+// fila de maquetes do servidor local (fila-maquetes.mjs); publicado, não existe e a montagem fica no navegador
+let filaPosto = null                                         // { estado, etapa, total, posicao, maquete } do posto aberto
+const api = (url, corpo) => fetch(url, corpo ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) } : { cache: 'no-store' })
+  .then((r) => (r.ok || r.status === 400 ? r.json() : null)).catch(() => null)
+
+// ================================================================ medidas (as mesmas da maquete 3D, em metros)
+const BW = 2.6, BD = 5.0, LINHA = 0.1, MG = 0.1             // vaga, linha entre vagas, entre módulos (vagas encostadas, como na maquete)
+const Y_FRENTE = [0, BD], Y_MEIO0 = 5.05
+const meio1 = (ilha) => (ilha ? 7.75 : 7.05)
+const Y_BOMBA = { frente: 5.55, fundos: 7.25 }               // eixo das bombas (na ilha, costas com costas)
+const Y_FUNDOS = [7.8, 12.8]
+const Z_BASE = 0.15                                          // a base da bomba fica sobre a calçada do meio
+const larguraMod = (m) => m.vagas * BW + (m.vagas - 1) * LINHA
+
+// ================================================================ estado (uma montagem por posto, guardada neste navegador)
+const q = new URLSearchParams(location.search)
+// de onde a pessoa veio (29/10): "inicio" é o primeiro acesso, pela tela Meu posto (meu-posto.html): o mapa começa vazio,
+// o voltar leva à escolha do posto e o botão final cria o posto. Sem isso, veio do painel para editar a montagem atual
+const DE = q.get('de') === 'inicio' ? 'inicio' : 'painel'
+let posto = POSTOS.find((p) => p.id === q.get('posto')) || POSTOS[0]
+let st, hist = [], futuro = [], sel = null
+const chave = () => `construtor-${DE === 'inicio' ? 'inicio' : 'montagem'}-v1-${posto.id}`
+const vazio = () => ({ versao: 1, postoId: posto.id, ilha: false, cobertura: true, fileiras: { frente: [], fundos: [] } })
+const modDe = (b, vagas = 2, cob = true) => ({ bombaId: b.id, modelo: b.modelo, vagas, vagasIds: Array.from({ length: vagas }, (_, i) => `${b.id}-vaga-${i + 1}`), coberta: !!cob })
+// a bomba é coberta? Desde 29/10 cada bomba diz (`coberta`): "Com cobertura" cobre todas, o Mobi também. A montagem de
+// antes não diz e segue a regra de antes (a cobertura do posto, menos o Mobi). A mesma regra no chaves.js e na fila
+const coberta = (s, m) => (m.coberta !== undefined ? !!m.coberta : !!s.cobertura && m.modelo !== 'mobi')
+const bomba = (id) => posto.bombas.find((b) => b.id === id)
+const todos = (s = st) => [...s.fileiras.frente, ...s.fileiras.fundos]
+const noMapa = (id) => todos().some((m) => m.bombaId === id)
+const disponiveis = () => posto.bombas.filter((b) => !noMapa(b.id))
+// ilha só com 2 bombas ou mais (uma em cada fileira)
+const podeIlha = () => posto.bombas.length >= 2
+function valida(s) {
+  if (!s || s.postoId !== posto.id || !s.fileiras) return false
+  const ids = todos(s).map((m) => m.bombaId)
+  if (new Set(ids).size !== ids.length) return false
+  if (!s.ilha && s.fileiras.fundos.length) return false
+  if (s.ilha && !podeIlha()) return false
+  return todos(s).every((m) => { const b = bomba(m.bombaId); return b && b.modelo === m.modelo && [1, 2].includes(m.vagas) && m.vagasIds.length === m.vagas && m.vagasIds.every((v, i) => v === `${b.id}-vaga-${i + 1}`) })
+}
+function carrega() {
+  let s = null; try { s = JSON.parse(localStorage.getItem(chave())) } catch {}
+  if (DE === 'inicio') { st = valida(s) ? s : vazio(); hist = []; futuro = []; sel = null; return }   // primeiro acesso: vazio (ou o rascunho dele)
+  if (!valida(s) && MONTAGENS[posto.id]) { const m = MONTAGENS[posto.id]; s = vazio(); s.ilha = m.ilha; s.cobertura = m.cobertura; s.fileiras = JSON.parse(JSON.stringify(m.fileiras)) }
+  if (!valida(s) && posto.atual) { s = vazio(); s.cobertura = posto.cobertura; s.fileiras.frente = posto.bombas.map((b) => modDe(b, 2, posto.cobertura && b.modelo !== 'mobi')) }   // começa da maquete atual (feita com a regra de antes)
+  st = valida(s) ? s : vazio(); hist = []; futuro = []; sel = null
+}
+function guarda() { try { localStorage.setItem(chave(), JSON.stringify(st)); $('#salvo').textContent = 'Salvo neste navegador' } catch { $('#salvo').textContent = 'Não foi possível salvar' } }
+function muda(prox, msg) {
+  if (!valida(prox)) { aviso('Essa mudança sai das regras da montagem.'); return false }
+  hist.push(JSON.stringify(st)); if (hist.length > 80) hist.shift(); futuro = []
+  st = prox; guarda(); desenha(); if (msg) aviso(msg); return true
+}
+const copia = () => JSON.parse(JSON.stringify(st))
+
+// ================================================================ layout: módulos → posições (frente: vagas para a entrada; fundos: para trás)
+function layout(s = st) {
+  const out = []
+  for (const f of ['frente', 'fundos']) {
+    if (f === 'fundos' && !s.ilha) continue
+    let x = 0, vaga = 1
+    s.fileiras[f].forEach((m, i) => {
+      const w = larguraMod(m), bx = x + w / 2
+      out.push({ ...m, fileira: f, ordem: i, x0: x, x1: x + w, bx, by: Y_BOMBA[f],
+        vagasPos: Array.from({ length: m.vagas }, (_, j) => ({ x0: x + j * (BW + LINHA), x1: x + j * (BW + LINHA) + BW, rotulo: (f === 'frente' ? 'A' : 'B') + (vaga + j) })) })
+      vaga += m.vagas; x += w + MG
+    })
+  }
+  return out
+}
+const fimFileira = (f, s = st) => { const l = layout(s).filter((m) => m.fileira === f); return l.length ? l[l.length - 1].x1 : 0 }
+
+// ================================================================ projeção (a mesma câmera da maquete: elevação 30°, azimute 38°)
+// giro: a vista gira de 90 em 90 graus em volta do posto (0 é a câmera da maquete)
+const K = 34, A0 = (38 * Math.PI) / 180, E = (30 * Math.PI) / 180
+let vista = 'iso', giro = 0, A = A0
+// peças da maquete recortadas no Blender (blender/pecas_iso.py): o pecas.json diz onde fica o ponto de apoio de cada imagem
+const PECAS = await fetch('dados/construtor/pecas.json').then((r) => r.json())
+const gNome = (g) => 'g' + String(((g % 360) + 360) % 360).padStart(3, '0')
+const giroDe = (deFrente) => -giro * 90 + (deFrente ? 0 : 180)   // recorte de frente (fileira da frente) ou de costas (fundos)
+function sprite(nome, x, y, z, attrs = '') {
+  const p = PECAS.pecas[nome]; if (!p) return ''
+  const [sx, sy] = P(x, y, z), k = K / PECAS.pxm
+  return `<image href="dados/construtor/${nome}.webp" x="${(sx - p.ax * k).toFixed(1)}" y="${(sy - p.ay * k).toFixed(1)}" width="${(p.w * k).toFixed(1)}" height="${(p.h * k).toFixed(1)}" ${attrs}/>`
+}
+const legenda = () => (vista === 'planta' ? 0 : ((-giro * 90) % 360 + 360) % 360)   // texto no chão lido da esquerda para a direita
+const prof = (x, y) => x * Math.sin(A) + y * Math.cos(A)       // profundidade: maior = mais longe da câmera
+function P(x, y, z = 0) {
+  if (vista === 'planta') return [x * K, -y * K]
+  const u = x * Math.cos(A) - y * Math.sin(A), v = x * Math.sin(A) + y * Math.cos(A)
+  return [u * K, -v * Math.sin(E) * K - z * Math.cos(E) * K]
+}
+// chão: desenha em metros dentro de um grupo com a matriz da projeção (a z de altura)
+function chao(z = 0) {
+  if (vista === 'planta') return `matrix(${K} 0 0 ${-K} 0 0)`
+  return `matrix(${K * Math.cos(A)} ${-K * Math.sin(E) * Math.sin(A)} ${-K * Math.sin(A)} ${-K * Math.sin(E) * Math.cos(A)} 0 ${-K * Math.cos(E) * z})`
+}
+function invP(sx, sy) {   // ponto da tela (unidades do SVG) → mundo no chão
+  if (vista === 'planta') return [sx / K, -sy / K]
+  const u = sx / K, v = -sy / (K * Math.sin(E))
+  return [u * Math.cos(A) + v * Math.sin(A), -u * Math.sin(A) + v * Math.cos(A)]
+}
+const pts = (lista, z = 0) => lista.map(([x, y]) => P(x, y, z).map((n) => n.toFixed(1)).join(',')).join(' ')
+const tom = (hex, k) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('')
+// caixa em pé: o topo e as faces que olham para a câmera (servem para qualquer giro)
+function caixa(x0, x1, y0, y1, z0, z1, cor, kFrente = 0.7, kLado = 0.84) {
+  const vx = Math.sin(A), vy = Math.cos(A), f = []
+  const face = (a, b, k) => `<polygon points="${[P(a[0], a[1], z0), P(b[0], b[1], z0), P(b[0], b[1], z1), P(a[0], a[1], z1)].map((p) => p.map((n) => n.toFixed(1)).join(',')).join(' ')}" fill="${tom(cor, k)}"/>`
+  if (vy > 1e-3) f.push(face([x0, y0], [x1, y0], kFrente)); else if (vy < -1e-3) f.push(face([x0, y1], [x1, y1], kFrente))
+  if (vx > 1e-3) f.push(face([x0, y0], [x0, y1], kLado)); else if (vx < -1e-3) f.push(face([x1, y0], [x1, y1], kLado))
+  return f.join('') + `<polygon points="${pts([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], z1)}" fill="${cor}"/>`
+}
+function retRedondo(x0, y0, x1, y1, r, n = 6) {
+  const c = [[x1 - r, y1 - r, 0], [x0 + r, y1 - r, 90], [x0 + r, y0 + r, 180], [x1 - r, y0 + r, 270]], out = []
+  for (const [cx, cy, a0] of c) for (let k = 0; k <= n; k++) { const a = ((a0 + (90 * k) / n) * Math.PI) / 180; out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]) }
+  return out
+}
+const RAIO = 'M7 .8 2.6 7h3L5 11.2 9.4 5h-3Z'
+const raiosHTML = (m) => `<span class="raios" aria-hidden="true">${`<svg viewBox="0 0 12 12"><path d="${RAIO}"/></svg>`.repeat(MODELOS[m].raios)}</span>`
+const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)]
+
+// ================================================================ desenho do mapa
+const svg = $('#mapa')
+const corPaint = '#1C8A46', corPaintSel = '#22A653'
+function desenhaMapa(limpo = false) {
+  limpoAtual = limpo
+  const L = layout(), ilha = st.ilha
+  const fimF = fimFileira('frente'), fimB = ilha ? fimFileira('fundos') : 0
+  const comVaga = !limpo && disponiveis().length > 0
+  const xFim = Math.max(fimF + (comVaga ? (st.fileiras.frente.length ? MG : 0) + BW : 0), ilha ? fimB + (comVaga ? (st.fileiras.fundos.length ? MG : 0) + BW : 0) : 0, BW)
+  const yFim = ilha ? Y_FUNDOS[1] + 1.92 : meio1(false) + 0.3
+  const laje = retRedondo(-1.9, -1.92, xFim + 2.2, yFim, 0.9)
+  let s = ''
+  // laje: a borda de baixo (espessura) e a luz verde, depois o topo
+  s += `<g><polygon points="${pts(laje, -0.45)}" fill="#BFC3BD" stroke="#03FF1F" stroke-opacity=".8" stroke-width="2.4" filter="url(#brilho)"/><polygon points="${pts(laje, -0.45)}" fill="#AEB3AC"/><polygon points="${pts(laje)}" fill="#ECEBE6" stroke="#FFFFFF" stroke-opacity=".6" stroke-width="1"/></g>`
+  // piso em placas
+  s += `<g transform="${chao()}" stroke="rgba(0,0,0,.07)" stroke-width=".03">`
+  for (let x = Math.ceil(-1.6); x < xFim + 1.9; x += 1.3) s += `<path d="M${x} -1.6V${yFim - 0.3}"/>`
+  for (let y = -1.3; y < yFim - 0.3; y += 1.3) s += `<path d="M-1.6 ${y}H${xFim + 1.9}"/>`
+  s += '</g>'
+  // degraus da entrada (frente) e, na ilha, também nos fundos
+  const degraus = (y0, dir) => { let g = `<g transform="${chao()}" fill="none" stroke="rgba(0,0,0,.12)" stroke-width=".04">`; for (let k = 0; k < 4; k++) g += `<path d="M0.2 ${y0 + dir * k * 0.25}H${xFim - 0.2}"/>`; return g + '</g>' }
+  s += degraus(-1.65, 1); if (ilha) s += degraus(yFim - 0.3, -1)
+  // objetos em pé (bombas, plantas, totem, batentes): juntados aqui e desenhados do mais longe para o mais perto
+  const pe = [], poe = (x, y, html) => pe.push({ d: prof(x, y), html })
+  // faixa elevada do meio (onde ficam as bombas), da largura da laje como na maquete, com a borda à vista
+  const c0 = Y_MEIO0, c1 = meio1(ilha), faixa = retRedondo(-1.48, c0, xFim + 1.78, c1, 0.3)
+  s += `<polygon points="${pts(faixa, 0)}" fill="#C4C7C1"/><polygon points="${pts(faixa, 0.15)}" fill="#F4F3EF" stroke="rgba(0,0,0,.08)" stroke-width="1"/>`
+  // canteiro de terra sobre a faixa e as moitas (as mesmas da cerca viva da maquete)
+  const canteiro = (x0, y0, x1, y1) => { const c = retRedondo(x0, y0, x1, y1, 0.25); return `<polygon points="${pts(c, 0.15)}" fill="#A9ACA6"/><polygon points="${pts(c, 0.18)}" fill="#5C4231"/>` }
+  const moita = (j, x, y) => vista === 'planta'
+    ? poe(x, y, `<circle cx="${P(x, y)[0].toFixed(1)}" cy="${P(x, y)[1].toFixed(1)}" r="${(K * 0.36).toFixed(1)}" fill="url(#folhaPlanta)"/>`)
+    : poe(x, y, sprite(`moita-${(j % 6) + 1}-g000`, x, y, 0.18))
+  const arvore = (x, y) => vista === 'planta'
+    ? poe(x, y, `<circle cx="${P(x, y)[0].toFixed(1)}" cy="${P(x, y)[1].toFixed(1)}" r="${(K * 0.85).toFixed(1)}" fill="url(#folhaPlanta)" opacity=".92"/>`)
+    : poe(x, y, sprite('arvore-g000', x, y, 0.18))
+  if (!ilha) {
+    // uma fileira: a cerca viva atrás das bombas e a árvore no canto de trás à esquerda (como no 3D)
+    s += canteiro(-1.4, 6.1, xFim + 1.5, 6.9)
+    const xa = -0.3, xb = xFim + 0.4, n = Math.max(4, Math.floor((xb - xa) / 0.5))
+    for (let j = 0; j <= n; j++) moita(j, xa + (j * (xb - xa)) / n, 6.5 + 0.06 * ((j % 3) - 1))
+    arvore(-1.28, 6.6)
+  } else {
+    // ilha: um canteiro em cada ponta da faixa do meio; a árvore fica na ponta da esquerda
+    s += canteiro(-1.4, c0 + 0.3, -0.45, c1 - 0.3) + canteiro(xFim + 0.55, c0 + 0.3, xFim + 1.5, c1 - 0.3)
+    arvore(-0.92, (c0 + c1) / 2); moita(1, -0.95, c0 + 0.62); moita(4, -0.9, c1 - 0.62)
+    for (let j = 0; j < 4; j++) moita(j + 2, xFim + 1.02 + (j % 2 ? 0.1 : -0.1), c0 + 0.62 + (j * (c1 - c0 - 1.24)) / 3)
+  }
+  // vagas: a pintura verde, as linhas brancas, o logo da iGreen no piso (o mesmo da maquete), o rótulo e o batente
+  for (const m of L) for (const v of m.vagasPos) {
+    const fr = m.fileira === 'frente', [y0, y1] = fr ? Y_FRENTE : Y_FUNDOS, cx = (v.x0 + v.x1) / 2
+    const ativo = sel === m.bombaId
+    s += `<g data-mod="${m.bombaId}" class="mod" style="cursor:grab"><g transform="${chao(0.01)}">
+      <rect x="${v.x0}" y="${y0}" width="${BW}" height="${BD}" fill="${ativo ? corPaintSel : corPaint}"/>
+      <path d="M${v.x0 + 0.05} ${fr ? y0 : y1}V${fr ? y1 - 0.05 : y0 + 0.05}H${v.x1 - 0.05}V${fr ? y0 : y1}" fill="none" stroke="#fff" stroke-width=".09"/>
+      <g transform="translate(${cx} ${fr ? y0 + 1.5 : y1 - 1.5}) rotate(${fr ? 0 : 180}) scale(1 -1)"><image href="dados/construtor/vaga-logo.svg" x="-.52" y="-.68" width="1.04" height="1.36" opacity=".9"/></g>
+      <g transform="translate(${cx} ${fr ? y0 + 0.36 : y1 - 0.36}) rotate(${legenda()}) scale(1 -1)"><text font-size=".46" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".75" font-family="Barlow Condensed, sans-serif">${v.rotulo}</text></g>
+    </g></g>`
+    const yb = fr ? y1 - 0.55 : y0 + 0.55
+    if (vista !== 'planta') poe(cx, yb, `<g pointer-events="none">${caixa(cx - 0.75, cx + 0.75, yb - 0.08, yb + 0.08, 0.01, 0.11, '#F2F2EE')}</g>`)
+  }
+  // contorno do módulo selecionado
+  for (const m of L) if (!limpo && sel === m.bombaId) {
+    const [y0, y1] = m.fileira === 'frente' ? Y_FRENTE : Y_FUNDOS
+    s += `<g transform="${chao(0.02)}" pointer-events="none"><rect x="${m.x0 - 0.12}" y="${y0 - 0.12}" width="${m.x1 - m.x0 + 0.24}" height="${BD + 0.24}" rx=".3" fill="none" stroke="#03FF1F" stroke-width=".12" filter="url(#brilhoChao)"/></g>`
+  }
+  // vagas livres para pôr bomba: no fim de cada fileira (e a fileira dos fundos fantasma, para virar ilha)
+  const vagaNova = (f) => {
+    const x = (f === 'frente' ? fimF : fimB) + (st.fileiras[f].length ? MG : 0), [y0, y1] = f === 'frente' ? Y_FRENTE : Y_FUNDOS
+    return `<g class="slot" data-slot="${f}" role="button" tabindex="0" aria-label="Pôr uma bomba na fileira ${f === 'frente' ? 'da frente' : 'dos fundos'}" style="cursor:pointer"><g transform="${chao(0.01)}">
+      <rect x="${x}" y="${y0}" width="${BW}" height="${BD}" rx=".25" fill="rgba(3,255,31,.06)" stroke="#7DFF8C" stroke-opacity=".7" stroke-width=".07" stroke-dasharray=".28 .2"/>
+      <g transform="translate(${x + BW / 2} ${(y0 + y1) / 2}) rotate(${legenda()}) scale(1 -1)"><text font-size="1.3" text-anchor="middle" dominant-baseline="central" fill="#7DFF8C">+</text></g></g></g>`
+  }
+  if (!limpo && disponiveis().length) { s += vagaNova('frente'); if (ilha) s += vagaNova('fundos') }
+  const extra = []   // o que fica fora da laje e também entra no enquadramento
+  // (só depois da primeira bomba na frente: com o mapa vazio, o texto grande caía em cima da árvore)
+  if (!ilha && !limpo && disponiveis().length && podeIlha() && st.fileiras.frente.length) {
+    const w = Math.max(fimF, BW), yf = Y_FUNDOS[0] + 0.6
+    extra.push(P(0, yf, 0), P(w, yf, 0), P(w, yf + BD, 0), P(0, yf + BD, 0))
+    s += `<g class="slot" data-slot="ilha" role="button" tabindex="0" aria-label="Fazer uma ilha: fileira dos fundos" style="cursor:pointer"><g transform="${chao()}">
+      <rect x="0" y="${Y_FUNDOS[0] + 0.6}" width="${w}" height="${BD}" rx=".3" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.28)" stroke-width=".05" stroke-dasharray=".3 .22"/>
+      <g transform="translate(${w / 2} ${Y_FUNDOS[0] + 0.6 + BD / 2}) rotate(${legenda()}) scale(1 -1)"><text font-size=".55" text-anchor="middle" dominant-baseline="central" fill="#C9D3CC" font-family="Instrument Sans, sans-serif">${w >= 7 ? '+ Fileira dos fundos (ilha)' : '+ Ilha'}</text></g></g></g>`
+  }
+  // frente: a floreira do canto esquerdo e o totem do preço na floreira de grama, à direita (recortes da maquete).
+  // Na ilha, a floreira se repete no canto de trás à direita, virada para os fundos.
+  const fb = PECAS.pecas['floreira-g000'].base, tb = PECAS.pecas['totem-g000'].base, xDir = PECAS.ref.X_DIR - PECAS.ref.X_ESQ
+  const floreira = (x, y, deFrente) => vista === 'planta'
+    ? poe(x, y, `<rect x="${(P(x, y)[0] - 0.6 * K).toFixed(1)}" y="${(P(x, y)[1] - 0.62 * K).toFixed(1)}" width="${(1.2 * K).toFixed(1)}" height="${(1.25 * K).toFixed(1)}" rx="${(0.3 * K).toFixed(1)}" fill="#D9DAD4"/><circle cx="${P(x, y)[0].toFixed(1)}" cy="${P(x, y)[1].toFixed(1)}" r="${(K * 0.45).toFixed(1)}" fill="url(#folhaPlanta)"/>`)
+    : poe(x, y, sprite(`floreira-${gNome(giroDe(deFrente))}`, x, y, 0))
+  floreira(fb[0], fb[1], true)
+  if (ilha) floreira(xFim + 2.2 - (fb[0] + 1.9), yFim - (fb[1] + 1.92), false)
+  poe(xFim + tb[0] - xDir, tb[1], totem(xFim + tb[0] - xDir, tb[1]))
+  for (const m of L) poe(m.bx, m.by, bombaSprite(m))
+  pe.sort((a, b) => b.d - a.d)
+  s += pe.map((o) => o.html).join('')
+  // cobertura: translúcida sobre os grupos seguidos de bombas cobertas de cada fileira
+  for (const f of ['frente', 'fundos']) {
+    const mods = L.filter((m) => m.fileira === f), grupos = []
+    for (const m of mods) { if (!coberta(st, m)) continue; const g = grupos[grupos.length - 1]; if (g && g.ultimo === m.ordem - 1) { g.x1 = m.x1; g.ultimo = m.ordem } else grupos.push({ x0: m.x0, x1: m.x1, ultimo: m.ordem }) }
+    for (const g of grupos) s += cobertura(g.x0 - 0.15, g.x1 + 0.15, f)
+  }
+  // caixa de tudo (para enquadrar) e o SVG
+  const cantos = [...laje.map(([x, y]) => P(x, y, -0.5)), ...laje.map(([x, y]) => P(x, y, vista === 'planta' ? 0 : 4.6)), ...extra]
+  limites = { x0: Math.min(...cantos.map((p) => p[0])), x1: Math.max(...cantos.map((p) => p[0])), y0: Math.min(...cantos.map((p) => p[1])), y1: Math.max(...cantos.map((p) => p[1])) }
+  svg.innerHTML = `<defs><filter id="brilho" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="brilhoChao" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".08" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="selBomba" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#03FF1F" flood-opacity=".75"/></filter>
+    <radialGradient id="folhaPlanta" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#7DB65A"/><stop offset=".65" stop-color="#4C8A3A"/><stop offset="1" stop-color="#2F5F2A"/></radialGradient>
+    <pattern id="solar" width="1.12" height="1.8" patternUnits="userSpaceOnUse"><rect width="1.12" height="1.8" fill="rgba(36,66,92,.62)"/><rect x=".04" y=".04" width="1.04" height="1.72" fill="none" stroke="rgba(205,228,255,.32)" stroke-width=".035"/><path d="M.56 .04v1.72M.04 .9h1.04" stroke="rgba(205,228,255,.16)" stroke-width=".02"/></pattern></defs>
+    <g id="mundo">${s}<g id="livres"></g><g id="indicador"></g></g>`
+  aplicaVista()
+}
+let limpoAtual = false
+function bombaSprite(m) {
+  const ativo = sel === m.bombaId && !limpoAtual, costas = m.fileira === 'fundos'
+  if (vista === 'planta') {
+    const [x, y] = P(m.bx, m.by), w = (m.modelo === 'mobi' ? 0.5 : 1.12) * K, h = 0.42 * K
+    return `<g data-mod="${m.bombaId}" class="mod" style="cursor:grab"><rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="#12C83A" stroke="${ativo ? '#03FF1F' : '#0A6B22'}" stroke-width="${ativo ? 3 : 1.5}"/>
+      <text x="${x.toFixed(1)}" y="${(y + h + 13).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" fill="#0B3A1A" font-family="Instrument Sans, sans-serif">${esc(bomba(m.bombaId).rotulo)}</text></g>`
+  }
+  return `<g data-mod="${m.bombaId}" class="mod" style="cursor:grab">${sprite(`bomba-${m.modelo}-${gNome(giroDe(!costas))}`, m.bx, m.by, Z_BASE, ativo ? 'filter="url(#selBomba)"' : '')}</g>`
+}
+// o totem do preço na floreira de grama, recortado da maquete (a face com o preço olha para a rua)
+function totem(x, y) {
+  if (vista === 'planta') { const [px, py] = P(x, y); return `<g pointer-events="none"><rect x="${(px - 0.75 * K).toFixed(1)}" y="${(py - 0.65 * K).toFixed(1)}" width="${(1.5 * K).toFixed(1)}" height="${(1.3 * K).toFixed(1)}" rx="${(0.3 * K).toFixed(1)}" fill="#7FAE5C"/><rect x="${(px - 15).toFixed(1)}" y="${(py - 4).toFixed(1)}" width="30" height="10" rx="2" fill="#11171A"/></g>` }
+  return `<g pointer-events="none">${sprite(`totem-${gNome(giroDe(true))}`, x, y, 0)}</g>`
+}
+function cobertura(x0, x1, f) {
+  // na ilha a cobertura é uma estrutura só: cada metade vai até o eixo do meio, onde ficam os pilares (como na maquete v14)
+  const YM = (Y_BOMBA.frente + Y_BOMBA.fundos) / 2, ilhaC = st.ilha
+  const [y0, y1] = f === 'frente' ? [0.3, ilhaC ? YM : 5.95] : [ilhaC ? YM : 6.85, 12.5], z = 3.65, yp = ilhaC ? YM : f === 'frente' ? 5.45 : 7.35
+  if (vista === 'planta') return `<g pointer-events="none" opacity=".5"><g transform="${chao(0)}"><rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="url(#solar)" stroke="#03FF1F" stroke-width=".06"/></g></g>`
+  let s = `<g pointer-events="none" class="teto">`
+  // pilares nos cantos do lado das bombas, as placas de vidro e o quadro de vigas verdes (como na maquete)
+  const pil = [x0 + 0.3, x1 - 0.3].sort((a, b) => prof(b, yp) - prof(a, yp))
+  for (const px of pil) s += caixa(px - 0.12, px + 0.12, yp - 0.12, yp + 0.12, 0.15, z, '#14A845')
+  s += `<g transform="${chao(z + 0.22)}" opacity=".5"><rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="url(#solar)"/></g>`
+  const v = 0.16, vigas = [[x0, x1, y0, y0 + v], [x0, x1, y1 - v, y1], [x0, x0 + v, y0, y1], [x1 - v, x1, y0, y1]]
+  vigas.sort((a, b) => prof((b[0] + b[1]) / 2, (b[2] + b[3]) / 2) - prof((a[0] + a[1]) / 2, (a[2] + a[3]) / 2))
+  for (const [a, b, c, d] of vigas) s += caixa(a, b, c, d, z, z + 0.3, '#18B84C')
+  s += `<polygon points="${pts([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], z + 0.3)}" fill="none" stroke="#03FF1F" stroke-opacity=".28" stroke-width="3" filter="url(#brilho)"/>`
+  return s + '</g>'
+}
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+
+// ================================================================ vista: enquadrar, zoom e arrasto
+let limites = { x0: 0, x1: 1, y0: 0, y1: 1 }, cam = null, manual = false
+function enquadra() {
+  const r = svg.getBoundingClientRect(), w = limites.x1 - limites.x0, h = limites.y1 - limites.y0
+  const esc0 = Math.min(r.width / w, r.height / h) * 0.84
+  cam = { cx: (limites.x0 + limites.x1) / 2, cy: (limites.y0 + limites.y1) / 2, esc: esc0, base: esc0 }; manual = false
+}
+function aplicaVista() {
+  if (!cam || !manual) enquadra()
+  const r = svg.getBoundingClientRect(), w = r.width / cam.esc, h = r.height / cam.esc
+  svg.setAttribute('viewBox', `${(cam.cx - w / 2).toFixed(1)} ${(cam.cy - h / 2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`)
+  $('#zoomPct').textContent = `${Math.round((cam.esc / cam.base) * 100)}%`
+}
+function zoom(f, mx, my) {
+  const r = svg.getBoundingClientRect(), k = Math.max(0.5, Math.min(3, (cam.esc * f) / cam.base)) * cam.base
+  if (mx != null) { const ux = cam.cx + (mx - r.width / 2) / cam.esc, uy = cam.cy + (my - r.height / 2) / cam.esc; cam.cx = ux - (mx - r.width / 2) / k; cam.cy = uy - (my - r.height / 2) / k }
+  cam.esc = k; manual = true; aplicaVista()
+}
+const paraSVG = (cx, cy) => { const m = svg.getScreenCTM(); return new DOMPoint(cx, cy).matrixTransform(m.inverse()) }
+
+// ================================================================ alvo de soltar: fileira e posição a partir do ponto no chão
+function alvoEm(cx, cy) {
+  const r = svg.getBoundingClientRect(); if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null
+  const p = paraSVG(cx, cy), [x, y] = invP(p.x, p.y)
+  let f = y < (Y_MEIO0 + meio1(st.ilha)) / 2 ? 'frente' : st.ilha ? 'fundos' : (y > Y_FUNDOS[0] - 0.4 ? 'ilha' : 'frente')
+  if (f === 'ilha') f = podeIlha() ? 'fundos' : 'frente'
+  if (y < -2.5 || y > Y_FUNDOS[1] + 1.5 || x < -2.5 || x > Math.max(fimFileira('frente'), fimFileira('fundos')) + 6) return null
+  const mods = layout().filter((m) => m.fileira === f)
+  let i = mods.findIndex((m) => x < (m.x0 + m.x1) / 2); if (i < 0) i = mods.length
+  const xLinha = mods[i] ? mods[i].x0 - MG / 2 : (mods.length ? mods[mods.length - 1].x1 + MG / 2 : 0)
+  return { fileira: f, indice: i, x: xLinha }
+}
+function mostraAlvo(a) {
+  const g = $('#indicador'); if (!g) return
+  if (!a) { g.innerHTML = ''; return }
+  const [y0, y1] = a.fileira === 'frente' ? Y_FRENTE : Y_FUNDOS
+  g.innerHTML = `<g transform="${chao(0.03)}" pointer-events="none"><rect x="${a.x - 0.09}" y="${y0 - 0.2}" width=".18" height="${BD + 0.4}" rx=".09" fill="#03FF1F" filter="url(#brilhoChao)"/></g>`
+}
+// arrastando (29/10, pedido do Sergio): todos os lugares onde a bomba pode entrar aparecem em pontilhado fraco desde o
+// começo, e não só a linha verde quando o ponteiro chega lá: a vaga do fim de cada fileira, os vãos entre as bombas e,
+// sem ilha, a fileira dos fundos. O lugar sob o ponteiro acende
+function mostraLivres(on, alvo) {
+  const g = $('#livres'); if (!g) return
+  if (!on) { g.innerHTML = ''; return }
+  let s = `<g transform="${chao(0.025)}" pointer-events="none">`
+  for (const f of st.ilha ? ['frente', 'fundos'] : ['frente']) {
+    const [y0] = f === 'frente' ? Y_FRENTE : Y_FUNDOS, mods = layout().filter((m) => m.fileira === f)
+    const xFim = mods.length ? mods[mods.length - 1].x1 + MG : 0, noFim = alvo && alvo.fileira === f && alvo.indice >= st.fileiras[f].length
+    s += `<rect x="${xFim}" y="${y0}" width="${BW}" height="${BD}" rx=".25" fill="rgba(3,255,31,${noFim ? 0.16 : 0.05})" stroke="#7DFF8C" stroke-opacity="${noFim ? 0.95 : 0.5}" stroke-width=".07" stroke-dasharray=".28 .2"/>`
+    for (const m of mods) s += `<path d="M${m.x0 - MG / 2} ${y0 + 0.35}V${y0 + BD - 0.35}" stroke="#7DFF8C" stroke-opacity=".4" stroke-width=".06" stroke-dasharray=".22 .18" stroke-linecap="round"/>`
+  }
+  if (!st.ilha && podeIlha()) {
+    const w = Math.max(fimFileira('frente'), BW), yf = Y_FUNDOS[0] + 0.6, la = alvo && alvo.fileira === 'fundos'
+    s += `<rect x="0" y="${yf}" width="${w}" height="${BD}" rx=".3" fill="rgba(3,255,31,${la ? 0.1 : 0.03})" stroke="#7DFF8C" stroke-opacity="${la ? 0.8 : 0.35}" stroke-width=".06" stroke-dasharray=".3 .22"/>
+      <g transform="translate(${w / 2} ${yf + BD / 2}) rotate(${legenda()}) scale(1 -1)"><text font-size=".55" text-anchor="middle" dominant-baseline="central" fill="#C9D3CC" font-family="Instrument Sans, sans-serif">${w >= 7 ? 'Solte aqui para fazer uma ilha' : 'Ilha'}</text></g>`
+  }
+  g.innerHTML = s + '</g>'
+}
+
+// ================================================================ ações
+function por(bombaId, fileira, indice) {
+  const b = bomba(bombaId); if (!b || noMapa(bombaId)) return
+  const p = copia(); if (fileira === 'fundos') p.ilha = true
+  const lista = p.fileiras[fileira]; lista.splice(indice ?? lista.length, 0, modDe(b, 2, p.cobertura))
+  sel = bombaId
+  muda(p, `${b.rotulo} na fileira ${fileira === 'frente' ? 'da frente' : 'dos fundos'}, com 2 vagas. Troque para 1 vaga à direita, se quiser.`)
+}
+function mover(bombaId, fileira, indice) {
+  const p = copia(); let de = null, i0 = -1
+  for (const f of ['frente', 'fundos']) { const k = p.fileiras[f].findIndex((m) => m.bombaId === bombaId); if (k >= 0) { de = f; i0 = k } }
+  if (!de) return
+  if (de === fileira && (indice === i0 || indice === i0 + 1)) return
+  const [m] = p.fileiras[de].splice(i0, 1); if (de === fileira && indice > i0) indice--
+  if (fileira === 'fundos') p.ilha = true
+  p.fileiras[fileira].splice(indice, 0, m); sel = bombaId
+  muda(p, fechaIlha(p) ? 'Ficou uma fileira só: o outro lado da ilha estava vazio.' : 'Bomba movida. As vagas acompanham a bomba.')
+}
+function retirar(bombaId) {
+  const p = copia(); for (const f of ['frente', 'fundos']) p.fileiras[f] = p.fileiras[f].filter((m) => m.bombaId !== bombaId)
+  sel = null; muda(p, `${bomba(bombaId).rotulo} voltou para a lista.${fechaIlha(p) ? ' Ficou uma fileira só.' : ''}`)
+}
+// a ilha com um lado vazio vira uma fileira só (29/10, pedido do Sergio): assim nunca se cria uma ilha sem nada do outro
+// lado. Só quando uma bomba sai de um lado; escolher "Ilha" com tudo na frente continua valendo, para arrastar depois
+function fechaIlha(p) {
+  if (!p.ilha) return false
+  const fr = p.fileiras.frente.length, fu = p.fileiras.fundos.length
+  if ((fr && fu) || (!fr && !fu)) return false
+  if (!fr) p.fileiras.frente = p.fileiras.fundos
+  p.fileiras.fundos = []; p.ilha = false
+  return true
+}
+function vagas(bombaId, n) {
+  const p = copia(), m = [...p.fileiras.frente, ...p.fileiras.fundos].find((x) => x.bombaId === bombaId)
+  if (!m || m.vagas === n) return
+  m.vagas = n; m.vagasIds = Array.from({ length: n }, (_, i) => `${bombaId}-vaga-${i + 1}`)
+  muda(p, `${bomba(bombaId).rotulo} com ${n} vaga${n > 1 ? 's' : ''}.`)
+}
+function setIlha(on) {
+  if (st.ilha === on) return
+  const p = copia(); p.ilha = on
+  if (!on && p.fileiras.fundos.length) { p.fileiras.frente.push(...p.fileiras.fundos); p.fileiras.fundos = [] }
+  muda(p, on ? 'Ilha: as bombas ficam no meio e as vagas dos dois lados. Arraste bombas para a fileira dos fundos.' : 'Uma fileira. As bombas dos fundos foram para o fim da frente.')
+}
+function desfaz(re) {
+  const de = re ? futuro : hist, para = re ? hist : futuro; if (!de.length) return
+  para.push(JSON.stringify(st)); st = JSON.parse(de.pop()); sel = null; guarda(); desenha(); aviso(re ? 'Refeito.' : 'Desfeito.')
+}
+let tmAviso = null
+function aviso(t) { $('#status').textContent = t; clearTimeout(tmAviso); tmAviso = setTimeout(() => { $('#status').textContent = '' }, 6000) }
+
+// ================================================================ maquete: esta montagem já tem maquete?
+// assinatura do formato: cobertura (só conta se há bomba coberta) e, por fileira, o modelo e as vagas de cada bomba. A
+// bomba que foge da regra de antes (o posto coberto cobre todas menos o Mobi) leva uma marca: "c" coberta (o Mobi,
+// desde 29/10) ou "s" sem; assim os formatos de antes continuam com a mesma assinatura. A mesma da fila-maquetes.mjs
+function assinatura(s) {
+  const lista = (f) => (f === 'fundos' && !s.ilha ? [] : s.fileiras[f] || [])
+  const marca = (m) => { const antes = !!s.cobertura && m.modelo !== 'mobi', agora = coberta(s, m); return agora === antes ? '' : agora ? 'c' : 's' }
+  const fila = (f) => lista(f).map((m) => m.modelo + m.vagas + marca(m)).join(',')
+  const cob = [...lista('frente'), ...lista('fundos')].some((m) => coberta(s, m))
+  return `${cob ? 1 : 0}|${fila('frente')}|${fila('fundos')}`
+}
+function maqueteDe(s = st) {
+  if (!layout(s).length) return { id: null, estado: 'vazio' }
+  // com mais de uma maquete do mesmo formato, vale a do modelo atual, depois a da v13 (a original), depois as outras
+  const nivel = (m) => (m.modelo === REG.modeloAtual ? 0 : m.modelo === 'v13' ? 1 : 2)
+  const ass = assinatura(s), q = REG.maquetes.filter((m) => m.assinatura === ass).sort((a, b) => nivel(a) - nivel(b))[0]
+  if (q) return { id: q.pasta, estado: 'pronto', nome: q.nome }
+  // a maquete deste formato já está sendo preparada (o servidor diz)
+  if (filaPosto && filaPosto.assinatura === ass && ['fila', 'preparando'].includes(filaPosto.estado)) return { id: null, estado: 'preparando', fila: filaPosto }
+  return { id: null, estado: 'novo' }
+}
+// uma fileira sai montada com as peças já renderizadas (minutos); a ilha vai para o render do Blender (o servidor decide e
+// diz qual caminho em "via"; se as peças não cobrem o formato, ele mesmo passa para o Blender)
+// medido: ilha de 2 bombas em 4,5 min; as grandes chegaram a 45 min
+const tempoMaquete = (ilha) => (ilha ? 'de 5 a 45 minutos, conforme o tamanho' : 'uns 3 minutos')
+const textoFila = (f) => (f.estado === 'fila' ? `Na fila${f.posicao > 1 ? ` (${f.posicao}º)` : ''}: começa assim que a anterior terminar.`
+  : `Preparando: etapa ${Math.min(f.etapa + 1, f.total)} de ${f.total} (3D de dia e de noite e a 2D). Leva ${tempoMaquete(f.via !== 'pecas')}.`)
+
+// ================================================================ maquete montada neste navegador (/montador/web/montar-soltas.js)
+// Fileira e ilha não vão para fila nenhuma: o navegador monta a maquete com as peças de Lego da V3 (montador/lego), sem
+// Blender, e o servidor só guarda os arquivos. Enquanto o dono mexe, a maquete do formato da tela já vai sendo montada
+// por baixo dos panos, com um trabalhador só para a tela seguir leve; ao confirmar, ela já está pronta ou termina com
+// todos os trabalhadores que o aparelho aguenta. (Na V1 a ilha esperava a biblioteca dela; na V2 ela está sempre na
+// biblioteca das peças soltas.)
+const NAV = { mod: null, chave: null, ctrl: null, pronta: null, promessa: null, prog: null, tm: null, ilha: true }
+const noNavegador = (s = st) => (!s.ilha || NAV.ilha) && layout(s).length > 0 && layout(s).length <= 10
+const moduloNav = async () => NAV.mod || (NAV.mod = await import('./montador/web/montar-soltas.js'))
+function adiantar() {
+  clearTimeout(NAV.tm)
+  const chave = assinatura(st)
+  if (!noNavegador() || maqueteDe().estado !== 'novo' || NAV.chave === chave) return
+  // economia de dados, aparelho com pouca memória ou tela de celular: só monta ao confirmar (montar por baixo dos panos
+  // gasta de 200 a 600 MB de memória e o download do formato)
+  if ((navigator.connection && navigator.connection.saveData) || (navigator.deviceMemory || 4) < 4 || matchMedia('(max-width: 560px)').matches) return
+  NAV.tm = setTimeout(() => montarNav(chave, 1), 1200)                          // espera o dono parar de mexer
+}
+function montarNav(chave, paralelo) {
+  if (NAV.ctrl) NAV.ctrl.abort()
+  const ctrl = new AbortController(), m = montagemJSON()
+  Object.assign(NAV, { chave, ctrl, pronta: null, prog: null })
+  NAV.promessa = moduloNav().then((mod) => mod.montarMaquete(m, { paralelo, sinal: ctrl.signal, aoProgresso: (p) => { if (NAV.chave === chave) { NAV.prog = p; mostraNav() } } }))
+    .then((r) => { if (NAV.chave === chave) { NAV.pronta = r; mostraNav() } return r })
+    .catch((e) => { if (NAV.chave === chave) { NAV.chave = null; NAV.prog = null; mostraNav() } throw e })
+  NAV.promessa.catch(() => {})
+  return NAV.promessa
+}
+const textoNav = () => {
+  const p = NAV.chave === assinatura(st) ? NAV.prog : null
+  return NAV.pronta && NAV.chave === assinatura(st) ? 'já está montada neste navegador: é só confirmar.'
+    : p && p.etapa === 'montando' ? `já está sendo montada enquanto você mexe (${p.feitos} de ${p.total}).` : 'é montada aqui mesmo, com as peças prontas, em alguns segundos.'
+}
+function mostraNav() {
+  if (maqueteDe().estado !== 'novo' || !noNavegador()) return
+  desenhaPosto(); const t = document.getElementById('confNav'); if (t) t.textContent = textoNav()
+}
+// criar: reserva a pasta, usa (ou termina) a montagem adiantada e guarda os arquivos; o servidor só grava e cadastra.
+// prog(texto, fração) mostra o andamento ao dono; um erro vira exceção (o modal mostra e deixa tentar de novo)
+async function enviarNav(prog) {
+  const chave = assinatura(st), m = montagemJSON()
+  const res = await api('api/maquete/reservar', { postoId: posto.id, montagem: m })
+  if (!res || res.erro) throw new Error(res && res.erro ? res.erro : 'sem o servidor local, o posto não tem onde ser guardado')
+  if (res.estado !== 'pronto') {
+    let r = NAV.chave === chave && NAV.pronta
+    if (!r) {
+      // a montagem adiantada (um trabalhador) segue se já passou da metade; senão recomeça com todos
+      const p = NAV.chave === chave && NAV.prog, segue = p && p.etapa === 'montando' && p.feitos >= p.total / 2
+      const prom = segue ? NAV.promessa : montarNav(chave, undefined)
+      const tick = setInterval(() => { const q = NAV.prog; prog('Montando o seu posto…', q && q.etapa === 'montando' ? 0.08 + 0.72 * (q.feitos / q.total) : 0.05) }, 250)
+      try { r = await prom } finally { clearInterval(tick) }
+    }
+    const arqs = Object.entries(r.arquivos); let n = 0
+    for (const [arq, b] of arqs) {
+      prog('Guardando o seu posto…', 0.8 + 0.18 * (++n / arqs.length))
+      const x = await fetch(`api/maquete/arquivo?pasta=${res.maquete}&arq=${encodeURIComponent(arq)}`, { method: 'POST', body: b }).then((y) => y.json()).catch(() => null)
+      if (!x || x.erro) throw new Error(`não deu para guardar ${arq}`)
+    }
+    const fim = await api('api/maquete/concluir', { postoId: posto.id, maquete: res.maquete })
+    if (!fim || fim.erro) throw new Error((fim && fim.erro) || 'não deu para guardar')
+  }
+  REG = await fetch('dados/postos.json', { cache: 'no-store' }).then((x) => x.json())
+  const p = REG.postos.find((x) => x.id === posto.id); if (p) { posto.maquete = p.maquete; posto.atual = !!p.maquete }
+  NAV.chave = null; NAV.pronta = null
+}
+
+// ================================================================ painéis
+const ICONE_ALCA = '<svg viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></g></svg>'
+const ICONE_OK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 6.3 2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const ICONE_MAO = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 7.5V3.2a1.1 1.1 0 0 1 2.2 0v3.6M7.7 6.4V2.4a1.1 1.1 0 0 1 2.2 0v4.2M9.9 6.6V3.6a1.1 1.1 0 0 1 2.2 0v5.2c0 2.9-1.9 5.2-4.6 5.2-1.8 0-3-.9-3.9-2.4L2.1 8.8a1.1 1.1 0 0 1 1.8-1.2l1.6 1.9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+// dois grupos (29/10, rodada 2): as que faltam pôr, com a alça de arrastar, e as que já estão no mapa, numa lista de
+// "camadas" na ordem das fileiras (clicar acha e escolhe a bomba)
+function desenhaInventario() {
+  const livres = disponiveis(), L = layout(), nT = posto.bombas.length
+  const lista = livres.length
+    ? `<ul class="bombas">${livres.map((b) => `<li><button type="button" class="bomba ${sel === b.id ? 'sel' : ''}" data-bomba="${b.id}" title="Segure e arraste para o mapa">
+        <span class="alca">${ICONE_ALCA}</span><span class="ic">${raiosHTML(b.modelo)}</span><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome}</small></span><span class="st"></span></button></li>`).join('')}</ul>
+      <p class="nota dica-arraste">${ICONE_MAO}<span>Segure uma bomba e arraste até o mapa. Ou clique nela para pôr no fim da fila.</span></p>`
+    : '<p class="vazio-grupo">Todas as bombas estão no mapa.</p>'
+  const fil = (f) => (f === 'frente' ? (st.ilha ? 'Frente' : 'Fileira') : 'Fundos')
+  const camadas = L.length ? `<p class="grupo-tit depois">No mapa <em>${L.length}</em></p><ul class="camadas">${L.map((m) => `<li><button type="button" class="camada" data-ir="${m.bombaId}" ${sel === m.bombaId ? 'aria-current="true"' : ''}>
+      ${raiosHTML(m.modelo)}<span class="tx"><b>${esc(bomba(m.bombaId).rotulo)}</b><small>${fil(m.fileira)} · ${m.ordem + 1}ª · ${m.vagas} vaga${m.vagas > 1 ? 's' : ''}</small></span></button></li>`).join('')}</ul>` : ''
+  $('#inventario').innerHTML = `${livres.length ? `<p class="grupo-tit">Para pôr <em>${livres.length}</em></p>` : ''}${lista}${camadas}`
+  $('#invResumo').textContent = livres.length ? `${nT - livres.length} de ${nT} no mapa` : 'todas no mapa'
+}
+function desenhaEstrutura() {
+  $$('[data-ilha]').forEach((b) => b.setAttribute('aria-pressed', String(String(+st.ilha) === b.dataset.ilha)))
+  // com a cobertura bomba a bomba misturada, nenhuma das duas escolhas do posto fica marcada
+  const cs = todos().map((m) => coberta(st, m)), misto = cs.some(Boolean) && !cs.every(Boolean)
+  $$('[data-cob]').forEach((b) => b.setAttribute('aria-pressed', String(!misto && String(+st.cobertura) === b.dataset.cob)))
+  $('#cobNota').textContent = misto ? `Cobertura em parte: ${cs.filter(Boolean).length} de ${cs.length} bombas cobertas. Escolher uma das duas cobre ou descobre todas.`
+    : 'Cobre todas as bombas, o Mobi também. Para cobrir só algumas, escolha a bomba no mapa.'
+  // com 1 bomba não há ilha: a escolha some em vez de não fazer nada
+  $('[data-ilha="1"]').closest('.card').hidden = !podeIlha()
+}
+function desenhaSel() {
+  const card = $('#cardSel'), m = layout().find((x) => x.bombaId === sel)
+  card.hidden = !m; $('#cardDica').hidden = !!m || !todos().length; if (!m) { card.innerHTML = ''; return }
+  const b = bomba(m.bombaId), n = st.fileiras[m.fileira].length
+  card.innerHTML = `<div class="sel-cab"><img src="dados/bombas/${b.modelo}/iso-frente.webp" alt=""><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome} · ${MODELOS[b.modelo].desc}</small></span></div>
+    <div class="campo"><span>Vagas desta bomba</span><div class="seg largo" role="group" aria-label="Vagas"><button type="button" data-vagas="1" aria-pressed="${m.vagas === 1}">1 vaga</button><button type="button" data-vagas="2" aria-pressed="${m.vagas === 2}">2 vagas</button></div>
+      <p class="nota">${b.modelo === 'mobi' ? 'O Mobi tem 1 conector; com 2 vagas, ele alcança as duas.' : 'Os 2 conectores podem atender 1 ou 2 vagas.'}</p></div>
+    ${podeIlha() ? `<div class="campo"><span>Fileira</span><div class="seg largo" role="group" aria-label="Fileira"><button type="button" data-fil="frente" aria-pressed="${m.fileira === 'frente'}">Frente</button><button type="button" data-fil="fundos" aria-pressed="${m.fileira === 'fundos'}">Fundos</button></div></div>` : ''}
+    <div class="campo"><span>Cobertura desta bomba</span><div class="seg largo" role="group" aria-label="Cobertura desta bomba"><button type="button" data-cobb="1" aria-pressed="${coberta(st, m)}">Coberta</button><button type="button" data-cobb="0" aria-pressed="${!coberta(st, m)}">Sem cobertura</button></div>
+      <p class="nota">Bombas cobertas lado a lado ficam debaixo da mesma cobertura.</p></div>
+    <div class="campo"><span>Posição na fileira</span><div class="ordem"><button class="btn" type="button" data-pos="-1" ${m.ordem === 0 ? 'disabled' : ''} aria-label="Mais para a esquerda" title="Mais para a esquerda">←</button><b>${m.ordem + 1}ª de ${n}</b><button class="btn" type="button" data-pos="1" ${m.ordem === n - 1 ? 'disabled' : ''} aria-label="Mais para a direita" title="Mais para a direita">→</button></div></div>
+    <div class="campo"><button class="btn perigo" type="button" data-retirar style="width:100%">Tirar do mapa</button></div>`
+}
+function desenhaPosto() {
+  const L = layout(), vg = L.reduce((a, m) => a + m.vagas, 0)
+  $('#resumo').innerHTML = `<li><b>${L.length}<span style="font-size:13px;color:var(--dim)">/${posto.bombas.length}</span></b><small>bombas</small></li><li><b>${vg}</b><small>vagas</small></li><li><b>${st.ilha ? 2 : 1}</b><small>fileira${st.ilha ? 's' : ''}</small></li>`
+  // a lista das bombas por fileira mudou para a esquerda, no grupo "No mapa" (29/10, rodada 2). A maquete (se o formato
+  // já existe, se é montada aqui ou vai para a fila) é bastidor: o dono só vê o posto
+}
+function desenha() { desenhaMapa(); svg.classList.toggle('editando', !!sel); desenhaInventario(); desenhaEstrutura(); desenhaSel(); desenhaPosto(); $('#desfazer').disabled = !hist.length; $('#refazer').disabled = !futuro.length; adiantar() }
+
+// ================================================================ eventos: painéis
+$('#inventario').addEventListener('click', (e) => {
+  const c = e.target.closest('[data-ir]'); if (c) { sel = sel === c.dataset.ir ? null : c.dataset.ir; desenha(); return }   // "No mapa": escolhe (ou solta) a bomba
+  const b = e.target.closest('[data-bomba]'); if (!b || arrastou) return
+  por(b.dataset.bomba, 'frente')
+})
+$('#cardSel').addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t || !sel) return
+  if (t.dataset.vagas) vagas(sel, +t.dataset.vagas)
+  if (t.dataset.cobb) {
+    // cobertura bomba a bomba (V2, peças soltas): só esta bomba muda; o posto diz "com cobertura" se alguma for coberta
+    const on = t.dataset.cobb === '1', m0 = todos().find((x) => x.bombaId === sel)
+    if (m0 && coberta(st, m0) !== on) {
+      const p = copia(); for (const m of todos(p)) m.coberta = m.bombaId === sel ? on : coberta(st, m)
+      p.cobertura = todos(p).some((m) => m.coberta)
+      muda(p, `${bomba(sel).rotulo} ${on ? 'coberta' : 'sem cobertura'}.`)
+    }
+  }
+  if (t.dataset.fil) { const m = layout().find((x) => x.bombaId === sel); if (m.fileira !== t.dataset.fil) mover(sel, t.dataset.fil, st.fileiras[t.dataset.fil].length) }
+  if (t.dataset.pos) { const m = layout().find((x) => x.bombaId === sel); mover(sel, m.fileira, m.ordem + (+t.dataset.pos > 0 ? 2 : -1)) }
+  if (t.hasAttribute('data-retirar')) retirar(sel)
+})
+$$('[data-ilha]').forEach((b) => b.addEventListener('click', () => setIlha(b.dataset.ilha === '1')))
+$$('[data-cob]').forEach((b) => b.addEventListener('click', () => {
+  // vale para todas as bombas, o Mobi também (uma montagem de antes, com o Mobi descoberto, fica toda coberta)
+  const on = b.dataset.cob === '1'; if (st.cobertura === on && todos().every((m) => coberta(st, m) === on)) return
+  const p = copia(); p.cobertura = on; for (const m of todos(p)) m.coberta = on
+  muda(p, on ? 'Com cobertura sobre todas as bombas.' : 'Sem cobertura.')
+}))
+$('#desfazer').addEventListener('click', () => desfaz(false)); $('#refazer').addEventListener('click', () => desfaz(true))
+$$('[data-vista]').forEach((b) => b.addEventListener('click', () => {
+  vista = b.dataset.vista; $$('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+  $('#giroE').disabled = $('#giroD').disabled = vista === 'planta'; cam = null; desenha()
+}))
+// girar a vista: de 90 em 90 graus em volta do posto, para ver as bombas por outro lado
+function gira(d) {
+  if (vista === 'planta') return
+  giro = (giro + d + 4) % 4; A = A0 + (giro * Math.PI) / 2; cam = null; desenhaMapa()
+  aviso(['Vista da entrada, como na maquete.', 'Vista pelo lado esquerdo do posto.', 'Vista pelos fundos do posto.', 'Vista pelo lado direito do posto.'][giro])
+}
+$('#giroE').addEventListener('click', () => gira(1)); $('#giroD').addEventListener('click', () => gira(-1))
+$('#centralizar').addEventListener('click', () => { cam = null; aplicaVista() })
+$('#zoomMais').addEventListener('click', () => zoom(1.25)); $('#zoomMenos').addEventListener('click', () => zoom(1 / 1.25))
+$('#zoomPct').addEventListener('click', () => { cam = null; aplicaVista() })
+new ResizeObserver(() => aplicaVista()).observe(svg)
+svg.addEventListener('wheel', (e) => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoom(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top) }, { passive: false })
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input,select,textarea') || $('dialog[open]') || !$('#menuCtx').hidden || !$('#tour').hidden) return
+  const mod = e.ctrlKey || e.metaKey
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); desfaz(e.shiftKey); return }
+  if (!mod && (e.key === 'q' || e.key === 'Q')) { gira(1); return }
+  if (!mod && (e.key === 'e' || e.key === 'E')) { gira(-1); return }
+  if (!sel) return
+  const m = layout().find((x) => x.bombaId === sel); if (!m) return
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); retirar(sel) }
+  if (e.key === 'ArrowLeft' && m.ordem > 0) { e.preventDefault(); mover(sel, m.fileira, m.ordem - 1) }
+  if (e.key === 'ArrowRight' && m.ordem < st.fileiras[m.fileira].length - 1) { e.preventDefault(); mover(sel, m.fileira, m.ordem + 2) }
+  if (e.key === 'Escape') { sel = null; desenha() }
+})
+
+// ================================================================ eventos: mapa (selecionar, arrastar bomba, mover a vista) e arrastar da lista
+let gesto = null, arrastou = false
+const fantasma = $('#fantasma')
+function iniciaArraste(e, bombaId, origem) { gesto = { tipo: 'bomba', bombaId, origem, x: e.clientX, y: e.clientY, ativo: false } }
+svg.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return
+  const mod = e.target.closest('[data-mod]'), slot = e.target.closest('[data-slot]')
+  if (slot) return
+  if (mod) { iniciaArraste(e, mod.dataset.mod, 'mapa'); try { svg.setPointerCapture(e.pointerId) } catch {}; return }
+  gesto = { tipo: 'vista', x: e.clientX, y: e.clientY, cx: cam.cx, cy: cam.cy }; svg.classList.add('pan'); try { svg.setPointerCapture(e.pointerId) } catch {}
+})
+$('#inventario').addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('[data-bomba]'); if (!b || e.button !== 0 || noMapa(b.dataset.bomba)) return
+  iniciaArraste(e, b.dataset.bomba, 'lista'); arrastou = false
+})
+window.addEventListener('pointermove', (e) => {
+  if (!gesto) return
+  if (gesto.tipo === 'vista') { cam.cx = gesto.cx - (e.clientX - gesto.x) / cam.esc; cam.cy = gesto.cy - (e.clientY - gesto.y) / cam.esc; manual = true; aplicaVista(); return }
+  if (!gesto.ativo && Math.hypot(e.clientX - gesto.x, e.clientY - gesto.y) < 6) return
+  if (!gesto.ativo) {
+    gesto.ativo = true; arrastou = true; document.body.classList.add('arrastando'); svg.classList.add('editando')
+    const b = bomba(gesto.bombaId); fantasma.innerHTML = `${raiosHTML(b.modelo)}<span>${esc(b.rotulo)}</span>`; fantasma.hidden = false
+  }
+  fantasma.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 10}px)`
+  gesto.alvo = alvoEm(e.clientX, e.clientY); mostraLivres(true, gesto.alvo); mostraAlvo(gesto.alvo)
+})
+window.addEventListener('pointerup', (e) => {
+  if (!gesto) return
+  const g = gesto; gesto = null; svg.classList.remove('pan'); svg.classList.toggle('editando', !!sel); document.body.classList.remove('arrastando'); fantasma.hidden = true; mostraAlvo(null); mostraLivres(false)
+  if (g.tipo === 'vista') { if (Math.hypot(e.clientX - g.x, e.clientY - g.y) < 4 && sel) { sel = null; desenha() } return }
+  if (!g.ativo) { if (g.origem === 'mapa') { sel = g.bombaId; desenha() } setTimeout(() => { arrastou = false }, 0); return }
+  if (g.alvo) { if (g.origem === 'lista') por(g.bombaId, g.alvo.fileira, g.alvo.indice); else mover(g.bombaId, g.alvo.fileira, g.alvo.indice) }
+  else if (g.origem === 'mapa') aviso('Solte a bomba sobre uma fileira do posto.')
+  setTimeout(() => { arrastou = false }, 0)
+})
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && gesto) { gesto = null; fantasma.hidden = true; document.body.classList.remove('arrastando'); mostraAlvo(null); mostraLivres(false) } })
+// a vaga nova ("+") abre a lista das bombas que faltam; a fileira fantasma vira ilha
+const pop = $('#popBombas')
+svg.addEventListener('click', (e) => {
+  const slot = e.target.closest('[data-slot]'); if (!slot) return
+  if (slot.dataset.slot === 'ilha') { setIlha(true); return }
+  abrePop(slot.dataset.slot, e.clientX, e.clientY)
+})
+svg.addEventListener('keydown', (e) => { const slot = e.target.closest('[data-slot]'); if (slot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const r = slot.getBoundingClientRect(); slot.dataset.slot === 'ilha' ? setIlha(true) : abrePop(slot.dataset.slot, r.right, r.top) } })
+function abrePop(f, x, y) {
+  const lista = disponiveis(); if (!lista.length) return
+  $('#popTit').textContent = `Pôr qual bomba na fileira ${f === 'frente' ? 'da frente' : 'dos fundos'}?`
+  $('#popLista').innerHTML = lista.map((b) => `<li><button type="button" class="bomba sem-alca" data-pop="${b.id}"><span class="ic">${raiosHTML(b.modelo)}</span><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome}</small></span><span class="st">2 vagas</span></button></li>`).join('')
+  pop.dataset.fileira = f; pop.hidden = false
+  pop.style.left = Math.max(12, Math.min(x + 12, innerWidth - 302)) + 'px'; pop.style.top = Math.max(12, Math.min(y - 20, innerHeight - pop.offsetHeight - 12)) + 'px'
+  pop.querySelector('button').focus()
+}
+pop.addEventListener('click', (e) => { const b = e.target.closest('[data-pop]'); if (!b) return; pop.hidden = true; por(b.dataset.pop, pop.dataset.fileira) })
+document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !e.target.closest('#popBombas') && !e.target.closest('[data-slot]')) pop.hidden = true })
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') pop.hidden = true })
+
+// botão direito numa bomba do mapa (29/10, pedido do Sergio): as opções dela ali mesmo, nas duas vistas. Tecla de menu ou
+// Shift+F10 com uma bomba escolhida abre o mesmo menu em cima dela
+const menu = $('#menuCtx')
+const IC = {
+  vaga: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="9" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  vagas: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="6" height="11" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="8.5" y="2.5" width="6" height="11" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  fileira: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M5 5.5 8 2.5l3 3M5 10.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  esq: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  dir: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  tirar: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+}
+function abreMenu(bombaId, x, y) {
+  const m = layout().find((v) => v.bombaId === bombaId); if (!m) return
+  const b = bomba(bombaId), n = st.fileiras[m.fileira].length, outra = m.fileira === 'frente' ? 'fundos' : 'frente'
+  menu.innerHTML = `<h3>${raiosHTML(b.modelo)}${esc(b.rotulo)}</h3>
+    <button type="button" role="menuitemradio" aria-checked="${m.vagas === 1}" data-acao="v1">${IC.vaga}1 vaga</button>
+    <button type="button" role="menuitemradio" aria-checked="${m.vagas === 2}" data-acao="v2">${IC.vagas}2 vagas</button><hr>
+    ${podeIlha() ? `<button type="button" role="menuitem" data-acao="fileira">${IC.fileira}${outra === 'fundos' ? 'Levar para a fileira dos fundos' : 'Levar para a fileira da frente'}</button>` : ''}
+    <button type="button" role="menuitem" data-acao="esq" ${m.ordem === 0 ? 'disabled' : ''}>${IC.esq}Mover para a esquerda<kbd>←</kbd></button>
+    <button type="button" role="menuitem" data-acao="dir" ${m.ordem === n - 1 ? 'disabled' : ''}>${IC.dir}Mover para a direita<kbd>→</kbd></button><hr>
+    <button type="button" role="menuitem" class="perigo" data-acao="tirar">${IC.tirar}Tirar do mapa<kbd>Del</kbd></button>`
+  menu.dataset.bomba = bombaId; menu.hidden = false
+  menu.style.left = Math.max(8, Math.min(x, innerWidth - menu.offsetWidth - 8)) + 'px'
+  menu.style.top = Math.max(8, Math.min(y, innerHeight - menu.offsetHeight - 8)) + 'px'
+  menu.querySelector('button:not(:disabled)').focus()
+}
+const fechaMenu = () => { if (!menu.hidden) { menu.hidden = true; svg.focus({ preventScroll: true }) } }
+svg.addEventListener('contextmenu', (e) => {
+  const mod = e.target.closest('[data-mod]'); if (!mod) return
+  e.preventDefault(); sel = mod.dataset.mod; desenha(); abreMenu(sel, e.clientX, e.clientY)
+})
+menu.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-acao]'); if (!t || t.disabled) return
+  const id = menu.dataset.bomba, m = layout().find((v) => v.bombaId === id); menu.hidden = true; if (!m) return
+  const a = t.dataset.acao
+  if (a === 'v1') vagas(id, 1)
+  if (a === 'v2') vagas(id, 2)
+  if (a === 'fileira') { const f = m.fileira === 'frente' ? 'fundos' : 'frente'; mover(id, f, st.fileiras[f].length) }
+  if (a === 'esq') mover(id, m.fileira, m.ordem - 1)
+  if (a === 'dir') mover(id, m.fileira, m.ordem + 2)
+  if (a === 'tirar') retirar(id)
+})
+menu.addEventListener('keydown', (e) => {
+  const itens = [...menu.querySelectorAll('button:not(:disabled)')], i = itens.indexOf(document.activeElement)
+  if (e.key === 'ArrowDown') { e.preventDefault(); itens[(i + 1) % itens.length].focus() }
+  if (e.key === 'ArrowUp') { e.preventDefault(); itens[(i - 1 + itens.length) % itens.length].focus() }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fechaMenu() }
+  if (e.key === 'Tab') fechaMenu()
+})
+document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !e.target.closest('#menuCtx')) menu.hidden = true })
+window.addEventListener('blur', () => { menu.hidden = true })
+svg.addEventListener('wheel', () => { menu.hidden = true }, { passive: true })
+document.addEventListener('keydown', (e) => {
+  if (!sel || $('dialog[open]') || !menu.hidden || !(e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) return
+  const el = svg.querySelector(`[data-mod="${sel}"]`); if (!el) return
+  e.preventDefault(); const r = el.getBoundingClientRect(); abreMenu(sel, r.left + r.width / 2, r.top + r.height / 2)
+})
+
+// ================================================================ formatos prontos (só reorganizam as bombas deste posto)
+const ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+// até seis formatos (29/10, pedido do Sergio), só os que fazem sentido com as bombas deste posto (ilha só com 2 ou mais;
+// "por potência" só com modelos diferentes)
+const ORDEM_POT = (a, b) => 'ultra fast mobi'.indexOf(a.modelo) - 'ultra fast mobi'.indexOf(b.modelo)
+function formatosDoPosto() {
+  const variados = new Set(posto.bombas.map((b) => b.modelo)).size > 1
+  return [
+    ['linha', 'Lado a lado', 'Todas numa fileira, com 2 vagas cada.'],
+    ['compacto', 'Compacto', 'Uma fileira com 1 vaga por bomba: ocupa menos espaço.'],
+    variados && ['potencia', 'Por potência', 'As mais rápidas primeiro; o Mobi fica com 1 vaga.'],
+    podeIlha() && ['ilha', 'Ilha', 'Bombas no meio e vagas dos dois lados.'],
+    podeIlha() && ['ilha-compacta', 'Ilha compacta', 'Dos dois lados, com 1 vaga por bomba.'],
+    ['zero', 'Começar do zero', 'O mapa vazio, para pôr uma bomba de cada vez.'],
+  ].filter(Boolean)
+}
+function formato(k) {
+  if (k === 'zero') return vazio()
+  const s = vazio(), um = k === 'compacto' || k === 'ilha-compacta'; s.cobertura = st.cobertura
+  const mods = posto.bombas.map((b) => modDe(b, um ? 1 : 2, st.cobertura))
+  if (k === 'linha' || k === 'compacto') s.fileiras.frente = mods
+  if (k === 'potencia') s.fileiras.frente = [...posto.bombas].sort(ORDEM_POT).map((b) => modDe(b, b.modelo === 'mobi' ? 1 : 2, st.cobertura))
+  if (k === 'ilha' || k === 'ilha-compacta') {
+    s.ilha = true
+    // metade em cada lado, alternando para os dois lados terem modelos parecidos
+    ;[...mods].sort(ORDEM_POT).forEach((m, i) => s.fileiras[i % 2 === 0 ? 'frente' : 'fundos'].push(m))
+  }
+  return s
+}
+// a prévia de um formato: o próprio desenho do mapa (as mesmas peças da maquete), no ângulo da maquete, sem os "+"
+function previa(s) {
+  const st0 = st, sel0 = sel, vista0 = vista, giro0 = giro, m = 6
+  st = s; sel = null; vista = 'iso'; giro = 0; A = A0; desenhaMapa(true)
+  const caixa0 = `${limites.x0 - m} ${limites.y0 - m} ${limites.x1 - limites.x0 + 2 * m} ${limites.y1 - limites.y0 + 2 * m}`
+  const txt = svg.outerHTML.replace(/^<svg[^>]*>/, `<svg viewBox="${caixa0}" aria-hidden="true">`).replace(/ id="(mundo|livres|indicador)"/g, '')
+  st = st0; sel = sel0; vista = vista0; giro = giro0; A = A0 + (giro * Math.PI) / 2; desenhaMapa()
+  return txt
+}
+const modalModelos = $('#modalModelos')
+let escolhido = 'linha'
+function desenhaModelos() {
+  const ops = formatosDoPosto(), n = posto.bombas.length
+  if (!ops.some(([k]) => k === escolhido)) escolhido = 'linha'
+  modalModelos.innerHTML = `<div class="cab"><div><h2 id="mmTit">Formatos prontos</h2><p>Com ${n === 1 ? 'a bomba' : `as ${n} bombas`} de ${esc(posto.nome)}. Depois você ajusta vagas, fileira e ordem.</p></div><button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>
+    <div class="corpo"><div class="modelos">${ops.map(([k, t, d]) => `<button type="button" class="modelo" data-formato="${k}" aria-pressed="${escolhido === k}"><span class="prev">${k === 'zero' ? '<span class="zero">+</span>' : previa(formato(k))}</span><b>${t}</b><small>${d}</small></button>`).join('')}</div>
+      ${todos().length ? '<p class="aviso">O que está no mapa agora é trocado pelo formato. Dá para desfazer depois.</p>' : ''}</div>
+    <div class="pe"><span class="esp"></span><button class="btn" type="button" data-fecha>Cancelar</button><button class="btn prim" type="button" data-usar>Usar este formato</button></div>`
+}
+const usaFormato = () => { modalModelos.close(); sel = null; cam = null; muda(formato(escolhido), escolhido === 'zero' ? 'Mapa limpo: as bombas voltaram para a lista.' : 'Formato aplicado. Ajuste o que quiser.') }
+$('#abrirModelos').addEventListener('click', () => { desenhaModelos(); modalModelos.showModal(); modalModelos.focus() })
+modalModelos.addEventListener('click', (e) => {
+  if (e.target === modalModelos || e.target.closest('[data-fecha]')) { modalModelos.close(); return }
+  const f = e.target.closest('[data-formato]')
+  if (f) { escolhido = f.dataset.formato; modalModelos.querySelectorAll('[data-formato]').forEach((b) => b.setAttribute('aria-pressed', String(b === f))); return }
+  if (e.target.closest('[data-usar]')) usaFormato()
+})
+modalModelos.addEventListener('dblclick', (e) => { const f = e.target.closest('[data-formato]'); if (f) { escolhido = f.dataset.formato; usaFormato() } })
+
+// ================================================================ confirmar: resumo, maquete e o próximo passo
+const modalConf = $('#modalConf')
+function montagemJSON() {
+  const mq = maqueteDe()
+  // regras v2 (29/10): cada bomba diz se é coberta (`coberta`); a v1 não dizia e o Mobi ficava sempre sem cobertura
+  const comCob = (m) => ({ ...m, coberta: coberta(st, m) })
+  // a ilha com um lado vazio sai como uma fileira só (29/10, rodada 2): escolher "Ilha" e não pôr nada atrás nunca cria
+  // uma ilha vazia (o confirmar já arruma o estado; isto é a garantia)
+  const fu = st.ilha ? st.fileiras.fundos : [], fr = st.fileiras.frente.length ? st.fileiras.frente : fu, ilha = st.fileiras.frente.length > 0 && fu.length > 0
+  return { schema: 'igreen.posto-montagem', versao: 1, regras: 'igreen-modulos-v2', postoId: posto.id, nome: posto.nome, ilha, cobertura: st.cobertura,
+    fileiras: { frente: fr.map(comCob), fundos: ilha ? fu.map(comCob) : [] }, maquete: mq.id, geradoEm: new Date().toISOString() }
+}
+function baixa() {
+  const blob = new Blob([JSON.stringify(montagemJSON(), null, 2)], { type: 'application/json' }), a = document.createElement('a')
+  a.href = URL.createObjectURL(blob); a.download = `montagem-${posto.id}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  aviso('Montagem baixada em JSON.')
+}
+// a confirmação (29/10, pedido do Sergio): o dono só vê o posto dele e confirma. Se o formato já tem maquete, se ela é
+// montada aqui ou se vai para a fila do servidor, é bastidor: "Criar meu posto" resolve sozinho e leva ao painel
+const CLIENTE = q.get('cliente') === '1' || (() => { try { return sessionStorage.getItem('modo-cliente') === '1' } catch { return false } })()
+const textoCriar = () => (DE === 'inicio' ? 'Criar meu posto' : 'Salvar o posto')
+function desenhaConf() {
+  const L = layout(), vg = L.reduce((a, m) => a + m.vagas, 0), falta = disponiveis()
+  // a foto da confirmação sai sempre no ângulo da maquete
+  const vista0 = vista, giro0 = giro; vista = 'iso'; giro = 0; A = A0; desenhaMapa(true)
+  const figura = svg.outerHTML.replace(/^<svg[^>]*>/, `<svg viewBox="${limites.x0 - 20} ${limites.y0 - 20} ${limites.x1 - limites.x0 + 40} ${limites.y1 - limites.y0 + 40}" aria-hidden="true">`).replace(/ id="(mundo|livres|indicador)"/g, '')
+  vista = vista0; giro = giro0; A = A0 + (giro * Math.PI) / 2; desenhaMapa()
+  const chips = [`${L.length} bomba${L.length > 1 ? 's' : ''}`, `${vg} vaga${vg > 1 ? 's' : ''}`, st.ilha ? 'Ilha' : 'Uma fileira', L.every((m) => coberta(st, m)) ? 'Com cobertura' : L.some((m) => coberta(st, m)) ? 'Cobertura em parte' : 'Sem cobertura']
+  modalConf.innerHTML = `<div class="cab"><div><h2 id="mcTit">${DE === 'inicio' ? 'Seu posto vai ficar assim' : 'Confira o seu posto'}</h2><p>${esc(posto.nome)}${posto.end ? ` · ${esc(posto.end)}` : ''}</p></div><button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>
+    <div class="corpo"><div class="conf-mini">${figura}</div>
+      <div class="conf-resumo">${chips.map((c) => `<span>${c}</span>`).join('')}</div>
+      ${falta.length ? `<p class="aviso novo"><span><b>Falta${falta.length > 1 ? 'm' : ''} ${falta.length} bomba${falta.length > 1 ? 's' : ''}:</b> ${falta.map((b) => esc(b.rotulo)).join(', ')}. ${falta.length > 1 ? 'Elas só aparecem' : 'Ela só aparece'} no painel depois de entrar no mapa.</span></p>` : ''}
+      <p class="nota" id="confNota">Ele abre no painel em 3D e em 2D. Dá para voltar aqui e mudar quando quiser.</p></div>
+    <div class="pe">${CLIENTE ? '' : '<button class="texto-link" type="button" data-baixar>Baixar a montagem</button>'}<span class="esp"></span><button class="btn" type="button" data-fecha>Voltar a editar</button><button class="btn prim" type="button" data-criar>${textoCriar()}</button></div>`
+}
+$('#confirmar').addEventListener('click', () => {
+  if (!todos().length) { aviso('Ponha pelo menos uma bomba no mapa antes de criar o posto.'); return }
+  // "Ilha" escolhida com um lado vazio: o posto sai como uma fileira só (a prévia e a criação já mostram assim)
+  const p = copia(); if (fechaIlha(p)) { st = p; sel = null; guarda(); desenha() }
+  desenhaConf(); modalConf.showModal(); modalConf.focus()
+})
+// o andamento no lugar do resumo: o vídeo do posto se montando (com movimento reduzido, a foto do posto pronto) e a barra
+function mostraCriando(titulo, texto, fr) {
+  const corpo = modalConf.querySelector('.corpo'), fig = corpo.querySelector('.conf-mini')
+  if (!corpo.querySelector('.criando')) {
+    const parado = matchMedia('(prefers-reduced-motion: reduce)').matches
+    fig.innerHTML = `<video class="obra-video" ${parado ? '' : 'autoplay'} muted loop playsinline poster="dados/carregamento/obra/${parado ? 'montando-pronto' : 'montando-inicio'}.webp"><source src="dados/carregamento/obra/montando.webm" type="video/webm"><source src="dados/carregamento/obra/montando.mp4" type="video/mp4"></video>`
+    for (const el of corpo.querySelectorAll('.conf-resumo,.aviso,#confNota')) el.remove()
+    corpo.insertAdjacentHTML('beforeend', '<div class="criando" aria-live="polite"><b></b><small></small><div class="barra"><i></i></div></div>')
+    modalConf.querySelector('.pe').innerHTML = '<span class="esp"></span>'
+  }
+  const c = corpo.querySelector('.criando'); c.querySelector('b').textContent = titulo; c.querySelector('small').textContent = texto
+  if (fr != null) c.querySelector('.barra i').style.transform = `scaleX(${Math.min(1, Math.max(0, fr)).toFixed(3)})`
+}
+// o posto montado pela primeira vez passa a abrir direto no painel (a tela Meu posto lê esta lista)
+function marcaMontado(id) { try { const l = JSON.parse(localStorage.getItem('meu-posto-montados') || '[]'); if (!l.includes(id)) l.push(id); localStorage.setItem('meu-posto-montados', JSON.stringify(l)) } catch {} }
+function abrePainel(id = posto.id) {
+  marcaMontado(posto.id); mostraCriando('Pronto, seu posto foi criado', 'Abrindo o painel…', 1)
+  try { localStorage.removeItem(chave()) } catch {}
+  // o posto novo abre no 3D e na aba Posto (4/11: no celular o painel escolhe, como sempre: a 2D é mais leve); no primeiro
+  // acesso, com o aviso de boas-vindas
+  const visao = matchMedia('(max-width: 560px)').matches ? '' : '&visao=3d'
+  setTimeout(() => { location.href = `painel.html?posto=${id}${visao}${DE === 'inicio' ? '&boasvindas=1' : ''}` }, 900)
+}
+async function criar() {
+  const mq = maqueteDe()
+  mostraCriando('Criando o seu posto', 'Preparando as peças…', 0.03)
+  try {
+    if (mq.estado === 'pronto') {
+      // o formato já tem maquete: o posto passa a usá-la (no servidor local)
+      const r = await api('api/montagens', { postoId: posto.id, montagem: montagemJSON() }), dono = REG.postos.find((p) => p.maquete === mq.id)
+      abrePainel(r && r.estado === 'pronto' ? posto.id : dono ? dono.id : posto.id); return
+    }
+    if (noNavegador()) { await enviarNav((t, fr) => mostraCriando('Criando o seu posto', t, fr)); abrePainel(); return }
+    // formato que as peças não cobrem: o servidor prepara no Blender (minutos) e o painel mostra quando ficar pronto
+    const r = await api('api/montagens', { postoId: posto.id, montagem: montagemJSON() })
+    if (!r || r.erro) throw new Error(r && r.erro ? r.erro : 'sem o servidor local, o posto não tem onde ser guardado')
+    if (r.estado === 'pronto') { abrePainel(); return }
+    filaPosto = r; marcaMontado(posto.id); acompanhar()
+    mostraCriando('Seu posto está sendo preparado', `Este formato leva ${tempoMaquete(st.ilha)}. Você pode esperar aqui ou seguir para o painel: ele aparece assim que ficar pronto.`, 0.1)
+    modalConf.querySelector('.pe').innerHTML = `<span class="esp"></span><a class="btn" href="painel.html">Ir para o painel</a>`
+  } catch (e) {
+    const c = modalConf.querySelector('.criando'); if (c) c.remove()
+    modalConf.querySelector('.corpo').insertAdjacentHTML('beforeend', `<p class="aviso novo"><span><b>Não deu para criar o posto agora.</b> ${esc(String(e.message || e))}. Tente de novo em instantes.</span></p>`)
+    modalConf.querySelector('.pe').innerHTML = `<span class="esp"></span><button class="btn" type="button" data-fecha>Voltar a editar</button><button class="btn prim" type="button" data-criar>Tentar de novo</button>`
+  }
+}
+// acompanha o posto que foi para a fila do servidor; quando fica pronto, relê o cadastro e leva ao painel
+let tmFila = null
+async function acompanhar() {
+  clearTimeout(tmFila)
+  const id = posto.id, r = await api(`api/montagens/${id}`)
+  if (id !== posto.id) return
+  const antes = filaPosto
+  if (r && ['fila', 'preparando'].includes(r.estado)) {
+    filaPosto = r
+    if (modalConf.querySelector('.criando')) mostraCriando('Seu posto está sendo preparado', textoFila(r), r.total ? 0.1 + 0.85 * (r.etapa / r.total) : null)
+    tmFila = setTimeout(acompanhar, 5000); return
+  }
+  filaPosto = r && r.estado === 'erro' ? r : null
+  if (antes && r && r.estado === 'pronto') {
+    REG = await fetch('dados/postos.json', { cache: 'no-store' }).then((x) => x.json())
+    const p = REG.postos.find((x) => x.id === posto.id); if (p) { posto.maquete = p.maquete; posto.atual = !!p.maquete }
+    if (modalConf.open && modalConf.querySelector('.criando')) abrePainel(); else aviso('Seu posto ficou pronto. Ele já abre no painel.')
+  }
+  if (filaPosto) aviso(`Não deu para preparar o posto: ${filaPosto.erro || 'erro no render'}. Dá para tentar de novo.`)
+}
+modalConf.addEventListener('click', (e) => {
+  if (e.target === modalConf || e.target.closest('[data-fecha]')) { if (!modalConf.querySelector('.criando')) modalConf.close(); return }
+  if (e.target.closest('[data-baixar]')) baixa()
+  const b = e.target.closest('[data-criar]'); if (b) { b.disabled = true; criar() }
+})
+modalConf.addEventListener('cancel', (e) => { if (modalConf.querySelector('.criando')) e.preventDefault() })   // Esc não fecha no meio da criação
+
+// ================================================================ posto
+function trocaPosto(id) {
+  posto = POSTOS.find((p) => p.id === id) || POSTOS[0]; carrega(); cam = null
+  // primeiro acesso: o posto já foi escolhido na tela anterior (o nome vai no subtítulo) e o voltar leva de volta a ela
+  $('#postoEnd').textContent = DE === 'inicio' ? `${posto.nome} · ${posto.end}` : posto.end
+  // (4/11) primeiro acesso vindo do painel (o convite "Montar meu posto", ?volta=painel): voltar leva ao painel do posto
+  if (DE === 'inicio' && q.get('volta') === 'painel') { $('#voltar').href = `painel.html?posto=${posto.id}`; $('#voltar').setAttribute('aria-label', 'Voltar para o painel') }
+  else if (DE === 'inicio') { $('#voltar').href = 'meu-posto.html?etapa=escolher'; $('#voltar').setAttribute('aria-label', 'Voltar para a escolha do posto') }
+  else { $('#voltar').href = 'painel.html' + (comMaquete(posto.id) ? `?posto=${posto.id}` : ''); $('#voltar').setAttribute('aria-label', 'Voltar para o painel') }
+  const u = new URL(location.href); u.searchParams.set('posto', posto.id); history.replaceState(null, '', u)
+  filaPosto = null
+  const n = posto.bombas.length
+  desenha(); aviso(todos().length ? (DE === 'inicio' ? 'Seu rascunho continua aqui. Mude o que quiser e crie o posto.' : posto.atual ? `Esta é a montagem atual de ${posto.nome}. Mude o que quiser e salve.` : `Montagem de ${posto.nome} carregada.`)
+    : `${n === 1 ? 'Sua bomba está' : `Suas ${n} bombas estão`} na lista. Arraste para o mapa ou comece de um formato pronto.`)
+  acompanhar()
+}
+$('#postoSelW').hidden = DE === 'inicio'
+$('#tituloTela').textContent = DE === 'inicio' ? 'Monte o seu posto' : 'Editar o posto'
+$('#confirmar').textContent = textoCriar()
+document.title = `${DE === 'inicio' ? 'Monte o seu posto' : 'Editar o posto'} · iGreen`
+
+// ================================================================ tour (29/10, pedido do Sergio)
+// No primeiro acesso ele abre sozinho uma vez; "Como funciona" abre de novo. Dá para pular a qualquer momento (Esc)
+const PASSOS = [
+  ['#cardBombas', 'Suas bombas', 'Estas são as bombas do seu posto. Segure uma e arraste para o mapa.'],
+  ['.palco', 'O mapa', 'Solte a bomba numa vaga. Enquanto você arrasta, os lugares onde ela cabe aparecem em pontilhado.'],
+  ['aside.col[aria-label="Detalhes"]', 'Ajuste cada bomba', 'Clique numa bomba do mapa para escolher 1 ou 2 vagas, a fileira e a posição. O botão direito abre as mesmas opções.'],
+  ['#cardFileiras', 'Fileiras', 'Uma fileira, ou ilha, com bombas no meio e vagas dos dois lados.'],
+  ['#cardCobertura', 'Cobertura', 'Com ou sem o telhado de placas solares, para todas as bombas.'],
+  ['#cardFormatos', 'Formatos prontos', 'Sem tempo? Comece de um formato pronto com as suas bombas e ajuste depois.'],
+  ['#confirmar', textoCriar(), 'Quando estiver do seu jeito, é só criar. A gente prepara o seu posto em 3D e em 2D e abre o painel.'],
+]
+const tour = $('#tour'), tourAlvo = $('#tourAlvo'), tourCartao = $('#tourCartao')
+let passo = 0
+const passosVisiveis = () => PASSOS.filter(([s]) => { const el = $(s); return el && !el.hidden && el.offsetParent !== null })
+function mostraPasso() {
+  const lista = passosVisiveis(), [s, t, d] = lista[passo], m = 8
+  // (4/11) no celular a coluna fica embaixo do mapa e o cartão do tour fica preso embaixo da tela: a parte do passo sobe
+  // para o alto da tela antes de medir (sem isso o destaque ficava fora da tela e o cartão cobria a parte)
+  if (matchMedia('(max-width: 560px)').matches) { const r0 = $(s).getBoundingClientRect(); window.scrollTo({ top: Math.max(0, scrollY + r0.top - 12), behavior: 'instant' }) }
+  const r = $(s).getBoundingClientRect()
+  // o destaque vai de um passo ao outro só com transform (FLIP): muda o lugar e o tamanho de uma vez e anima a volta
+  const antes = tourAlvo.getBoundingClientRect()
+  Object.assign(tourAlvo.style, { left: `${r.left - m}px`, top: `${r.top - m}px`, width: `${r.width + 2 * m}px`, height: `${r.height + 2 * m}px` })
+  const depois = tourAlvo.getBoundingClientRect()
+  if (antes.width && depois.width && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    tourAlvo.animate([{ transform: `translate(${antes.left - depois.left}px,${antes.top - depois.top}px) scale(${antes.width / depois.width},${antes.height / depois.height})` }, { transform: 'none' }], { duration: 250, easing: 'ease' })
+  }
+  tourCartao.innerHTML = `<small>Passo ${passo + 1} de ${lista.length}</small><h3 id="tourTit">${t}</h3><p>${d}</p>
+    <div class="tour-pe"><span class="tour-pontos">${lista.map((_, i) => `<i class="${i === passo ? 'on' : ''}"></i>`).join('')}</span>
+      ${passo < lista.length - 1 ? '<button type="button" class="pular" data-t="fim">Pular</button>' : ''}${passo ? '<button type="button" class="btn" data-t="ant">Voltar</button>' : ''}
+      <button type="button" class="btn prim" data-t="prox">${passo < lista.length - 1 ? 'Próximo' : 'Começar'}</button></div>`
+  // o cartão ao lado da parte em destaque: à direita, à esquerda ou embaixo, o que couber
+  const w = 320, h = tourCartao.offsetHeight, gap = 16
+  let x = r.right + gap, y = r.top
+  if (x + w > innerWidth - 12) x = r.left - gap - w
+  if (x < 12) { x = Math.min(Math.max(12, r.left), innerWidth - w - 12); y = r.bottom + gap }
+  if (y + h > innerHeight - 12) y = Math.max(12, innerHeight - h - 12)
+  if (r.height > innerHeight * 0.6 && x >= 12) y = Math.max(12, r.top + 40)
+  Object.assign(tourCartao.style, { left: `${x}px`, top: `${y}px` })
+  tourCartao.querySelector('[data-t="prox"]').focus()
+}
+function abreTour() { sel = null; desenha(); passo = 0; tour.hidden = false; mostraPasso() }
+function fechaTour() { tour.hidden = true; try { localStorage.setItem('construtor-tour-v1', '1') } catch {}; $('#verTour').focus({ preventScroll: true }) }
+tour.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-t]'); if (!t) return
+  if (t.dataset.t === 'fim') fechaTour()
+  if (t.dataset.t === 'ant') { passo--; mostraPasso() }
+  if (t.dataset.t === 'prox') { if (passo >= passosVisiveis().length - 1) fechaTour(); else { passo++; mostraPasso() } }
+})
+tour.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { e.preventDefault(); fechaTour() }
+  if (e.key === 'ArrowRight') { e.preventDefault(); tour.querySelector('[data-t="prox"]').click() }
+  if (e.key === 'ArrowLeft' && passo) { e.preventDefault(); passo--; mostraPasso() }
+})
+window.addEventListener('resize', () => { if (!tour.hidden) mostraPasso() })
+$('#verTour').addEventListener('click', abreTour)
+$('#postoSel').innerHTML = POSTOS.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join('')
+$('#postoSel').addEventListener('change', (e) => trocaPosto(e.target.value))
+$('#postoSel').value = posto.id
+trocaPosto(posto.id)
+// primeiro acesso: o tour abre sozinho uma vez (?tour=1 força, para mostrar de novo)
+let tourVisto = false; try { tourVisto = localStorage.getItem('construtor-tour-v1') === '1' } catch {}
+if ((DE === 'inicio' && !tourVisto) || q.get('tour') === '1') setTimeout(abreTour, 600)
+window.__pronto = true
+</script>
+</body>
+</html>

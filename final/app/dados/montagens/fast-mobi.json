@@ -1,0 +1,36 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "fast-mobi",
+  "nome": "Centro Comercial",
+  "ilha": true,
+  "cobertura": true,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "cc-fast-1",
+        "modelo": "fast",
+        "vagas": 2,
+        "vagasIds": [
+          "cc-fast-1-vaga-1",
+          "cc-fast-1-vaga-2"
+        ],
+        "coberta": true
+      }
+    ],
+    "fundos": [
+      {
+        "bombaId": "cc-mobi-1",
+        "modelo": "mobi",
+        "vagas": 1,
+        "vagasIds": [
+          "cc-mobi-1-vaga-1"
+        ],
+        "coberta": true
+      }
+    ]
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-01T16:23:45.489Z"
+}

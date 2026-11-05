@@ -1,0 +1,22 @@
+{
+    "w":  880,
+    "h":  816,
+    "pxm":  168,
+    "origem":  [
+                   440,
+                   408
+               ],
+    "cores":  {
+                  "branco":  "#E9EBED",
+                  "prata":  "#B9C0C6",
+                  "grafite":  "#4A5157",
+                  "verde":  "#1F8A4C"
+              },
+    "luzes":  [
+                  "dia-cob",
+                  "dia-sem",
+                  "noite-cob",
+                  "noite-sem"
+              ],
+    "fonte":  "blender/carro_sprites.py (1100 x 1020 a 210 px/m, reduzido a 80%)"
+}

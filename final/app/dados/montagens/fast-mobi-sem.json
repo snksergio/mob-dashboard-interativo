@@ -1,0 +1,35 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-modulos-v2",
+  "postoId": "fast-mobi-sem",
+  "nome": "Praça da Matriz",
+  "ilha": false,
+  "cobertura": true,
+  "fileiras": {
+    "frente": [
+      {
+        "bombaId": "pm-fast-1",
+        "modelo": "fast",
+        "vagas": 1,
+        "vagasIds": [
+          "pm-fast-1-vaga-1"
+        ],
+        "coberta": true
+      },
+      {
+        "bombaId": "pm-mobi-1",
+        "modelo": "mobi",
+        "vagas": 2,
+        "vagasIds": [
+          "pm-mobi-1-vaga-1",
+          "pm-mobi-1-vaga-2"
+        ],
+        "coberta": false
+      }
+    ],
+    "fundos": []
+  },
+  "maquete": null,
+  "geradoEm": "2026-11-02T10:49:45.897Z"
+}
