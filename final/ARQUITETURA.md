@@ -111,6 +111,8 @@ Casos especiais:
   (`web/lateral.js` e `ferramentas/lateral-lego.mjs montar`) leem o transparente como 1. Sem isso, a perda (YUV)
   deixava o neutro um pouco mais escuro no verde e, como as sombras se multiplicam onde as peças se cruzam, a tarde
   ficava visivelmente mais escura e esverdeada. Medido contra o render inteiro: melhor que o corte sem perda.
+  A junção (`web/lateral.js`) pula, em cada linha de cada peça, as colunas exatamente neutras: mexer nela exige
+  conferir a saída bit a bit contra a versão anterior (foi assim que ela ficou 2,5× mais rápida sem mudar nada).
 - Ao final, **Khronos PBR Neutral** (o tone map do Blender) e a curva sRGB. Compor em sRGB em vez de linear dá halo nas
   costuras e degraus nas sombras somadas.
 - **PNG lido byte a byte** (decodificador próprio em `compor.js`): o canvas pré-multiplica o alfa e perde precisão nas
