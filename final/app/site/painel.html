@@ -1474,6 +1474,9 @@ dialog.modal > .corpo{flex:1 1 auto;min-height:0}
 <dialog class="modal" id="modalAvisos" aria-labelledby="maTit" tabindex="-1"></dialog>
 
 <script type="module">
+// (9/11) "deixe seu posto pronto": o fluxo depois de criar o posto, o card das pendências e o selo de cada posto
+import * as PP from './posto-pronto.js'
+let postoPronto = null
 
 // ---------------------------------------------------------------- postos (cadastro dados/postos.json, o mesmo do construtor)
 // Só entra no painel o posto que já tem maquete; maquete = a pasta em dados/ (um formato pode servir a vários postos).
@@ -1708,7 +1711,8 @@ window.maquete = mq
 // maquete aparece, uma vez só (o parâmetro sai do endereço)
 if (q.has('boasvindas')) {
   const u = new URL(location.href); u.searchParams.delete('boasvindas'); history.replaceState(null, '', u)
-  cargaVista().then(() => setTimeout(() => {
+  // (9/11) o posto que ainda tem o que configurar abre o "deixe seu posto pronto" no lugar deste aviso (lá embaixo)
+  if (posto.config === undefined) cargaVista().then(() => setTimeout(() => {
     const d = document.createElement('div'); d.className = 'boas-vindas vidro'; d.setAttribute('role', 'status')
     d.innerHTML = `<span class="tx"><b>Seu posto está montado</b><span>Este é o ${posto.nome} agora. As recargas aparecem aqui ao vivo.</span></span>
       <button type="button" aria-label="Fechar o aviso"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>`
@@ -2925,7 +2929,7 @@ function desenhaPostos(tudo) {
   const lista = POSTOS.filter(passaFiltro), sel = POSTOS.find((p) => p.id === fPostos.sel)
   const resumo = POSTOS.map(situacao), nCar = resumo.filter((x) => x.est === 'carregando').length, nAl = resumo.filter((x) => x.est === 'alerta').length
   const linhas = lista.map((p) => { const st = situacao(p); return `<li class="est-${st.est}"><button type="button" data-po="${p.id}" aria-pressed="${fPostos.sel === p.id}">
-      ${raiosHTML(p)}<span class="tx"><b>${p.nome}${p.id === postoId ? '<span class="aqui">aberto agora</span>' : ''}</b><small>${p.bairro} · ${p.cidade}</small><small>${p.equip}</small></span>
+      ${raiosHTML(p)}<span class="tx"><b>${p.nome}${p.id === postoId ? '<span class="aqui">aberto agora</span>' : ''}</b><small>${p.bairro} · ${p.cidade}</small><small>${p.equip}</small>${PP.selo(p)}</span>
       <span class="po-dir"><span class="st">${EST_TXT[st.est](st.n)}</span><b>${brl(st.rs)}</b></span></button></li>` }).join('') || '<li class="vazio">Nenhum posto com esses filtros.</li>'
   const pins = POSTOS.map((p) => { const st = situacao(p); return `<button type="button" class="pin est-${st.est} ${passaFiltro(p) ? '' : 'apagado'} ${p.id === postoId ? 'aqui' : ''}" style="left:${p.x}%;top:${p.y}%" data-po="${p.id}" aria-pressed="${fPostos.sel === p.id}" aria-label="${p.nome}, ${modelosDe(p).map((m) => NOME_M[m]).join(' e ')}, ${EST_TXT[st.est](st.n)}">${raiosHTML(p)}<span class="pin-rot">${p.nome}</span></button>` }).join('')
   if (!tudo) {
@@ -2955,6 +2959,7 @@ function desenhaPostos(tudo) {
         <div class="legenda-mapa"><span class="c">Carregando</span><span>Livre</span><span class="a">Com alerta</span><em style="font-style:normal;color:var(--dim)">1 raio Mobi · 2 Mobi Fast · 3 Mobi Ultra Fast</em></div></div>
     </div></div>
     <div class="pe"><span id="poMostrando">Mostrando ${lista.length} de ${POSTOS.length}</span>
+      <button class="btn" type="button" data-pa="configurar" title="Preço do kWh, onde receber, horário e acesso, como aparece no app">Configurar o posto</button>
       <a class="btn" href="construtor.html?posto=${fPostos.sel || postoId}&de=painel" title="Mudar as bombas, as vagas, as fileiras e a cobertura">Editar o posto</a>
       <button class="btn" type="button" data-pa="cancelar">Cancelar</button>
       <button class="btn prim" type="button" data-pa="abrir" ${!sel || sel.id === postoId ? 'disabled' : ''}>${!sel ? 'Escolha um posto' : sel.id === postoId ? 'Você está neste posto' : `Abrir ${sel.nome}`}</button></div>`
@@ -3020,6 +3025,8 @@ document.getElementById('postoBtn').addEventListener('click', abrePostos)
 modalPostos.addEventListener('input', (e) => { if (e.target.id === 'poBusca') { fPostos.busca = e.target.value; desenhaPostos(false) } })
 modalPostos.addEventListener('click', (e) => {
   if (e.target === modalPostos || e.target.closest('[data-fecha]') || e.target.closest('[data-pa="cancelar"]')) { modalPostos.close(); return }
+  // (9/11) "Configurar o posto": o passo a passo do posto aberto (preço, onde receber, horário, app), em qualquer item
+  if (e.target.closest('[data-pa="configurar"]')) { modalPostos.close(); if (postoPronto) postoPronto.abrir('inicio'); return }
   const mz = e.target.closest('[data-mz]'); if (mz) { const m = mz.closest('.mapa'); mapaZoom(m, mz.dataset.mz === 'mais' ? 1.6 : 1 / 1.6, m.clientWidth / 2, m.clientHeight / 2); return }
   const ver = e.target.closest('[data-ver]')
   if (ver) {
@@ -3420,6 +3427,7 @@ modalPreco.addEventListener('click', (e) => {
       mud.forEach((t) => historicoPreco.unshift({ quando: `Hoje · ${hhmm()}`, txt: t }))
       registra('acao', `Você mudou a tabela de preços: ${minusc(mud[0])}${mud.length > 1 ? ` e mais ${mud.length - 1}` : ''}`)
       modalPreco.close(); desenhaPreco()
+      if (postoPronto && mud.some((t) => t.startsWith('Preço padrão'))) postoPronto.marca('preco', { base: tabela.base })   // (9/11) conta como configurado
       const ret = document.getElementById('precoRetorno'); ret.classList.add('on'); clearTimeout(tmDesfazer); tmDesfazer = setTimeout(() => ret.classList.remove('on'), 8000)
       return
     }
@@ -3497,6 +3505,28 @@ const pausa = bt('Pausar o dia de demonstração', () => { demoLigada = !demoLig
 
 // atalhos de exemplo (o CRM não faz parte deste esboço)
 document.addEventListener('click', (e) => { const a = e.target.closest('a[href^="#crm"],a[href^="#suporte"],a[href^="#licenciado"]'); if (a) e.preventDefault() })
+
+// ---------------------------------------------------------------- (9/11) deixe seu posto pronto
+// Logo depois de criar o posto (?boasvindas=1), o fluxo guiado abre quando a maquete aparece; quem deixa para depois
+// fica com o card das pendências no palco. O preço definido ali é o preço padrão do painel (o mesmo do card e do totem)
+postoPronto = PP.iniciar({
+  posto, palco: document.querySelector('.palco'), novo: q.has('boasvindas'),
+  aposCarga: (f) => cargaVista().then(() => setTimeout(f, 1700)),
+  fotoMaquete: `${pastaPosto}fundo-tarde.webp`,
+  bombas: () => ({ ok: bombas.filter((b) => !b.falha && !b.inativa).length, total: bombas.length }),
+  preco: {
+    atual: () => tabela.base,
+    define: (v, registrar) => {
+      if (Math.abs(tabela.base - v) < 0.001) return
+      const antes = tabela.base; tabela.base = v
+      if (registrar) { historicoPreco.unshift({ quando: `Hoje · ${hhmm()}`, txt: `Preço padrão: ${brl(antes)} → ${brl(v)}` }); registra('acao', `Você definiu o preço do kWh: ${brl(v)}`) }
+      desenhaPreco()
+    },
+  },
+  abreAvisos: () => { abaAvisos = 'config'; modalAvisos.innerHTML = ''; modalAvisos.dataset.aba = ''; desenhaAvisos(); modalAvisos.showModal(); modalAvisos.focus() },
+  abrePreco: () => abrePreco(),
+  abreAba: (v) => { mostraVisao(v, true); document.querySelector('.col').scrollIntoView({ block: 'start', behavior: 'smooth' }) },
+})
 
 // ---------------------------------------------------------------- revela: o carro pluga na bomba, a tela some e a maquete aparece
 // Fica no fim de propósito: o painel inteiro (cards, a vaga que já abre carregando) se monta com a tela de carregamento na

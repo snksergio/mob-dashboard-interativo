@@ -110,6 +110,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .estado i{width:7px;height:7px;border-radius:50%;background:var(--dim)}
 .estado.montado{color:var(--green-ink)}
 .estado.montado i{background:var(--green)}
+/* (9/11) montado, mas ainda com o que configurar (preço, onde receber, horário, app) */
+.estado.pendente{color:#F5B54A}
+.estado.pendente i{background:#F5B54A;box-shadow:0 0 0 3px rgba(245,181,74,.18)}
 .nada{padding:28px 18px;text-align:center;color:var(--muted);font-size:14px}
 .nada button{color:var(--text);text-decoration:underline;text-underline-offset:3px}
 .barra-acao{position:sticky;bottom:0;margin-top:auto;padding:18px 0 4px;display:flex;align-items:center;gap:14px;background:linear-gradient(to top,#000 calc(100% - 16px),transparent)}   /* (4/11) no celular a barra tem 2 linhas: a de cima ficava transparente sobre a lista */
@@ -179,6 +182,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 </div>
 
 <script type="module">
+import { estado as estadoPronto } from './posto-pronto.js'                  // (9/11) o que falta configurar em cada posto
 const $ = (s) => document.querySelector(s)
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 const q = new URLSearchParams(location.search)
@@ -211,12 +215,12 @@ function desenhaPostos() {
   const lista = POSTOS.filter((p) => (filtro === 'todos' || (filtro === 'montados') === montados.includes(p.id)) && (!t || normal(`${p.nome} ${p.end}`).includes(t)))
     .sort((a, b) => montados.includes(b.id) - montados.includes(a.id))
   $('#postos').innerHTML = lista.length ? lista.map((p) => {
-    const ok = montados.includes(p.id), n = p.bombas.length
+    const ok = montados.includes(p.id), n = p.bombas.length, falta = ok ? estadoPronto(p).faltam.length : 0
     return `<li><button type="button" class="linha" data-posto="${p.id}" aria-pressed="${escolhido === p.id}">
       <span class="marcador" aria-hidden="true"></span>
       <span class="nome"><b>${esc(p.nome)}</b><small>${esc(p.end)} · ${n} bomba${n > 1 ? 's' : ''}</small></span>
       <span class="bombas">${bombasDe(p)}</span>
-      <span class="estado ${ok ? 'montado' : ''}"><i></i>${ok ? 'Montado' : 'Ainda não montado'}</span></button></li>`
+      <span class="estado ${falta ? 'pendente' : ok ? 'montado' : ''}"><i></i>${falta ? `Montado · falta configurar ${falta}` : ok ? 'Montado e configurado' : 'Ainda não montado'}</span></button></li>`
   }).join('') : `<li class="nada">Nenhum posto ${t ? `com “${esc(termo.trim())}”` : 'aqui'}. <button type="button" id="limpar">Ver todos</button></li>`
 }
 function atualizaAcao() {

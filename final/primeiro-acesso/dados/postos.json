@@ -5,6 +5,7 @@
   "postos": [
     {
       "id": "lagoa",
+      "config": {},
       "nome": "Posto Lagoa",
       "end": "Pampulha, Belo Horizonte",
       "equip": "3 bombas · ainda não montado",

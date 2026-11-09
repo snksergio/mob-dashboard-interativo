@@ -136,6 +136,7 @@
     },
     {
       "id": "mobi",
+      "config": { "preco": { "base": 2.2 }, "app": { "nome": "Garagem Jardim", "foto": "maquete", "endOk": true } },
       "nome": "Garagem Jardim",
       "end": "Jardim Canadá, Nova Lima",
       "equip": "1 bomba · com cobertura",
