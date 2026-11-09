@@ -626,7 +626,10 @@ export async function criarPlantaImagem(el, opcoes = {}) {
     }
     aplicaVista()
     // ao aproximar, o teto da cobertura quase some (para ver os carros embaixo)
-    at(gTeto, 'opacity', (((pj.tetoOpacidade ?? 0.3) + 0.12 * noite) * (1 - 0.8 * suave(clamp01((zoom.k - 1.1) / 0.8)))).toFixed(3))
+    // (9/11, Sergio) 60% em 100%, como na V1 (a planta ilustrada dela tem tetoOpacidade 0,6): as maquetes montadas no
+    // navegador não dizem a opacidade e ficavam nos 30%, e o teto, que passa um pouco das vagas, aparecia só como uma
+    // faixa verde clara a mais
+    at(gTeto, 'opacity', (((pj.tetoOpacidade ?? 0.6) + 0.12 * noite) * (1 - 0.8 * suave(clamp01((zoom.k - 1.1) / 0.8)))).toFixed(3))
     for (const vg of vagas) vaga(vg, dt)
     for (const b of bombas) {
       const al = b.falha ? (leve ? 0.85 : 0.55 + 0.45 * Math.sin(tempo * 5.5)) : 0      // leve: a base fica vermelha, sem piscar
