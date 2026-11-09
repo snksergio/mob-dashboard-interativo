@@ -90,7 +90,8 @@ http.createServer(async (req, res) => {
     return json(res, 400, { erro: 'este app não tem a fila do Blender: a maquete é montada no navegador' })
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end() }
-  const mt = url.match(/^\/montador\/(web|lego)\/(.+)$/)
+  // (9/11) e /montador/lego-lateral/: as peças das vagas paralelas
+  const mt = url.match(/^\/montador\/(web|lego|lego-lateral)\/(.+)$/)
   if (mt) { const a = dentro(path.join(aqui, mt[1]), mt[2]); return a ? envia(res, a, req) : (res.writeHead(403), res.end()) }
   if (url.startsWith('/dados/')) {
     const rel = url.slice(7), a = dentro(dados !== comum && COMUM.test(rel) ? comum : dados, rel)

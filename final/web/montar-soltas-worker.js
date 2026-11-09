@@ -3,6 +3,7 @@
 // no máximo MAX px de largura e converte para webp. Mesma conversa do montar-worker.js da V1.
 import { paraTela, brilho, lerWebp } from './base/compor.js'
 import { montarLego } from './lego.js'
+import { montarLateral } from './lateral.js'     // (9/11) vagas paralelas: monta já na resolução final
 
 const medida = { bytes: 0, arquivos: 0 }
 const agora = () => performance.now()
@@ -97,9 +98,12 @@ self.onmessage = async ({ data: t }) => {
     const filtro = t.sobre ? (p) => (p.tipo === 'bomba' && p.fileira === 'fundos') || p.tipo === 'pilar' || p.tipo === 'arvore'
       : t.arvore ? (p) => p.tipo === 'arvore' : null
     // (3/11, noite) na noite de cada vista, também a máscara das bombas (a mesma em todo horário): à noite se vê o que acende
-    const { fundo, teto, sobre, mascara, aceso } = await montarLego(t.indice, t.plano, ler, filtro, { mascara: t.per === 'noite' })
+    // (9/11) as vagas paralelas vêm do montarLateral, já na resolução final (t.layout, sem plano: ele planeja sozinho)
+    const res = t.lateral ? await montarLateral(t.indice, t.layout, ler, { max: t.max, mascara: t.per === 'noite' })
+      : await montarLego(t.indice, t.plano, ler, filtro, { mascara: t.per === 'noite' })
+    const { fundo, teto, sobre, mascara, aceso } = res
     ms['juntar as peças'] = agora() - t1
-    const { W, H } = t.plano.quadro, arquivos = {}
+    const { W, H } = t.lateral ? res.quadro : t.plano.quadro, expo = t.lateral ? t.indice.expo || 0 : t.plano.expo, arquivos = {}
     if (mascara) {
       // estados.png, pela metade: no vermelho, o número da bomba de cada pixel (0: nenhuma; o painel lê o mais próximo);
       // no verde, o quanto ali é luz acesa da bomba (a média)
@@ -117,7 +121,7 @@ self.onmessage = async ({ data: t }) => {
     for (const [nome, buf] of camadas) {
       t1 = agora()
       if (t.brilho && nome !== 'sobre') brilho(buf, W, H)
-      const tela = paraTela(buf, W, H, t.plano.expo); ms['brilho e cor'] = (ms['brilho e cor'] || 0) + agora() - t1
+      const tela = paraTela(buf, W, H, expo); ms['brilho e cor'] = (ms['brilho e cor'] || 0) + agora() - t1
       if (t.vista === 'planta' && t.brilho && t.contorno !== false) suavizarContorno(tela, W, H)   // 2D à noite (teto e "sobre" também)
       // (4/11) o teto da 2D vai pela metade da largura: o painel o mostra a ~30% de opacidade por cima de tudo (não se vê a
       // diferença) e ele era o maior arquivo da 2D (~870 KB, mais que o chão); medido num celular com 4G, o que atrasava abrir
@@ -126,7 +130,7 @@ self.onmessage = async ({ data: t }) => {
     }
     if (sobre && t.arvore) {
       // a árvore vai recortada (só o retângulo dela) com o lugar no quadro em frações (u da esquerda, v de baixo), como na V1
-      const tela = paraTela(sobre, W, H, t.plano.expo)
+      const tela = paraTela(sobre, W, H, expo)
       let x0 = W, y0 = H, x1 = -1, y1 = -1
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (tela[(y * W + x) * 4 + 3] > 2) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y }
       if (x1 >= 0) {
@@ -138,6 +142,6 @@ self.onmessage = async ({ data: t }) => {
         arquivos[`arvore-${t.per}.json`] = new Blob([JSON.stringify({ u0: x0 / W, u1: (x1 + 1) / W, v0: 1 - (y1 + 1) / H, v1: 1 - y0 / H })], { type: 'application/json' })
       }
     }
-    self.postMessage({ ok: true, arquivos, ms, total: agora() - T0, medida: { ...medida } })
+    self.postMessage({ ok: true, arquivos, ms, total: agora() - T0, medida: { ...medida }, ...(t.lateral ? { quadro: res.quadro, faltas: res.faltas, bombas: res.bombas } : {}) })
   } catch (e) { self.postMessage({ ok: false, erro: String(e.message || e), ms, medida: { ...medida } }) }
 }

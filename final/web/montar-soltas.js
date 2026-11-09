@@ -37,7 +37,58 @@ async function baixa(url, medida, grupo) {
 }
 const json = async (url, medida, grupo) => JSON.parse(new TextDecoder().decode(await baixa(url, medida, grupo)))
 
-export async function montarMaquete(montagem, { max = 3600, paralelo, aoProgresso = () => {}, sinal, contorno = true } = {}) {
+// (9/11) vagas paralelas ("bomba lateral"): montagem = { modelo: 'lateral', ilhas: [{ bombas: [{ modelo, disp, lado,
+// coberta }] }] }. As peças são as de lego-lateral/<vista>-<horário>/ e cada Worker monta uma vista inteira já na
+// resolução final (lateral.js); vistas: as mesmas (3D e planta, nos quatro horários). Os dados do painel (âncoras,
+// luzes, cabos) deste modelo vêm no passo 3
+export const ehLateral = (m) => m && m.modelo === 'lateral'
+async function montarMaqueteLateral(montagem, { max = 3600, paralelo, aoProgresso = () => {}, sinal, contorno = true, vistas: soVistas = null } = {}) {
+  const T0 = performance.now(), medida = { bytes: {} }, ms = {}
+  const parar = () => { if (sinal && sinal.aborted) throw new DOMException('montagem cancelada', 'AbortError') }
+  const base = (v) => raiz + `lego-lateral/${v.vista}-${v.per}/`
+  const pedidas = VISTAS.filter((v) => !soVistas || soVistas.includes(`${v.vista}-${v.per}`))
+  aoProgresso({ etapa: 'índices', feitos: 0, total: 1 })
+  let t = performance.now()
+  const indices = await Promise.all(pedidas.map((v) => json(base(v) + 'lego.json', medida, 'índices').catch((e) => { if (v.opcional) return null; throw e })))
+  ms['índices'] = performance.now() - t
+  parar()
+  const fila = pedidas.map((v, i) => indices[i] && { ...v, lateral: true, base: base(v), indice: indices[i], layout: { ilhas: montagem.ilhas }, max, contorno }).filter(Boolean)
+  // memória: cada Worker segura o fundo, o teto e a cor do chão (Float32) do quadro final; estimado pela vista 3D
+  const P = paralelo || paralelos(max * Math.round(max * 0.6) * 1.2), arquivos = {}, quadros = {}
+  let feitos = 0, faltas = new Set(), bombas = null
+  aoProgresso({ etapa: 'montando', feitos, total: fila.length, paralelos: P })
+  t = performance.now()
+  await Promise.all(Array.from({ length: Math.min(P, fila.length) }, async () => {
+    const w = new Worker(new URL('./montar-soltas-worker.js', import.meta.url), { type: 'module' })
+    let desiste = null
+    const aoCancelar = () => { w.terminate(); if (desiste) desiste(new DOMException('montagem cancelada', 'AbortError')) }
+    if (sinal) sinal.addEventListener('abort', aoCancelar)
+    try {
+      while (fila.length) {
+        parar()
+        const tarefa = fila.shift()
+        const r = await new Promise((ok, falha) => { desiste = falha; w.onmessage = (e) => ok(e.data); w.onerror = (e) => ok({ ok: false, erro: e.message }); w.postMessage(tarefa) })
+        if (!r.ok) throw new Error(r.erro)
+        Object.assign(arquivos, r.arquivos); quadros[`${tarefa.vista}-${tarefa.per}`] = r.quadro; (r.faltas || []).forEach((f) => faltas.add(f)); bombas = r.bombas
+        for (const [k, v] of Object.entries(r.ms || {})) ms[`${tarefa.vista}-${tarefa.per}: ${k}`] = Math.round(v)
+        aoProgresso({ etapa: 'montando', feitos: ++feitos, total: pedidas.length, paralelos: P })
+      }
+    } finally { w.terminate(); if (sinal) sinal.removeEventListener('abort', aoCancelar) }
+  }))
+  parar()
+  ms['montar (em paralelo)'] = performance.now() - t
+  const horarios = TODOS.filter((p) => pedidas.some((v) => v.vista === '3d' && v.per === p && quadros[`3d-${p}`]))
+  const horarios2d = TODOS.filter((p) => pedidas.some((v) => v.vista === 'planta' && v.per === p && quadros[`planta-${p}`]))
+  const js = (o) => new Blob([JSON.stringify(o)], { type: 'application/json' })
+  arquivos['pronto.json'] = js({ lateral: true, por_pecas: true, lego: true, sem_blender: true, no_navegador: true, horarios, horarios2d, quadros, bombas, geradoEm: new Date().toISOString(), faltam: [...faltas] })
+  return { arquivos, ms, total: performance.now() - T0, medida, paralelos: P, quadro: quadros[`3d-${horarios[0]}`] || null, quadros, faltas: [...faltas] }
+}
+
+export async function montarMaquete(montagem, opcoes = {}) {
+  if (ehLateral(montagem)) return montarMaqueteLateral(montagem, opcoes)
+  return montarMaqueteFileira(montagem, opcoes)
+}
+async function montarMaqueteFileira(montagem, { max = 3600, paralelo, aoProgresso = () => {}, sinal, contorno = true } = {}) {
   const T0 = performance.now(), medida = { bytes: {} }, ms = {}
   const parar = () => { if (sinal && sinal.aborted) throw new DOMException('montagem cancelada', 'AbortError') }
   montagem = arruma(montagem)

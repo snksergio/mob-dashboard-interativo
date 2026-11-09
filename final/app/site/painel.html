@@ -1215,6 +1215,66 @@ details.demo .linha button{padding:5px 10px;border-radius:9px;border:1px solid v
 /* o dono não simula dia, noite e chuva: no modo cliente a maquete segue a hora e o clima de verdade (29/10, rodada 2) */
 .modo-cliente .palco-amb{display:none}
 .modo-cliente .grid{height:calc(100vh - 32px)}
+
+/* ---------------------------------------------------------------- (9/11) revisão no celular do Sergio */
+/* nada passa da largura da tela: sem rolagem de lado nem a página "afastando" para caber */
+html,body{overflow-x:clip}
+/* altura real da tela: dvh desconta a barra do navegador do celular (vh não desconta, e o diálogo passava da tela) */
+dialog.modal{max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)}
+/* com um diálogo aberto, a página de trás não rola */
+html:has(dialog.modal[open]){overflow:hidden}
+dialog.modal .corpo,.lista-postos{overscroll-behavior:contain}
+/* o cabeçalho, as abas e o rodapé do diálogo não encolhem quando o conteúdo é comprido (as abas ficavam cortadas,
+   com o conteúdo "em cima" delas) */
+dialog.modal > .cab,dialog.modal > .abas,dialog.modal > .pe{flex:none}
+dialog.modal > .corpo{flex:1 1 auto;min-height:0}
+/* o contorno de foco das abas por dentro (a faixa das abas rola de lado e cortava o contorno) */
+.abas button:focus-visible{outline-offset:-4px}
+/* as abas do painel (Posto, Motoristas, Financeiro) numa caixa que se vê */
+.vistas{background:#0F1411;border-color:var(--line-2)}
+[data-theme="light"] .vistas{background:var(--surface-2)}
+/* no toque, campo com letra menor que 16 px faz o iPhone aproximar a página ao tocar nele */
+@media (pointer: coarse){ input,select,textarea,.busca input{font-size:16px} }
+/* mapa dos postos: arrastar, pinça, roda do mouse e botões (o mapa se mexe; os pinos e os nomes ficam do mesmo tamanho) */
+.mapa{touch-action:none;-webkit-user-select:none;user-select:none}
+.mapa-mundo{position:absolute;inset:0;transform-origin:0 0}
+.mapa-mundo > svg{position:absolute;inset:0;width:100%;height:100%}
+.mapa-mundo .pin{transform:translate(-50%,-50%) scale(calc(1 / var(--k, 1)))}
+.mapa-mundo .rot-cidade{transform:translate(-50%,-50%) scale(calc(1 / var(--k, 1)))}
+.mapa-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.mapa-zoom button{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:var(--vidro-solido);border:1px solid var(--line-2);color:var(--text);font-size:18px;line-height:1}
+.mapa-zoom button:disabled{opacity:.35}
+.po-vista{display:none}
+@media (max-width: 860px){
+  /* no celular, lista ou mapa (um de cada vez, o mapa grande o bastante para mexer) */
+  .po-vista{display:flex;margin-top:12px}
+  .po-vista button{flex:1}
+  .postos-corpo[data-pv="lista"] > .mapa{display:none}
+  .postos-corpo[data-pv="mapa"] .lista-postos{display:none}
+  .postos-corpo[data-pv="mapa"] > .mapa{aspect-ratio:auto;height:calc(92vh - 400px);height:calc(92dvh - 400px);min-height:260px;max-height:560px}
+  .postos-corpo[data-pv="mapa"] .busca{display:none}
+  /* a legenda numa linha só, no canto (a explicação dos raios fica para a lista) */
+  .mapa .legenda-mapa{left:8px;bottom:8px;gap:10px;padding:5px 9px;font-size:11.5px}
+  .mapa .legenda-mapa em{display:none}
+}
+@media (max-width: 560px){
+  dialog.modal,dialog.modal.largo,dialog.modal.postos,dialog#modalMotorista{max-height:92vh;max-height:92dvh}
+  dialog#modalMotorista{height:92vh;height:92dvh}
+  /* os números em linhas: o que é à esquerda, o valor à direita */
+  .grade-kpi,.grade-kpi.tres{grid-template-columns:1fr;gap:0;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);overflow:hidden}
+  .grade-kpi div{display:flex;flex-direction:row-reverse;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 14px;border:0;border-top:1px solid var(--line);border-radius:0;background:none}
+  .grade-kpi div:first-child{border-top:0}
+  .grade-kpi b{font-size:16px;margin:0;white-space:nowrap}
+  .grade-kpi span{font-size:13.5px}
+  /* perfil: a placa embaixo do carro, não espremida do lado */
+  .carro-topo{display:grid;grid-template-columns:46px minmax(0,1fr);column-gap:14px;row-gap:12px;align-items:center}
+  .carro-topo .placa{grid-column:2;justify-self:start;width:116px}
+  .carro-topo .placa b{font-size:20px}
+  /* o seletor de posto da mesma altura do botão de tela cheia */
+  .palco-topo .posto-card{min-height:38px}
+  /* lista de postos: o "aberto agora" embaixo do nome, sem encostar no "carregando" */
+  .lista-postos .tx b{flex-wrap:wrap;gap:3px 8px}
+}
 </style>
 <script>
   // modo cliente (?cliente=1): fica ligado nesta aba, indo ao construtor e voltando; ?cliente=0 desliga
@@ -2773,7 +2833,7 @@ document.getElementById('alertaIr').addEventListener('click', () => { const b = 
 
 // ---------------------------------------------------------------- modal de postos: busca, filtros, lista e mapa
 const modalPostos = document.getElementById('modalPostos')
-const fPostos = { busca: '', est: 'todos', modelos: new Set(), sel: postoId }
+const fPostos = { busca: '', est: 'todos', modelos: new Set(), sel: postoId, ver: 'lista' }   // ver: lista ou mapa (no celular, um de cada vez)
 const EST_TXT = { carregando: (n) => `${n} carregando`, livre: () => 'Livre', alerta: () => 'Sem comunicação' }
 const MODELOS_F = [['mobi', 'Mobi'], ['fast', 'Mobi Fast'], ['ultra', 'Mobi Ultra Fast']]
 // cada bomba vira um grupo de raios: Mobi 1, Mobi Fast 2, Mobi Ultra Fast 3 (círculos um sobre o outro)
@@ -2792,7 +2852,7 @@ const passaFiltro = (p) => {
   return (!t || `${p.nome} ${p.bairro} ${p.cidade} ${p.equip}`.toLowerCase().includes(t)) && (fPostos.est === 'todos' || st.est === fPostos.est)
     && (!fPostos.modelos.size || [...fPostos.modelos].some((m) => temModelo(p, m)))
 }
-const MAPA_SVG = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+const MAPA_SVG = `<div class="mapa-mundo"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
   <defs><pattern id="quadras" width="3.2" height="3.2" patternUnits="userSpaceOnUse"><rect x=".35" y=".35" width="2.5" height="2.5" rx=".4" fill="rgba(255,255,255,.03)"/></pattern></defs>
   <rect width="100" height="100" fill="#0A0F0C"/><rect width="100" height="100" fill="url(#quadras)"/>
   <path d="M28 78C40 71 56 72 68 66c9-4 18-5 30-3v9c-12-2-20-1-28 3-12 6-28 7-42 9Z" fill="rgba(3,255,31,.045)"/>
@@ -2809,6 +2869,7 @@ const MAPA_SVG = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hid
 <span class="rot-cidade" style="left:54%;top:39%">BELO HORIZONTE</span><span class="rot-cidade" style="left:22%;top:39%">CONTAGEM</span>
 <span class="rot-cidade" style="left:9%;top:46%">BETIM</span><span class="rot-cidade" style="left:72%;top:92%">NOVA LIMA</span>
 <span class="rot-cidade peq" style="left:41%;top:20%">Lagoa da Pampulha</span><span class="rot-cidade peq" style="left:70%;top:73%">Serra do Curral</span>`
+// (o MAPA_SVG abre a .mapa-mundo, a camada que o zoom move; os pinos entram nela e ela fecha no modelo do diálogo)
 function desenhaPostos(tudo) {
   const lista = POSTOS.filter(passaFiltro), sel = POSTOS.find((p) => p.id === fPostos.sel)
   const resumo = POSTOS.map(situacao), nCar = resumo.filter((x) => x.est === 'carregando').length, nAl = resumo.filter((x) => x.est === 'alerta').length
@@ -2827,7 +2888,7 @@ function desenhaPostos(tudo) {
   modalPostos.innerHTML = `
     <div class="cab"><div><h2 id="mpoTit">Seus eletropostos</h2><p>${POSTOS.length} postos · ${nCar} carregando agora · ${nAl} com alerta</p></div>
       <button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>
-    <div class="corpo"><div class="postos-corpo">
+    <div class="corpo"><div class="postos-corpo" data-pv="${fPostos.ver}">
       <div>
         <label class="busca"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="m10.5 10.5 3.2 3.2" stroke-linecap="round"/></svg>
           <input type="search" id="poBusca" placeholder="Buscar por nome, bairro ou cidade" aria-label="Buscar posto" value="${fPostos.busca}"></label>
@@ -2835,9 +2896,11 @@ function desenhaPostos(tudo) {
           <div class="seg-dias" role="group" aria-label="Situação">${[['todos', 'Todos'], ['carregando', 'Carregando'], ['alerta', 'Com alerta'], ['livre', 'Livres']].map(([k, t]) => `<button type="button" data-est="${k}" aria-pressed="${fPostos.est === k}">${t}</button>`).join('')}</div>
           <div class="seg-dias" role="group" aria-label="Bombas">${MODELOS_F.map(([k, t]) => `<button type="button" data-mod="${k}" aria-pressed="${fPostos.modelos.has(k)}">${t}</button>`).join('')}</div>
         </div>
+        <div class="seg-dias po-vista" role="group" aria-label="Ver os postos em">${[['lista', 'Lista'], ['mapa', 'Mapa']].map(([k, t]) => `<button type="button" data-ver="${k}" aria-pressed="${fPostos.ver === k}">${t}</button>`).join('')}</div>
         <ul class="lista-postos" id="poLista">${linhas}</ul>
       </div>
-      <div class="mapa">${MAPA_SVG}<div id="poPins">${pins}</div>
+      <div class="mapa">${MAPA_SVG}<div id="poPins">${pins}</div></div>
+        <div class="mapa-zoom"><button type="button" data-mz="mais" aria-label="Aproximar o mapa">+</button><button type="button" data-mz="menos" aria-label="Afastar o mapa" disabled>−</button></div>
         <div class="legenda-mapa"><span class="c">Carregando</span><span>Livre</span><span class="a">Com alerta</span><em style="font-style:normal;color:var(--dim)">1 raio Mobi · 2 Mobi Fast · 3 Mobi Ultra Fast</em></div></div>
     </div></div>
     <div class="pe"><span id="poMostrando">Mostrando ${lista.length} de ${POSTOS.length}</span>
@@ -2845,12 +2908,75 @@ function desenhaPostos(tudo) {
       <button class="btn" type="button" data-pa="cancelar">Cancelar</button>
       <button class="btn prim" type="button" data-pa="abrir" ${!sel || sel.id === postoId ? 'disabled' : ''}>${!sel ? 'Escolha um posto' : sel.id === postoId ? 'Você está neste posto' : `Abrir ${sel.nome}`}</button></div>`
 }
-function abrePostos() { fPostos.sel = postoId; desenhaPostos(true); modalPostos.showModal(); modalPostos.focus() }
+function abrePostos() { fPostos.sel = postoId; Object.assign(mapaZ, { k: 1, x: 0, y: 0 }); desenhaPostos(true); modalPostos.showModal(); modalPostos.focus() }
+// (9/11) o mapa dos postos se mexe: arrastar com um dedo (ou o mouse), pinça, roda do mouse, toque duplo e os botões
+// + e −. A camada .mapa-mundo é transladada e escalada; os pinos e os nomes das cidades se desescalam (var --k)
+const mapaZ = { k: 1, x: 0, y: 0, pts: new Map(), ini: null, moveu: false, toque: 0, tx: 0, ty: 0 }
+function mapaAplica(m) {
+  if (!m) return
+  const w = m.clientWidth, h = m.clientHeight
+  mapaZ.k = Math.min(4, Math.max(1, mapaZ.k))
+  mapaZ.x = Math.min(0, Math.max(w * (1 - mapaZ.k), mapaZ.x)); mapaZ.y = Math.min(0, Math.max(h * (1 - mapaZ.k), mapaZ.y))
+  const mu = m.querySelector('.mapa-mundo')
+  mu.style.transform = `translate(${mapaZ.x}px,${mapaZ.y}px) scale(${mapaZ.k})`; mu.style.setProperty('--k', mapaZ.k)
+  m.querySelector('[data-mz="menos"]').disabled = mapaZ.k <= 1.001; m.querySelector('[data-mz="mais"]').disabled = mapaZ.k >= 3.999
+}
+function mapaZoom(m, f, cx, cy) {     // (cx, cy): o ponto que fica parado, em px dentro do mapa
+  const k0 = mapaZ.k, k1 = Math.min(4, Math.max(1, k0 * f)); if (k1 === k0) return
+  mapaZ.x = cx - (cx - mapaZ.x) * (k1 / k0); mapaZ.y = cy - (cy - mapaZ.y) * (k1 / k0); mapaZ.k = k1; mapaAplica(m)
+}
+const noMapa = (e) => (e.target.closest ? e.target.closest('.mapa') : null)
+const mapaRel = (m, p) => { const r = m.getBoundingClientRect(); return { x: p.x - r.left, y: p.y - r.top } }
+function mapaInicio() { mapaZ.ini = { pts: new Map([...mapaZ.pts].map(([k, v]) => [k, { ...v }])), x: mapaZ.x, y: mapaZ.y, k: mapaZ.k } }
+modalPostos.addEventListener('pointerdown', (e) => {
+  const m = noMapa(e); if (!m || e.target.closest('.mapa-zoom')) return
+  mapaZ.pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (mapaZ.pts.size === 1) mapaZ.moveu = false; mapaInicio()
+})
+modalPostos.addEventListener('pointermove', (e) => {
+  if (!mapaZ.pts.has(e.pointerId)) return
+  const m = modalPostos.querySelector('.mapa'); mapaZ.pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  const ini = mapaZ.ini, ps = [...mapaZ.pts.values()], ps0 = [...ini.pts.values()]
+  if (ps.length === 1) {
+    const dx = ps[0].x - ps0[0].x, dy = ps[0].y - ps0[0].y
+    if (!mapaZ.moveu && Math.hypot(dx, dy) < 6) return
+    if (!mapaZ.moveu) { mapaZ.moveu = true; try { m.setPointerCapture(e.pointerId) } catch {} }
+    mapaZ.x = ini.x + dx; mapaZ.y = ini.y + dy; mapaAplica(m)
+  } else if (ps.length >= 2) {
+    mapaZ.moveu = true
+    const d = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y), d0 = Math.hypot(ps0[0].x - ps0[1].x, ps0[0].y - ps0[1].y) || 1
+    const c = mapaRel(m, { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 }), c0 = mapaRel(m, { x: (ps0[0].x + ps0[1].x) / 2, y: (ps0[0].y + ps0[1].y) / 2 })
+    const k = Math.min(4, Math.max(1, ini.k * d / d0))
+    mapaZ.k = k; mapaZ.x = c.x - (c0.x - ini.x) * (k / ini.k); mapaZ.y = c.y - (c0.y - ini.y) * (k / ini.k); mapaAplica(m)
+  }
+})
+const mapaSolta = (e) => {
+  if (!mapaZ.pts.has(e.pointerId)) return
+  mapaZ.pts.delete(e.pointerId); if (mapaZ.pts.size) { mapaInicio(); return }
+  // toque duplo num lugar vazio do mapa: aproxima ali
+  const m = noMapa(e) || modalPostos.querySelector('.mapa')
+  if (!mapaZ.moveu && e.type === 'pointerup' && !e.target.closest('.pin')) {
+    const agora = performance.now()
+    if (agora - mapaZ.toque < 320 && Math.hypot(e.clientX - mapaZ.tx, e.clientY - mapaZ.ty) < 30) { const p = mapaRel(m, { x: e.clientX, y: e.clientY }); mapaZoom(m, 2, p.x, p.y); mapaZ.toque = 0 }
+    else Object.assign(mapaZ, { toque: agora, tx: e.clientX, ty: e.clientY })
+  }
+}
+modalPostos.addEventListener('pointerup', mapaSolta); modalPostos.addEventListener('pointercancel', mapaSolta)
+// depois de arrastar, o "clique" que o navegador manda no fim não escolhe o pino em que o dedo terminou
+modalPostos.addEventListener('click', (e) => { if (mapaZ.moveu && noMapa(e)) { e.stopImmediatePropagation(); e.preventDefault(); mapaZ.moveu = false } }, true)
+modalPostos.addEventListener('wheel', (e) => { const m = noMapa(e); if (!m) return; e.preventDefault(); const p = mapaRel(m, { x: e.clientX, y: e.clientY }); mapaZoom(m, Math.exp(-e.deltaY * 0.0015), p.x, p.y) }, { passive: false })
 function vaiPara(id) { if (id === postoId) return; q.set('posto', id); location.search = q.toString() }
 document.getElementById('postoBtn').addEventListener('click', abrePostos)
 modalPostos.addEventListener('input', (e) => { if (e.target.id === 'poBusca') { fPostos.busca = e.target.value; desenhaPostos(false) } })
 modalPostos.addEventListener('click', (e) => {
   if (e.target === modalPostos || e.target.closest('[data-fecha]') || e.target.closest('[data-pa="cancelar"]')) { modalPostos.close(); return }
+  const mz = e.target.closest('[data-mz]'); if (mz) { const m = mz.closest('.mapa'); mapaZoom(m, mz.dataset.mz === 'mais' ? 1.6 : 1 / 1.6, m.clientWidth / 2, m.clientHeight / 2); return }
+  const ver = e.target.closest('[data-ver]')
+  if (ver) {
+    fPostos.ver = ver.dataset.ver; modalPostos.querySelector('.postos-corpo').dataset.pv = fPostos.ver
+    modalPostos.querySelectorAll('[data-ver]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.ver === fPostos.ver))
+    if (fPostos.ver === 'mapa') mapaAplica(modalPostos.querySelector('.mapa'))
+    return
+  }
   const po = e.target.closest('[data-po]'); if (po) { fPostos.sel = po.dataset.po; desenhaPostos(false); return }
   const est = e.target.closest('[data-est]'); if (est) { fPostos.est = est.dataset.est; desenhaPostos(false); return }
   const mod = e.target.closest('[data-mod]'); if (mod) { const k = mod.dataset.mod; fPostos.modelos.has(k) ? fPostos.modelos.delete(k) : fPostos.modelos.add(k); desenhaPostos(false); return }
