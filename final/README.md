@@ -91,6 +91,10 @@ Vagas paralelas (`"modelo": "lateral"`): a montagem diz as ilhas (até 8, com at
 na `dois`) e se está coberta. Assinatura: `L|` e, por ilha (separadas por `/`), cada bomba `modelo + u|d|f + F|T + c`
 (ex.: `L|fastd,mobiuFc/ultrafTc`).
 
+O construtor das vagas paralelas funciona como o das bombas de frente: arrastar da lista para a ilha (o lado onde
+solta é o lado da vaga), arrastar a bomba ou a vaga no mapa, "+ vaga", botão direito (no celular, tocar e segurar),
+pinça para o zoom, formatos prontos e o "Como funciona".
+
 ## Arquivos de uma maquete (`app/dados/m-xxxxxxxx/`)
 
 | Arquivo | Uso |

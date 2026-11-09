@@ -108,6 +108,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 .camada .tx b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .camada .tx small{font-size:12px;color:var(--muted)}
 .camada .raios{justify-content:center}
+/* (9/11) a bomba de verdade no lugar dos raios: na lista, no "No mapa", no cartão que segue o ponteiro e no menu */
+.mini-bomba{display:block;height:34px;width:auto;max-width:40px;object-fit:contain;pointer-events:none}
+.camada .mini-bomba{height:26px;max-width:30px;justify-self:center}
+.camada .ic-camada{display:grid;place-items:center;height:30px}
+.fantasma .mini-bomba{height:26px}
+.menu-ctx h3 .mini-bomba{height:22px}
+#cardFormato .cob-op[aria-pressed="false"]{cursor:pointer}
 .vazio-grupo{font-size:13px;color:var(--muted);padding:10px 12px;border-radius:12px;border:1px dashed var(--line-2);text-align:center}
 
 /* estrutura */
@@ -133,7 +140,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 /* ---------------------------------------------------------------- palco */
 .palco{position:relative;border-radius:18px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at 50% 45%,var(--stage-a),var(--stage-b) 75%),var(--stage-b);min-height:420px}
 .palco::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,var(--dots) 1.1px,transparent 1.7px);background-size:20px 20px;-webkit-mask:radial-gradient(ellipse at 50% 46%,#000 35%,rgba(0,0,0,.35) 85%);mask:radial-gradient(ellipse at 50% 46%,#000 35%,rgba(0,0,0,.35) 85%)}
-#mapa{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+#mapa{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #mapa.pan{cursor:grab}
 #mapa .teto{transition:opacity .25s}
 /* o telhado some quando a pessoa vai mexer: bomba escolhida, arrastando, ou com o ponteiro sobre uma bomba ou um "+" */
@@ -221,6 +228,7 @@ dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
 .menu-ctx button:disabled{opacity:.4;cursor:default;background:none}
 .menu-ctx button svg{width:15px;height:15px;color:var(--muted);flex:none}
 .menu-ctx button kbd{margin-left:auto;font:500 11px/1 "Instrument Sans",sans-serif;color:var(--dim)}
+@media (pointer:coarse){.menu-ctx button kbd{display:none}}
 .menu-ctx button[aria-checked="true"]::after{content:"";margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--green)}
 .menu-ctx .perigo{color:var(--red)}
 .menu-ctx .perigo svg{color:var(--red)}
@@ -301,6 +309,7 @@ dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
     <label class="posto-sel-w" id="postoSelW"><span class="sr">Posto</span><select class="posto-sel" id="postoSel"></select></label>
     <div class="fim">
       <span class="salvo" id="salvo" aria-live="polite"></span>
+      <button class="ajuda" type="button" id="verTour"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6.4 6.3a1.7 1.7 0 1 1 2.4 1.6c-.5.2-.8.6-.8 1.1v.4M8 11.4v.1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Como funciona</button>
       <button class="btn prim" type="button" id="confirmar">Criar meu posto</button>
     </div>
   </header>
@@ -309,8 +318,12 @@ dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
     <aside class="col" aria-label="Formato, bombas e cobertura">
       <section class="card" id="cardFormato">
         <h2>Formato do posto</h2>
-        <div class="seg largo" role="group" aria-label="Formato do posto"><button type="button" data-tipo="fileira" aria-pressed="false">Bombas de frente</button><button type="button" aria-pressed="true">Vagas paralelas</button></div>
-        <p class="nota" style="margin-top:8px">As vagas ficam ao lado da ilha, em linha: o carro para paralelo à ilha, com a bomba ao lado.</p>
+        <!-- (9/11, Sergio) cartões com a ilustração da posição da vaga, como os da cobertura (as duas imagens são as peças
+             da maquete: fileira-uma.webp e formato-paralelas.webp, de render/lateral/kits/ilustracao-formato.json) -->
+        <div class="cob-ops" role="group" aria-label="Formato do posto">
+          <button type="button" class="cob-op" data-tipo="fileira" aria-pressed="false"><img src="dados/construtor/fileira-uma.webp" alt="" width="300" height="224"><b>Bombas de frente</b><small>O carro para de frente para a bomba</small></button>
+          <button type="button" class="cob-op" aria-pressed="true"><img src="dados/construtor/formato-paralelas.webp" alt="" width="300" height="224"><b>Vagas paralelas</b><small>O carro para ao lado da ilha, em linha</small></button>
+        </div>
       </section>
       <section class="card" id="cardBombas">
         <h2>Suas bombas <small id="invResumo"></small></h2>
@@ -323,6 +336,11 @@ dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
           <button type="button" class="cob-op" data-cob="0"><img src="dados/construtor/cobertura-sem.webp" alt="" width="300" height="240"><b>Sem cobertura</b><small>Bombas ao ar livre</small></button>
         </div>
         <p class="nota" style="margin-top:8px" id="cobNota">Cobre todas as bombas. Para cobrir só algumas, escolha a bomba no mapa.</p>
+      </section>
+      <section class="card" id="cardFormatos">
+        <h2>Formatos prontos</h2>
+        <p class="nota" style="margin-bottom:10px">Comece de um formato pronto com as suas bombas e ajuste o que quiser depois.</p>
+        <button class="btn" type="button" id="abrirModelos" style="width:100%">Ver formatos prontos</button>
       </section>
     </aside>
 
@@ -348,7 +366,7 @@ dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
       <section class="card" id="cardSel" hidden></section>
       <section class="card" id="cardDica">
         <h2>Ajuste cada bomba</h2>
-        <p class="nota">Toque numa bomba (ou numa vaga dela) para escolher as vagas, a cobertura, a ilha e a posição. O <b>+</b> no fim de uma ilha põe uma bomba ali; o <b>+ Ilha</b> abre uma ilha nova atrás.</p>
+        <p class="nota">Segure e arraste uma bomba da lista para uma ilha: solte <b>na frente</b> ou <b>atrás</b> dela para escolher o lado da vaga. No mapa, arraste a <b>bomba</b> para mudar de lugar ou de ilha, e arraste uma <b>vaga</b> para trocá-la de lado. Para uma vaga a mais, escolha a bomba e toque no <b>+ vaga</b>. O botão direito (no celular, tocar e segurar) abre todas as opções.</p>
       </section>
       <section class="card" id="cardPosto">
         <h2>Seu posto</h2>
@@ -362,7 +380,12 @@ dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
   </div>
 </div>
 
+<div class="fantasma" id="fantasma" hidden></div>
 <div class="pop" id="popBombas" hidden role="dialog" aria-label="Escolher bomba"><h3 id="popTit">Pôr qual bomba aqui?</h3><ul class="bombas" id="popLista"></ul></div>
+<div class="menu-ctx" id="menuCtx" hidden role="menu" aria-label="Opções da bomba"></div>
+<div class="pop pop-vagas" id="popVagas" hidden role="dialog" aria-labelledby="pvTit"></div>
+<div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tourTit"><div class="tour-alvo" id="tourAlvo"></div><div class="tour-cartao" id="tourCartao"></div></div>
+<dialog class="modal largo" id="modalModelos" aria-labelledby="mmTit" tabindex="-1"></dialog>
 <dialog class="modal largo" id="modalConf" aria-labelledby="mcTit" tabindex="-1"></dialog>
 
 <script type="module">
@@ -395,6 +418,18 @@ const DISPS = [
   ['fila-frente', 'fila', 'frente', '2 vagas em fila na frente', 'Um carro na frente do outro, a bomba no meio.'],
   ['fila-tras', 'fila', 'tras', '2 vagas em fila atrás', 'Um carro na frente do outro, atrás da ilha.'],
 ]
+// (9/11, Sergio) a ilustração de cada forma, vista de cima e com a frente embaixo (como no mapa): a ilha em cinza, a bomba
+// em verde-escuro sobre ela e as vagas em verde, com a faixa branca. Na janela de escolha, no menu e no painel
+function icoVaga(k, cls = 'ico-vaga') {
+  const vaga = (x, y, w) => `<rect x="${x}" y="${y}" width="${w}" height="8.5" rx="1.3" fill="#1C8A46" stroke="#EAF6EC" stroke-width=".9"/>`
+  const bomba = (cx) => `<rect x="${cx - 1.7}" y="12.3" width="3.4" height="3.4" rx=".7" fill="#0B5E25" stroke="#03FF1F" stroke-width=".5"/>`
+  const F = 17.4, T = 2.1, um = (y) => vaga(11.5, y, 17), fila = (y) => vaga(2.5, y, 17) + vaga(20.5, y, 17)
+  const corpo = { 'unica-frente': um(F), 'unica-tras': um(T), dois: um(T) + um(F), 'fila-frente': fila(F), 'fila-tras': fila(T) }[k] || ''
+  // (9/11, Sergio) o desenho de um lado só fica no meio do quadro (antes sobrava o espaço do outro lado e parecia
+  // desalinhado): a ilha com as vagas da frente sobe, com as de trás desce
+  const dy = /frente$/.test(k) ? -4.9 : /tras$/.test(k) ? 4.9 : 0
+  return `<svg class="${cls}" viewBox="0 0 40 28" aria-hidden="true"><g transform="translate(0 ${dy})"><rect x="3" y="11.9" width="34" height="4.2" rx="2.1" fill="#C9CEC9"/>${corpo}${bomba(20)}</g></svg>`
+}
 const dispDe = (b) => (b.disp === 'dois' ? 'dois' : `${b.disp}-${b.lado === 'tras' ? 'tras' : 'frente'}`)
 const nVagas = (b) => (b.disp === 'unica' ? 1 : 2)
 
@@ -444,27 +479,41 @@ function desfaz(re) {
 
 // ================================================================ ações
 const cobPadrao = () => { const t = todos(); return t.length ? t.every((m) => m.coberta) || t.some((m) => m.coberta) : true }
-function por(bombaId, ilha = null) {
-  const b = bomba(bombaId); if (!b || noMapa(bombaId)) return
+// pôr da lista: na ilha (ou "nova", atrás da última), na posição e do lado onde a bomba foi solta; sem lugar dito, na
+// primeira ilha com espaço, com a vaga na frente
+const ladoTxt = (l) => (l === 'tras' ? 'atrás da ilha' : 'na frente da ilha')
+function por(bombaId, ilha = null, indice = null, lado = 'frente') {
+  const b = bomba(bombaId); if (!b || noMapa(bombaId)) return false
   const p = copia()
   let i = ilha
-  if (i === 'nova') { if (p.ilhas.length >= MAX_ILHAS) { aviso(`São no máximo ${MAX_ILHAS} ilhas.`); return } p.ilhas.push({ bombas: [] }); i = p.ilhas.length - 1 }
-  if (i == null) { i = p.ilhas.findIndex((il) => il.bombas.length < MAX_BOMBAS); if (i < 0) { if (p.ilhas.length >= MAX_ILHAS) { aviso('O posto já está cheio.'); return } p.ilhas.push({ bombas: [] }); i = p.ilhas.length - 1 } }
-  if (p.ilhas[i].bombas.length >= MAX_BOMBAS) { aviso(`Cada ilha tem no máximo ${MAX_BOMBAS} bombas.`); return }
-  p.ilhas[i].bombas.push({ bombaId: b.id, modelo: b.modelo, disp: 'unica', lado: 'frente', coberta: cobPadrao() })
-  sel = b.id; muda(p, `${b.rotulo} na ilha ${i + 1}, com 1 vaga na frente.`)
+  if (i === 'nova' || (i != null && i >= p.ilhas.length)) { if (p.ilhas.length >= MAX_ILHAS) { aviso(`São no máximo ${MAX_ILHAS} ilhas.`); return false } p.ilhas.push({ bombas: [] }); i = p.ilhas.length - 1 }
+  if (i == null) { i = p.ilhas.findIndex((il) => il.bombas.length < MAX_BOMBAS); if (i < 0) { if (p.ilhas.length >= MAX_ILHAS) { aviso('O posto já está cheio.'); return false } p.ilhas.push({ bombas: [] }); i = p.ilhas.length - 1 } }
+  if (p.ilhas[i].bombas.length >= MAX_BOMBAS) { aviso(`Cada ilha tem no máximo ${MAX_BOMBAS} bombas.`); return false }
+  const lista = p.ilhas[i].bombas
+  lista.splice(indice == null ? lista.length : Math.max(0, Math.min(indice, lista.length)), 0, { bombaId: b.id, modelo: b.modelo, disp: 'unica', lado, coberta: cobPadrao() })
+  sel = b.id; return muda(p, `${b.rotulo} na ilha ${i + 1}. Escolha as vagas dela.`)
 }
 function retirar(bombaId) {
   const o = ondeEsta(bombaId); if (!o) return
   const p = copia(); p.ilhas[o.i].bombas.splice(o.j, 1); sel = null; muda(p, `${bomba(bombaId).rotulo} voltou para a lista.`)
 }
-function mover(bombaId, ilha, pos) {
+// mover (arrastando no mapa, pelo menu ou pelo painel): para a ilha e a posição; com o lado, a vaga (ou a fila) passa
+// para o lado onde a bomba foi solta (a de 2 vagas tem uma de cada lado e continua assim)
+function mover(bombaId, ilha, pos, lado = null) {
   const o = ondeEsta(bombaId); if (!o) return
-  const p = copia(), [m] = p.ilhas[o.i].bombas.splice(o.j, 1)
-  if (ilha >= p.ilhas.length) p.ilhas.push({ bombas: [] })
+  const p = copia(), m0 = p.ilhas[o.i].bombas[o.j]
+  const trocaLado = lado && m0.disp !== 'dois' && m0.lado !== lado
+  const mesmoLugar = ilha === o.i && (pos === o.j || pos === o.j + 1)
+  if (mesmoLugar && !trocaLado) return
+  const [m] = p.ilhas[o.i].bombas.splice(o.j, 1)
+  if (ilha === o.i && pos > o.j) pos--
+  if (ilha >= p.ilhas.length) { if (p.ilhas.length >= MAX_ILHAS) { aviso(`São no máximo ${MAX_ILHAS} ilhas.`); return } p.ilhas.push({ bombas: [] }); ilha = p.ilhas.length - 1 }
   if (p.ilhas[ilha].bombas.length >= MAX_BOMBAS) { aviso(`A ilha ${ilha + 1} já tem ${MAX_BOMBAS} bombas.`); return }
+  if (trocaLado) m.lado = lado
   p.ilhas[ilha].bombas.splice(Math.max(0, Math.min(pos, p.ilhas[ilha].bombas.length)), 0, m)
-  muda(p)
+  sel = bombaId
+  muda(p, mesmoLugar ? `${bomba(bombaId).rotulo}: ${m.disp === 'fila' ? 'as vagas agora ficam' : 'a vaga agora fica'} ${ladoTxt(lado)}.`
+    : ilha !== o.i ? `${bomba(bombaId).rotulo} na ilha ${ilha + 1}${trocaLado ? `, com a vaga ${ladoTxt(lado)}` : ''}.` : `Bomba movida${trocaLado ? `, com a vaga ${ladoTxt(lado)}` : ''}. As vagas acompanham a bomba.`)
 }
 function dispor(bombaId, k) {
   const o = ondeEsta(bombaId); if (!o) return
@@ -510,8 +559,9 @@ function retRedondo(x0, y0, x1, y1, r, n = 6) {
   for (const [cx, cy, a0] of c) for (let k = 0; k <= n; k++) { const a = ((a0 + (90 * k) / n) * Math.PI) / 180; out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]) }
   return out
 }
-const RAIO = 'M7 .8 2.6 7h3L5 11.2 9.4 5h-3Z'
-const raiosHTML = (m) => `<span class="raios" aria-hidden="true">${`<svg viewBox="0 0 12 12"><path d="${RAIO}"/></svg>`.repeat(MODELOS[m].raios)}</span>`
+// (9/11, Sergio) a bomba de verdade (a miniatura da lista do painel) no lugar dos raios
+const icoBomba = (m) => `<img class="mini-bomba" src="dados/bombas/${m}/mini.webp" alt="" draggable="false">`
+const ICONE_ALCA = '<svg viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></g></svg>'
 const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)]
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 const ICON_X = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
@@ -568,7 +618,8 @@ function desenhaMapa(limpo = false) {
       const ativo = sel === b.bombaId
       for (const v of vagasDe(b, il.y)) {
         const x0 = v.x - M.bay_l / 2, y0 = v.y - M.bay_w / 2
-        s += `<g data-lb="${b.bombaId}" style="cursor:pointer"><g transform="${chao(0.01)}">
+        // data-vs: o lado desta vaga (arrastar a vaga muda as vagas da bomba; arrastar a bomba muda a bomba de lugar)
+        s += `<g data-lb="${b.bombaId}" data-vs="${v.s}" class="mod" style="cursor:grab"><g transform="${chao(0.01)}">
           <rect x="${x0}" y="${y0}" width="${M.bay_l}" height="${M.bay_w}" fill="${ativo ? corPaintSel : corPaint}" stroke="#fff" stroke-width=".1"/>
           <g transform="translate(${v.x} ${v.y}) rotate(-90) scale(1 -1)"><image href="dados/construtor/vaga-logo.svg" x="-.52" y="-.68" width="1.04" height="1.36" opacity=".9"/></g>
           <g transform="translate(${x0 + 0.55} ${v.y}) scale(1 -1)"><text font-size=".46" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".75" font-family="Barlow Condensed, sans-serif">${String.fromCharCode(65 + il.i)}${k++}</text></g>
@@ -578,6 +629,12 @@ function desenhaMapa(limpo = false) {
       if (ativo && !limpo) {
         const vs = vagasDe(b, il.y), ya = Math.min(...vs.map((v) => v.y - M.bay_w / 2), il.y - M.isl_w / 2), yb = Math.max(...vs.map((v) => v.y + M.bay_w / 2), il.y + M.isl_w / 2)
         s += `<g transform="${chao(0.02)}" pointer-events="none"><rect x="${b.x0 - 0.12}" y="${ya - 0.12}" width="${b.x1 - b.x0 + 0.24}" height="${yb - ya + 0.24}" rx=".3" fill="none" stroke="#03FF1F" stroke-width=".12" filter="url(#brilhoChao)"/></g>`
+        // (9/11, Sergio) acrescentar uma vaga é com o "+ vaga" (arrastar a vaga só move), do outro lado (uma de cada lado). A
+        // fila fica no dropdown, na janela de escolha e no botão direito (logo ao lado cairia em cima do "+" do fim da ilha)
+        if (b.disp === 'unica') {
+          const nm = bomba(b.bombaId).rotulo
+          s += `<g class="slot" data-mais="${b.bombaId}" data-forma="dois" role="button" tabindex="0" aria-label="Acrescentar uma vaga do outro lado da ${esc(nm)}" style="cursor:pointer"><g transform="${chao(0.015)}">${lugarVaga(b.x0, -b.lados[0], il.y, false, '+ vaga')}</g></g>`
+        }
       }
       poe(b.xc, il.y, bombaSprite(b))
     }
@@ -626,7 +683,7 @@ function desenhaMapa(limpo = false) {
     <filter id="selBomba" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#03FF1F" flood-opacity=".75"/></filter>
     <radialGradient id="folhaPlanta" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#7DB65A"/><stop offset=".65" stop-color="#4C8A3A"/><stop offset="1" stop-color="#2F5F2A"/></radialGradient>
     <pattern id="solar" width="1.35" height="1.8" patternUnits="userSpaceOnUse"><rect width="1.35" height="1.8" fill="rgba(36,66,92,.62)"/><rect x=".04" y=".04" width="1.27" height="1.72" fill="none" stroke="rgba(205,228,255,.32)" stroke-width=".035"/></pattern></defs>
-    <g id="mundo">${s}</g>`
+    <g id="mundo">${s}<g id="livres"></g><g id="indicador"></g></g>`
   // no celular o mapa tem a altura do posto (as vagas paralelas fazem postos compridos, que sumiam num mapa alto)
   if (!limpo && matchMedia('(max-width: 860px)').matches) {
     const p = svg.parentElement, alvo = p.clientWidth * (limites.y1 - limites.y0) / (limites.x1 - limites.x0) / 0.86 + 130
@@ -639,9 +696,15 @@ function bombaSprite(b) {
   const ativo = sel === b.bombaId
   if (vista === 'planta') {
     const [x, y] = P(b.xc, b.y ?? 0), w = (b.modelo === 'mobi' ? 0.5 : 1.12) * K, h = 0.42 * K
-    return `<g data-lb="${b.bombaId}" style="cursor:pointer"><rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="#12C83A" stroke="${ativo ? '#03FF1F' : '#0A6B22'}" stroke-width="${ativo ? 3 : 1.5}"/></g>`
+    return `<g data-lb="${b.bombaId}" class="mod" style="cursor:grab"><rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="#12C83A" stroke="${ativo ? '#03FF1F' : '#0A6B22'}" stroke-width="${ativo ? 3 : 1.5}"/></g>`
   }
-  return `<g data-lb="${b.bombaId}" style="cursor:pointer">${sprite(`bomba-${b.modelo}-g000`, b.xc, b.y ?? 0, Z_BASE, ativo ? 'filter="url(#selBomba)"' : '')}</g>`
+  // (9/11) a imagem da bomba é um retângulo que cobre boa parte da vaga de trás: o clique nela passaria para a bomba. Só o
+  // corpo da bomba pega (uma caixa transparente em volta dele); o resto da imagem deixa o clique ir para a vaga
+  const yb = b.y ?? 0, hw = b.modelo === 'mobi' ? 0.3 : 0.62, hd = 0.32, zt = b.modelo === 'mobi' ? 2.0 : 2.25, cs = []
+  for (const dx of [-hw, hw]) for (const dy of [-hd, hd]) for (const z of [Z_BASE, zt]) cs.push(P(b.xc + dx, yb + dy, z))
+  const xs = cs.map((c) => c[0]), ys = cs.map((c) => c[1]), x0 = Math.min(...xs), y0 = Math.min(...ys)
+  return `<g data-lb="${b.bombaId}" class="mod" style="cursor:grab">${sprite(`bomba-${b.modelo}-g000`, b.xc, yb, Z_BASE, `${ativo ? 'filter="url(#selBomba)" ' : ''}pointer-events="none"`)}
+    <rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${(Math.max(...xs) - x0).toFixed(1)}" height="${(Math.max(...ys) - y0).toFixed(1)}" fill="transparent" pointer-events="all"/></g>`
 }
 function cobertura(x0, x1, y0, y1) {
   const z = 3.65
@@ -673,17 +736,136 @@ function zoom(f, mx, my) {
   cam.esc = Math.min(cam.base * 4, Math.max(cam.base * 0.6, cam.esc * f))
   cam.cx = wx - (ax - r.width / 2) / cam.esc; cam.cy = wy - (ay - r.height / 2) / cam.esc; aplicaVista()
 }
+const paraSVG = (cx, cy) => new DOMPoint(cx, cy).matrixTransform(svg.getScreenCTM().inverse())
+function invP(sx, sy) {   // ponto da tela (unidades do SVG) → mundo no chão
+  if (vista === 'planta') return [sx / K, -sy / K]
+  const u = sx / K, v = -sy / (K * Math.sin(E))
+  return [u * Math.cos(A) + v * Math.sin(A), -u * Math.sin(A) + v * Math.cos(A)]
+}
+
+// ================================================================ alvo de soltar (9/11, como no construtor das bombas de frente)
+// A ilha é a mais perto do ponto no chão (ou a nova, atrás da última); o lado é de que lado do eixo dela o ponto está (é
+// o lado da vaga); a posição, entre as bombas, pelo meio de cada uma. A ilha cheia não aceita mais uma bomba de fora
+const EDGE = M.isl_w / 2 + 0.05
+function alvoEm(cx, cy, bombaId = null) {
+  const r = svg.getBoundingClientRect(); if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null
+  const p = paraSVG(cx, cy), [x, y] = invP(p.x, p.y), n = st.ilhas.length, G = geometria()
+  const podeNova = n < MAX_ILHAS && st.ilhas[n - 1].bombas.length > 0
+  const i = Math.max(0, Math.min(podeNova ? n : n - 1, Math.round(y / PITCH)))
+  if (y < -EDGE - M.bay_w - 1.6 || y > i * PITCH + EDGE + M.bay_w + 1.6 || x < -M.ap - 1 || x > G.xFim + M.sep_x + M.bay_l + M.ap) return null
+  const lado = y < i * PITCH ? 'frente' : 'tras', bs = i < n ? G.ilhas[i].bombas : []
+  const daqui = bombaId != null && bs.some((b) => b.bombaId === bombaId)
+  if (bs.length >= MAX_BOMBAS && !daqui) return { ilha: i, cheia: true }
+  let j = bs.findIndex((b) => x < b.xc); if (j < 0) j = bs.length
+  const xLinha = bs[j] ? bs[j].x0 - M.sep_x / 2 : bs.length ? bs[bs.length - 1].x1 + M.sep_x / 2 : 0
+  return { ilha: i, indice: j, lado, x: xLinha, nova: i === n, fim: j === bs.length }
+}
+// (9/11, Sergio, 2ª rodada) arrastar uma VAGA (e não a bomba) MOVE essa vaga, nunca acrescenta outra: perto da própria
+// bomba, a vaga sozinha solta do outro lado troca de lado; de duas vagas, uma de cada lado, a que for solta ao lado da
+// outra forma a fila; da fila, a que for solta do outro lado fica uma de cada lado. Em cima do próprio lugar, nada muda;
+// longe da bomba, a bomba vai junto (como arrastar a bomba). Acrescentar uma vaga é com o "+ vaga" da bomba escolhida
+function alvoVaga(cx, cy, bombaId, vs) {
+  const o = ondeEsta(bombaId); if (!o) return null
+  const r = svg.getBoundingClientRect(); if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null
+  const p = paraSVG(cx, cy), [x, y] = invP(p.x, p.y), b = geometria().ilhas[o.i].bombas[o.j], m = st.ilhas[o.i].bombas[o.j], yi = o.i * PITCH
+  const perto = Math.abs(y - yi) < EDGE + M.bay_w + 0.8 && x > b.x0 - 1 && x < b.x1 + M.bay_l + 0.5
+  if (!perto) return alvoEm(cx, cy, bombaId)
+  const lado = y < yi ? -1 : 1, dentro = x < b.x1 + 0.3
+  for (const op of movesDaVaga(b, m, vs)) if (lado === op.s && (op.dentro ? dentro : !dentro)) return { forma: true, ...op }
+  return { forma: true, nada: true }
+}
+// para onde a vaga arrastada pode ir perto da bomba (e a forma que a bomba fica): x0 e lado do lugar, e o texto dele
+function movesDaVaga(b, m, vs) {
+  const nome = (s) => (s < 0 ? 'frente' : 'tras')
+  if (m.disp === 'unica') return [{ s: -vs, x0: b.x0, dentro: true, disp: 'unica', lado: nome(-vs), txt: 'trocar de lado' }]
+  if (m.disp === 'dois') return [{ s: -vs, x0: b.x1, dentro: false, disp: 'fila', lado: nome(-vs), txt: 'em fila' }]
+  if (m.disp === 'fila') return [{ s: -vs, x0: b.x0, dentro: true, disp: 'dois', lado: null, txt: 'uma de cada lado' }]
+  return []
+}
+const lugarVaga = (x0, l, yi, aceso, txt, extra = '') => {
+  const ya = l < 0 ? yi - EDGE - M.bay_w : yi + EDGE
+  return `<g ${extra}><rect x="${x0}" y="${ya}" width="${M.bay_l}" height="${M.bay_w}" rx=".25" fill="rgba(3,255,31,${aceso ? 0.2 : 0.07})" stroke="#03FF1F" stroke-opacity="${aceso ? 1 : 0.7}" stroke-width=".08" stroke-dasharray=".28 .2"/>
+    <g transform="translate(${x0 + M.bay_l / 2} ${ya + M.bay_w / 2}) scale(1 -1)"><text font-size=".6" text-anchor="middle" dominant-baseline="central" fill="#1E7A33" font-family="Instrument Sans, sans-serif" font-weight="600">${txt}</text></g></g>`
+}
+// arrastando a vaga: os lugares para onde ela pode ir perto da bomba, em pontilhado
+function livresVaga(bombaId, vs, alvo) {
+  const o = ondeEsta(bombaId); if (!o) return ''
+  const b = geometria().ilhas[o.i].bombas[o.j], m = st.ilhas[o.i].bombas[o.j]
+  return movesDaVaga(b, m, vs).map((op) => lugarVaga(op.x0, op.s, o.i * PITCH, alvo && alvo.forma && !alvo.nada && alvo.x0 === op.x0 && alvo.s === op.s, op.txt)).join('')
+}
+function reformar(bombaId, disp, lado) {
+  const o = ondeEsta(bombaId); if (!o) return
+  const p = copia(), m = p.ilhas[o.i].bombas[o.j]; m.disp = disp; m.lado = disp === 'dois' ? null : lado; sel = bombaId
+  muda(p, disp === 'dois' ? `${bomba(bombaId).rotulo} com 2 vagas, uma de cada lado da ilha.` : disp === 'fila' ? `${bomba(bombaId).rotulo} com 2 vagas em fila ${ladoTxt(lado)}.`
+    : `${bomba(bombaId).rotulo}: a vaga agora fica ${ladoTxt(lado)}.`)
+}
+// as vagas que a bomba vai ter, para a sombra no lugar de soltar (a da lista entra com 1 vaga)
+function vagasFantasma(bombaId) {
+  const o = bombaId && ondeEsta(bombaId)
+  return o ? st.ilhas[o.i].bombas[o.j] : { disp: 'unica', lado: 'frente' }
+}
+// arrastando: todos os lugares onde a bomba pode entrar em pontilhado fraco desde o começo (a vaga do fim de cada ilha, dos
+// dois lados, os vãos entre as bombas e a ilha nova); o lugar sob o ponteiro acende
+function mostraLivres(on, alvo, bombaId, vs) {
+  const g = $('#livres'); if (!g) return
+  if (!on) { g.innerHTML = ''; return }
+  const G = geometria(), n = st.ilhas.length
+  let s = `<g transform="${chao(0.025)}" pointer-events="none">`
+  if (vs) s += livresVaga(bombaId, vs, alvo)
+  const faixa = (y, l) => (l === 'frente' ? [y - EDGE - M.bay_w, y - EDGE] : [y + EDGE, y + EDGE + M.bay_w])
+  for (const il of G.ilhas) {
+    const bs = il.bombas, cheia = bs.length >= MAX_BOMBAS && !bs.some((b) => b.bombaId === bombaId)
+    if (cheia) continue
+    const xFim = bs.length ? bs[bs.length - 1].x1 + M.sep_x : 0
+    for (const l of ['frente', 'tras']) {
+      const [y0] = faixa(il.y, l), aceso = alvo && !alvo.cheia && alvo.ilha === il.i && alvo.fim && alvo.lado === l
+      s += `<rect x="${xFim}" y="${y0}" width="${M.bay_l}" height="${M.bay_w}" rx=".25" fill="rgba(3,255,31,${aceso ? 0.16 : 0.05})" stroke="#7DFF8C" stroke-opacity="${aceso ? 0.95 : 0.5}" stroke-width=".07" stroke-dasharray=".28 .2"/>`
+      for (const b of bs) s += `<path d="M${b.x0 - M.sep_x / 2} ${y0 + 0.3}V${y0 + M.bay_w - 0.3}" stroke="#7DFF8C" stroke-opacity=".4" stroke-width=".06" stroke-dasharray=".22 .18" stroke-linecap="round"/>`
+    }
+  }
+  if (n < MAX_ILHAS && st.ilhas[n - 1].bombas.length) {
+    const y = n * PITCH, w = Math.max(M.bay_l, G.xFim), aceso = alvo && alvo.nova
+    s += `<rect x="${-M.isl_m}" y="${y - EDGE - M.bay_w}" width="${w + 2 * M.isl_m}" height="${2 * (EDGE + M.bay_w)}" rx=".4" fill="rgba(3,255,31,${aceso ? 0.08 : 0.025})" stroke="#7DFF8C" stroke-opacity="${aceso ? 0.8 : 0.35}" stroke-width=".06" stroke-dasharray=".3 .22"/>
+      <rect x="${-M.isl_m}" y="${y - M.isl_w / 2}" width="${Math.max(M.bay_l, 6) + 2 * M.isl_m}" height="${M.isl_w}" rx=".45" fill="rgba(255,255,255,.18)" stroke="#9AA39C" stroke-width=".04" stroke-dasharray=".3 .2"/>
+      <g transform="translate(${w / 2} ${y}) scale(1 -1)"><text font-size=".55" text-anchor="middle" dominant-baseline="central" fill="#4B5A50" font-family="Instrument Sans, sans-serif">Solte aqui para abrir a ilha ${n + 1}</text></g>`
+  }
+  g.innerHTML = s + '</g>'
+}
+// o lugar sob o ponteiro: a linha verde onde a bomba entra e a sombra das vagas dela, do lado escolhido
+function mostraAlvo(a, bombaId) {
+  const g = $('#indicador'); if (!g) return
+  if (!a || a.cheia || (a.forma && a.nada)) { g.innerHTML = ''; return }
+  if (a.forma) {   // o lugar novo da vaga arrastada (o pontilhado dele já acende; aqui, a sombra cheia)
+    const yi = ondeEsta(bombaId).i * PITCH, ya = a.s < 0 ? yi - EDGE - M.bay_w : yi + EDGE
+    g.innerHTML = `<g transform="${chao(0.03)}" pointer-events="none"><rect x="${a.x0}" y="${ya}" width="${M.bay_l}" height="${M.bay_w}" rx=".2" fill="rgba(3,255,31,.25)" stroke="#03FF1F" stroke-width=".08" filter="url(#brilhoChao)"/></g>`
+    return
+  }
+  const m = vagasFantasma(bombaId), y = a.ilha * PITCH, lados = m.disp === 'dois' ? [-1, 1] : [a.lado === 'tras' ? 1 : -1]
+  const larg = m.disp === 'fila' ? 2 * M.bay_l : M.bay_l, o = bombaId && ondeEsta(bombaId)
+  // no próprio lugar da bomba (só trocando o lado): a sombra fica em cima dela, do outro lado
+  const proprio = o && o.i === a.ilha && (a.indice === o.j || a.indice === o.j + 1)
+  const b0 = proprio && geometria().ilhas[o.i].bombas[o.j]
+  const ya = (l) => (l < 0 ? y - EDGE - M.bay_w : y + EDGE)
+  let s = `<g transform="${chao(0.03)}" pointer-events="none">`
+  for (const l of lados) {
+    if (proprio || a.fim) {
+      const x0 = proprio ? b0.x0 : a.x + (a.x > 0.01 ? M.sep_x / 2 : 0)
+      s += `<rect x="${x0}" y="${ya(l)}" width="${larg}" height="${M.bay_w}" rx=".2" fill="rgba(3,255,31,.22)" stroke="#03FF1F" stroke-width=".08" filter="url(#brilhoChao)"/>`
+    } else s += `<rect x="${a.x - 0.09}" y="${ya(l) - 0.15}" width=".18" height="${M.bay_w + 0.3}" rx=".09" fill="#03FF1F" filter="url(#brilhoChao)"/>`
+  }
+  g.innerHTML = s + '</g>'
+}
 
 // ================================================================ painéis
 function desenhaInventario() {
   const livres = disponiveis(), nT = posto.bombas.length, G = geometria()
   const lista = livres.length
-    ? `<ul class="bombas">${livres.map((b) => `<li><button type="button" class="bomba sem-alca" data-bomba="${b.id}" title="Pôr no posto">
-        <span class="ic">${raiosHTML(b.modelo)}</span><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome}</small></span><span class="st">+</span></button></li>`).join('')}</ul>
-      <p class="nota">Toque numa bomba para pôr na primeira ilha com lugar, ou no <b>+</b> do mapa para escolher a ilha.</p>`
+    ? `<ul class="bombas">${livres.map((b) => `<li><button type="button" class="bomba" data-bomba="${b.id}" title="Segure e arraste para o mapa">
+        <span class="alca">${ICONE_ALCA}</span><span class="ic">${icoBomba(b.modelo)}</span><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome}</small></span><span class="st"></span></button></li>`).join('')}</ul>
+      <p class="nota">Segure e arraste para a ilha: solte na frente ou atrás dela. Ou toque na bomba para pôr na primeira ilha com lugar.</p>`
     : '<p class="vazio-grupo">Todas as bombas estão no mapa.</p>'
   const camadas = todos().length ? `<p class="grupo-tit depois">No mapa <em>${todos().length}</em></p><ul class="camadas">${G.ilhas.flatMap((il) => il.bombas.map((b, j) => `<li><button type="button" class="camada" data-ir="${b.bombaId}" ${sel === b.bombaId ? 'aria-current="true"' : ''}>
-      ${raiosHTML(b.modelo)}<span class="tx"><b>${esc(bomba(b.bombaId).rotulo)}</b><small>Ilha ${il.i + 1} · ${j + 1}ª · ${DISPS.find((d) => d[0] === dispDe(b))[3]}</small></span></button></li>`)).join('')}</ul>` : ''
+      <span class="ic-camada">${icoBomba(b.modelo)}</span><span class="tx"><b>${esc(bomba(b.bombaId).rotulo)}</b><small>Ilha ${il.i + 1} · ${j + 1}ª · ${DISPS.find((d) => d[0] === dispDe(b))[3]}</small></span></button></li>`)).join('')}</ul>` : ''
   $('#inventario').innerHTML = `${livres.length ? `<p class="grupo-tit">Para pôr <em>${livres.length}</em></p>` : ''}${lista}${camadas}`
   $('#invResumo').textContent = livres.length ? `${nT - livres.length} de ${nT} no mapa` : 'todas no mapa'
 }
@@ -700,8 +882,10 @@ function desenhaSel() {
   const ilhasOp = st.ilhas.map((il, i) => `<option value="${i}" ${i === o.i ? 'selected' : ''} ${i !== o.i && il.bombas.length >= MAX_BOMBAS ? 'disabled' : ''}>Ilha ${i + 1}${il.bombas.length >= MAX_BOMBAS && i !== o.i ? ' (cheia)' : ''}</option>`).join('')
     + (st.ilhas.length < MAX_ILHAS ? `<option value="${st.ilhas.length}">Ilha nova (${st.ilhas.length + 1})</option>` : '')
   card.innerHTML = `<div class="sel-cab"><img src="dados/bombas/${b.modelo}/iso-frente.webp" alt=""><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome} · ${MODELOS[b.modelo].desc}</small></span></div>
-    <div class="campo"><span>Vagas desta bomba</span><div class="disps" role="radiogroup" aria-label="Vagas desta bomba">${DISPS.map((d) => `<button type="button" role="radio" class="disp" data-disp="${d[0]}" aria-checked="${dk === d[0]}"><b>${d[3]}</b><small>${d[4]}</small></button>`).join('')}</div>
-      <p class="nota">${b.modelo === 'mobi' ? 'O Mobi tem 1 conector; com 2 vagas, ele atende uma de cada vez.' : 'Os 2 conectores podem atender 1 ou 2 vagas.'}</p></div>
+    <div class="campo"><span id="ddRot">Vagas desta bomba</span>
+      <div class="dd-vagas"><button type="button" class="dd-btn" id="ddVagas" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="ddRot ddVagas">${icoVaga(dk)}<span>${DISPS.find((d) => d[0] === dk)[3]}</span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <ul class="dd-lista" role="listbox" aria-labelledby="ddRot" hidden>${DISPS.map((d) => `<li role="option" class="dd-op" data-disp="${d[0]}" aria-selected="${dk === d[0]}" tabindex="-1">${icoVaga(d[0])}<span>${d[3]}</span></li>`).join('')}</ul></div>
+      <p class="nota">${DISPS.find((d) => d[0] === dk)[4]} ${b.modelo === 'mobi' ? 'O Mobi tem 1 conector: com 2 vagas, atende uma de cada vez.' : ''}</p></div>
     <div class="campo"><span>Cobertura desta bomba</span><div class="seg largo" role="group" aria-label="Cobertura desta bomba"><button type="button" data-cobb="1" aria-pressed="${m.coberta}">Coberta</button><button type="button" data-cobb="0" aria-pressed="${!m.coberta}">Sem cobertura</button></div>
       <p class="nota">A cobertura fica do lado das vagas; bombas cobertas lado a lado ficam debaixo do mesmo teto.</p></div>
     <div class="campo"><label for="selIlha">Ilha</label><select id="selIlha" class="posto-sel" style="width:100%">${ilhasOp}</select></div>
@@ -712,18 +896,35 @@ function desenhaPosto() {
   const t = todos(), vg = t.reduce((a, m) => a + nVagas(m), 0), ni = st.ilhas.filter((il) => il.bombas.length).length
   $('#resumo').innerHTML = `<li><b>${t.length}<span style="font-size:13px;color:var(--dim)">/${posto.bombas.length}</span></b><small>bombas</small></li><li><b>${vg}</b><small>vagas</small></li><li><b>${ni}</b><small>ilha${ni === 1 ? '' : 's'}</small></li>`
 }
-function desenha() { desenhaMapa(); desenhaInventario(); desenhaCobertura(); desenhaSel(); desenhaPosto(); $('#desfazer').disabled = !hist.length; $('#refazer').disabled = !futuro.length; adiantar() }
+function desenha() { desenhaMapa(); svg.classList.toggle('editando', !!sel); desenhaInventario(); desenhaCobertura(); desenhaSel(); desenhaPosto(); $('#desfazer').disabled = !hist.length; $('#refazer').disabled = !futuro.length; adiantar() }
 
 // ================================================================ eventos
 $('#inventario').addEventListener('click', (e) => {
-  const c = e.target.closest('[data-ir]'); if (c) { sel = sel === c.dataset.ir ? null : c.dataset.ir; desenha(); return }
-  const b = e.target.closest('[data-bomba]'); if (b) por(b.dataset.bomba)
+  const c = e.target.closest('[data-ir]'); if (c) { sel = sel === c.dataset.ir ? null : c.dataset.ir; desenha() }
 })
+// o dropdown das vagas: abre, escolhe com clique ou teclado, fecha com Esc ou clicando fora
+const ddAbre = (on) => {
+  const b = $('#ddVagas'), l = $('#cardSel .dd-lista'); if (!b || !l) return
+  l.hidden = !on; b.setAttribute('aria-expanded', String(on))
+  if (on) (l.querySelector('[aria-selected="true"]') || l.firstElementChild).focus(); else b.focus()
+}
+$('#cardSel').addEventListener('keydown', (e) => {
+  const op = e.target.closest('.dd-op'); if (!op) { if (e.target.id === 'ddVagas' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); ddAbre(true) } return }
+  const ops = [...op.parentElement.children], i = ops.indexOf(op)
+  if (e.key === 'ArrowDown') { e.preventDefault(); ops[(i + 1) % ops.length].focus() }
+  if (e.key === 'ArrowUp') { e.preventDefault(); ops[(i - 1 + ops.length) % ops.length].focus() }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ddAbre(false) }
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const k = op.dataset.disp; ddAbre(false); if (k !== dispDe(st.ilhas[ondeEsta(sel).i].bombas[ondeEsta(sel).j])) dispor(sel, k) }
+})
+document.addEventListener('pointerdown', (e) => { const l = $('#cardSel .dd-lista'); if (l && !l.hidden && !e.target.closest('.dd-vagas')) { l.hidden = true; $('#ddVagas').setAttribute('aria-expanded', 'false') } })
 $('#cardSel').addEventListener('click', (e) => {
-  const t = e.target.closest('button'); if (!t || !sel) return
-  if (t.dataset.disp) dispor(sel, t.dataset.disp)
+  if (!sel) return
+  if (e.target.closest('#ddVagas')) { ddAbre($('#cardSel .dd-lista').hidden); return }
+  const op = e.target.closest('.dd-op')
+  if (op) { const o = ondeEsta(sel), k = op.dataset.disp; ddAbre(false); if (k !== dispDe(st.ilhas[o.i].bombas[o.j])) dispor(sel, k); return }
+  const t = e.target.closest('button'); if (!t) return
   if (t.dataset.cobb) { const o = ondeEsta(sel), m = st.ilhas[o.i].bombas[o.j], on = t.dataset.cobb === '1'; if (m.coberta !== on) cobrir(sel, on) }
-  if (t.dataset.pos) { const o = ondeEsta(sel); mover(sel, o.i, o.j + (+t.dataset.pos > 0 ? 1 : -1)) }
+  if (t.dataset.pos) { const o = ondeEsta(sel); mover(sel, o.i, o.j + (+t.dataset.pos > 0 ? 2 : -1)) }
   if (t.hasAttribute('data-retirar')) retirar(sel)
 })
 $('#cardSel').addEventListener('change', (e) => { if (e.target.id === 'selIlha' && sel) { const i = +e.target.value; mover(sel, i, 99); aviso(`${bomba(sel).rotulo} na ilha ${i + 1}.`) } })
@@ -739,46 +940,278 @@ $('#zoomPct').addEventListener('click', () => { cam = null; aplicaVista() })
 $('#zoomMais').addEventListener('click', () => zoom(1.25)); $('#zoomMenos').addEventListener('click', () => zoom(1 / 1.25))
 new ResizeObserver(() => aplicaVista()).observe(svg)
 svg.addEventListener('wheel', (e) => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoom(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top) }, { passive: false })
-// arrastar a vista; tocar numa bomba escolhe; tocar no "+" abre a lista
+// (9/11, Sergio) arrastar, como no construtor das bombas de frente: a bomba da lista (pela alça) vai para o mapa; no mapa,
+// a bomba ou uma vaga dela muda de lugar, de lado ou de ilha. Enquanto arrasta, os lugares possíveis ficam em pontilhado e
+// o lugar sob o ponteiro acende. Arrastar o chão move a vista; tocar numa bomba escolhe; tocar no "+" abre a lista
 let gesto = null
-svg.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; gesto = { x: e.clientX, y: e.clientY, cx: cam.cx, cy: cam.cy, mexeu: false } })
+const fantasma = $('#fantasma')
+function iniciaArraste(e, bombaId, origem, vs = 0) { gesto = { tipo: 'bomba', bombaId, origem, vs, x: e.clientX, y: e.clientY, ativo: false } }
+function fimArraste() { fantasma.hidden = true; document.body.classList.remove('arrastando'); mostraAlvo(null); mostraLivres(false); svg.classList.toggle('editando', !!sel) }
+svg.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return
+  const lb = e.target.closest('[data-lb]'), slot = e.target.closest('[data-lslot],[data-mais]')
+  if (slot) return
+  // pegar uma vaga (data-vs) muda as vagas da bomba; pegar a bomba muda a bomba de lugar
+  if (lb) { iniciaArraste(e, lb.dataset.lb, 'mapa', +lb.dataset.vs || 0); try { svg.setPointerCapture(e.pointerId) } catch {}; return }
+  gesto = { tipo: 'vista', x: e.clientX, y: e.clientY, cx: cam.cx, cy: cam.cy, mexeu: false }; try { svg.setPointerCapture(e.pointerId) } catch {}
+})
+$('#inventario').addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('[data-bomba]'); if (!b || e.button !== 0 || noMapa(b.dataset.bomba)) return
+  iniciaArraste(e, b.dataset.bomba, 'lista')
+})
 window.addEventListener('pointermove', (e) => {
   if (!gesto) return
-  if (!gesto.mexeu && Math.hypot(e.clientX - gesto.x, e.clientY - gesto.y) < 6) return
-  gesto.mexeu = true; svg.classList.add('pan'); cam.cx = gesto.cx - (e.clientX - gesto.x) / cam.esc; cam.cy = gesto.cy - (e.clientY - gesto.y) / cam.esc; aplicaVista()
+  if (gesto.tipo === 'vista') {
+    if (!gesto.mexeu && Math.hypot(e.clientX - gesto.x, e.clientY - gesto.y) < 6) return
+    gesto.mexeu = true; svg.classList.add('pan'); cam.cx = gesto.cx - (e.clientX - gesto.x) / cam.esc; cam.cy = gesto.cy - (e.clientY - gesto.y) / cam.esc; aplicaVista(); return
+  }
+  if (!gesto.ativo && Math.hypot(e.clientX - gesto.x, e.clientY - gesto.y) < 6) return
+  if (!gesto.ativo) {
+    gesto.ativo = true; document.body.classList.add('arrastando'); svg.classList.add('editando'); pop.hidden = true; menu.hidden = true
+    const b = bomba(gesto.bombaId); fantasma.innerHTML = `${icoBomba(b.modelo)}<span>${esc(b.rotulo)}</span>`; fantasma.hidden = false
+  }
+  fantasma.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 10}px)`
+  gesto.alvo = gesto.vs ? alvoVaga(e.clientX, e.clientY, gesto.bombaId, gesto.vs) : alvoEm(e.clientX, e.clientY, gesto.origem === 'mapa' ? gesto.bombaId : null)
+  mostraLivres(true, gesto.alvo, gesto.bombaId, gesto.vs); mostraAlvo(gesto.alvo, gesto.origem === 'mapa' ? gesto.bombaId : null)
 })
 window.addEventListener('pointerup', (e) => {
   if (!gesto) return
-  const g = gesto; gesto = null; svg.classList.remove('pan'); if (g.mexeu) return
-  const lb = e.target.closest && e.target.closest('[data-lb]'), slot = e.target.closest && e.target.closest('[data-lslot]')
-  if (slot) { abrePop(slot.dataset.lslot, e.clientX, e.clientY); return }
-  if (lb) { sel = lb.dataset.lb; desenha(); return }
-  if (e.target.closest && e.target.closest('#mapa') && sel) { sel = null; desenha() }
+  const g = gesto; gesto = null; svg.classList.remove('pan')
+  if (g.tipo === 'vista') {
+    if (g.mexeu) return
+    const slot = e.target.closest && e.target.closest('[data-lslot]')
+    if (slot) { abrePop(slot.dataset.lslot, e.clientX, e.clientY); return }
+    if (sel) { sel = null; desenha() }
+    return
+  }
+  fimArraste()
+  if (!g.ativo) { if (g.origem === 'mapa') { sel = g.bombaId; desenha() } else if (por(g.bombaId)) abreVagasNaBomba(g.bombaId); return }   // um toque: escolher / pôr
+  const a = g.alvo
+  if (a && a.forma) { if (!a.nada) reformar(g.bombaId, a.disp, a.lado); return }
+  if (a && a.cheia) { aviso(`A ilha ${a.ilha + 1} já tem ${MAX_BOMBAS} bombas.`); return }
+  if (!a) { if (g.origem === 'mapa') aviso('Solte a bomba numa ilha do posto, na frente ou atrás dela.'); return }
+  if (g.origem === 'lista') { if (por(g.bombaId, a.nova ? 'nova' : a.ilha, a.indice, a.lado)) abreVagas(g.bombaId, e.clientX, e.clientY) }
+  else mover(g.bombaId, a.ilha, a.indice, a.lado)
 })
+window.addEventListener('pointercancel', () => { if (gesto && gesto.tipo === 'bomba') fimArraste(); gesto = null; svg.classList.remove('pan') })
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && gesto) { gesto = null; fimArraste() } })
 svg.addEventListener('keydown', (e) => { const slot = e.target.closest('[data-lslot]'); if (slot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const r = slot.getBoundingClientRect(); abrePop(slot.dataset.lslot, r.right, r.top) } })
+// o "+ vaga" da bomba escolhida: uma vaga a mais (do outro lado, ou em fila com a que ela tem)
+function maisVaga(el) {
+  const id = el.dataset.mais, o = ondeEsta(id); if (!o) return
+  reformar(id, el.dataset.forma, el.dataset.forma === 'fila' ? st.ilhas[o.i].bombas[o.j].lado : null)
+}
+svg.addEventListener('click', (e) => { const m = e.target.closest('[data-mais]'); if (m) maisVaga(m) })
+svg.addEventListener('keydown', (e) => { const m = e.target.closest('[data-mais]'); if (m && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); maisVaga(m) } })
 document.addEventListener('keydown', (e) => {
-  if (e.target.closest('input,select,textarea') || $('dialog[open]')) return
+  if (e.target.closest('input,select,textarea') || $('dialog[open]') || !$('#menuCtx').hidden || !$('#tour').hidden) return
   const mod = e.ctrlKey || e.metaKey
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); desfaz(e.shiftKey); return }
   if (!sel) return
   const o = ondeEsta(sel); if (!o) return
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); retirar(sel) }
   if (e.key === 'ArrowLeft' && o.j > 0) { e.preventDefault(); mover(sel, o.i, o.j - 1) }
-  if (e.key === 'ArrowRight' && o.j < st.ilhas[o.i].bombas.length - 1) { e.preventDefault(); mover(sel, o.i, o.j + 1) }
+  if (e.key === 'ArrowRight' && o.j < st.ilhas[o.i].bombas.length - 1) { e.preventDefault(); mover(sel, o.i, o.j + 2) }
   if (e.key === 'Escape') { sel = null; desenha() }
 })
 const pop = $('#popBombas')
 function abrePop(ilha, x, y) {
   const lista = disponiveis(); if (!lista.length) return
   $('#popTit').textContent = ilha === 'nova' ? `Pôr qual bomba na ilha ${st.ilhas.length + 1}?` : `Pôr qual bomba na ilha ${+ilha + 1}?`
-  $('#popLista').innerHTML = lista.map((b) => `<li><button type="button" class="bomba sem-alca" data-pop="${b.id}"><span class="ic">${raiosHTML(b.modelo)}</span><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome}</small></span><span class="st">1 vaga</span></button></li>`).join('')
+  $('#popLista').innerHTML = lista.map((b) => `<li><button type="button" class="bomba sem-alca" data-pop="${b.id}"><span class="ic">${icoBomba(b.modelo)}</span><span class="tx"><b>${esc(b.rotulo)}</b><small>${MODELOS[b.modelo].nome}</small></span><span class="st">1 vaga</span></button></li>`).join('')
   pop.dataset.ilha = ilha; pop.hidden = false
   pop.style.left = Math.max(12, Math.min(x + 12, innerWidth - 302)) + 'px'; pop.style.top = Math.max(12, Math.min(y - 20, innerHeight - pop.offsetHeight - 12)) + 'px'
   pop.querySelector('button').focus()
 }
-pop.addEventListener('click', (e) => { const b = e.target.closest('[data-pop]'); if (!b) return; pop.hidden = true; por(b.dataset.pop, pop.dataset.ilha === 'nova' ? 'nova' : +pop.dataset.ilha) })
+pop.addEventListener('click', (e) => { const b = e.target.closest('[data-pop]'); if (!b) return; pop.hidden = true; if (por(b.dataset.pop, pop.dataset.ilha === 'nova' ? 'nova' : +pop.dataset.ilha)) abreVagasNaBomba(b.dataset.pop) })
 document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !e.target.closest('#popBombas') && !e.target.closest('[data-lslot]')) pop.hidden = true })
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') pop.hidden = true })
+
+// (9/11, Sergio) ao pôr uma bomba no mapa (arrastando, tocando nela na lista ou pelo "+"), a escolha das vagas abre ali
+// mesmo, com as cinco formas ilustradas; a do lado onde a bomba foi solta já vem marcada. Um clique escolhe; Esc ou clicar
+// fora mantém a marcada. Depois, dá para mudar arrastando as vagas, pelo botão direito ou no painel da direita
+const pv = $('#popVagas')
+function abreVagas(bombaId, x, y) {
+  const o = ondeEsta(bombaId); if (!o) return
+  const m = st.ilhas[o.i].bombas[o.j], b = bomba(bombaId), dk = dispDe(m)
+  pv.innerHTML = `<div class="pv-cab"><span class="pv-ic">${icoBomba(b.modelo)}</span><div><h3 id="pvTit">Vagas da ${esc(b.rotulo)}</h3><small>Escolha como os carros param nesta bomba</small></div></div>
+    <div class="ops-vaga" role="radiogroup" aria-labelledby="pvTit">${DISPS.map((d) => `<button type="button" role="radio" class="op-vaga" data-pv="${d[0]}" aria-checked="${dk === d[0]}">${icoVaga(d[0])}<span>${d[3]}</span></button>`).join('')}</div>
+    <p class="nota">${b.modelo === 'mobi' ? 'O Mobi tem 1 conector: com 2 vagas, atende uma de cada vez. ' : ''}Dá para mudar depois: arraste a vaga para trocá-la de lado, use o + vaga ou o botão direito.</p>`
+  pv.dataset.bomba = bombaId; pv.hidden = false
+  pv.style.left = Math.max(12, Math.min(x + 14, innerWidth - pv.offsetWidth - 12)) + 'px'
+  pv.style.top = Math.max(12, Math.min(y - 40, innerHeight - pv.offsetHeight - 12)) + 'px'
+  pv.querySelector('[aria-checked="true"]').focus()
+}
+// perto da bomba no mapa (quando ela entrou sem arrastar: tocando na lista ou pelo "+")
+function abreVagasNaBomba(bombaId) {
+  const el = svg.querySelector(`[data-lb="${bombaId}"]:not([data-vs])`) || svg.querySelector(`[data-lb="${bombaId}"]`); if (!el) return
+  const r = el.getBoundingClientRect(); abreVagas(bombaId, r.right, r.top + r.height / 2)
+}
+pv.addEventListener('click', (e) => {
+  const op = e.target.closest('[data-pv]'); if (!op) return
+  const id = pv.dataset.bomba, o = ondeEsta(id); pv.hidden = true; if (!o) return
+  if (op.dataset.pv !== dispDe(st.ilhas[o.i].bombas[o.j])) dispor(id, op.dataset.pv)
+})
+pv.addEventListener('keydown', (e) => {
+  const ops = [...pv.querySelectorAll('[data-pv]')], i = ops.indexOf(document.activeElement)
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); ops[(i + 1) % ops.length].focus() }
+  if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); ops[(i - 1 + ops.length) % ops.length].focus() }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); pv.hidden = true; svg.focus({ preventScroll: true }) }
+})
+document.addEventListener('pointerdown', (e) => { if (!pv.hidden && !e.target.closest('#popVagas')) pv.hidden = true })
+
+// botão direito numa bomba ou numa vaga dela (como no construtor das bombas de frente): as opções ali mesmo. Tecla de
+// menu ou Shift+F10 com uma bomba escolhida abre o mesmo menu em cima dela
+const menu = $('#menuCtx')
+const ICM = {
+  teto: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6.5h12M3.5 6.5v7M12.5 6.5v7M2.5 3.5h11l.5 3h-12Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+  ilha: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M5 5.5 8 2.5l3 3M5 10.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  esq: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  dir: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  tirar: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+}
+function abreMenu(bombaId, x, y) {
+  const o = ondeEsta(bombaId); if (!o) return
+  const m = st.ilhas[o.i].bombas[o.j], b = bomba(bombaId), n = st.ilhas[o.i].bombas.length, dk = dispDe(m)
+  const cabe = (i) => i >= 0 && (i >= st.ilhas.length ? st.ilhas.length < MAX_ILHAS : st.ilhas[i].bombas.length < MAX_BOMBAS)
+  menu.innerHTML = `<h3>${icoBomba(b.modelo)}${esc(b.rotulo)}</h3>
+    ${DISPS.map((d) => `<button type="button" role="menuitemradio" aria-checked="${dk === d[0]}" data-acao="disp" data-disp="${d[0]}">${icoVaga(d[0])}${d[3]}</button>`).join('')}<hr>
+    <button type="button" role="menuitemcheckbox" aria-checked="${m.coberta}" data-acao="cob">${ICM.teto}Coberta</button><hr>
+    <button type="button" role="menuitem" data-acao="esq" ${o.j === 0 ? 'disabled' : ''}>${ICM.esq}Mover para a esquerda<kbd>←</kbd></button>
+    <button type="button" role="menuitem" data-acao="dir" ${o.j === n - 1 ? 'disabled' : ''}>${ICM.dir}Mover para a direita<kbd>→</kbd></button>
+    ${o.i > 0 ? `<button type="button" role="menuitem" data-acao="ilhaF" ${cabe(o.i - 1) ? '' : 'disabled'}>${ICM.ilha}Levar para a ilha ${o.i}</button>` : ''}
+    ${(n > 1 || o.i < st.ilhas.length - 1) && cabe(o.i + 1) ? `<button type="button" role="menuitem" data-acao="ilhaT">${ICM.ilha}${o.i + 1 < st.ilhas.length ? `Levar para a ilha ${o.i + 2}` : 'Abrir uma ilha nova atrás'}</button>` : ''}<hr>
+    <button type="button" role="menuitem" class="perigo" data-acao="tirar">${ICM.tirar}Tirar do mapa<kbd>Del</kbd></button>`
+  menu.dataset.bomba = bombaId; menu.hidden = false
+  menu.style.left = Math.max(8, Math.min(x, innerWidth - menu.offsetWidth - 8)) + 'px'
+  menu.style.top = Math.max(8, Math.min(y, innerHeight - menu.offsetHeight - 8)) + 'px'
+  menu.querySelector('button:not(:disabled)').focus()
+}
+const fechaMenu = () => { if (!menu.hidden) { menu.hidden = true; svg.focus({ preventScroll: true }) } }
+svg.addEventListener('contextmenu', (e) => {
+  const lb = e.target.closest('[data-lb]'); if (!lb) return
+  e.preventDefault(); if (!menu.hidden && menu.dataset.bomba === lb.dataset.lb) return   // o toque longo já abriu
+  menuDoToque(lb.dataset.lb, e.clientX, e.clientY)
+})
+function menuDoToque(id, x, y) {
+  clearTimeout(lp?.t); lp = null
+  if (gesto && gesto.tipo === 'bomba') fimArraste(); gesto = null
+  sel = id; desenha(); abreMenu(sel, x, y)
+}
+// (9/11) no celular: tocar e segurar numa bomba ou numa vaga abre o mesmo menu do botão direito (o iPhone não dispara o
+// contextmenu); com dois dedos, aproxima, afasta e move a vista. Arrastar com um dedo continua igual
+let lp = null, pinca = null
+const dedos = new Map()
+const meio = () => { const [a, b] = [...dedos.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) } }
+svg.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse') return
+  dedos.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  if (dedos.size === 2) {
+    clearTimeout(lp?.t); lp = null; if (gesto && gesto.tipo === 'bomba') fimArraste(); gesto = null
+    pinca = meio(); menu.hidden = true; pv.hidden = true; pop.hidden = true; return
+  }
+  const lb = e.target.closest('[data-lb]'); if (!lb || dedos.size > 1) return
+  clearTimeout(lp?.t)
+  lp = { id: lb.dataset.lb, x: e.clientX, y: e.clientY }
+  lp.t = setTimeout(() => { const l = lp; lp = null; if (l && menu.hidden) { menuDoToque(l.id, l.x, l.y - 8); navigator.vibrate?.(12) } }, 500)
+})
+window.addEventListener('pointermove', (e) => {
+  if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) >= 8) { clearTimeout(lp.t); lp = null }
+  if (!dedos.has(e.pointerId)) return
+  dedos.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  if (!pinca || dedos.size < 2) return
+  const m = meio(), r = svg.getBoundingClientRect()
+  cam.cx -= (m.x - pinca.x) / cam.esc; cam.cy -= (m.y - pinca.y) / cam.esc
+  zoom(pinca.d > 0 ? m.d / pinca.d : 1, m.x - r.left, m.y - r.top); pinca = m
+})
+const soltaDedo = (e) => { dedos.delete(e.pointerId); if (dedos.size < 2) pinca = null; if (lp) { clearTimeout(lp.t); lp = null } }
+window.addEventListener('pointerup', soltaDedo); window.addEventListener('pointercancel', (e) => { dedos.delete(e.pointerId); if (dedos.size < 2) pinca = null })
+menu.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-acao]'); if (!t || t.disabled) return
+  const id = menu.dataset.bomba, o = ondeEsta(id); menu.hidden = true; if (!o) return
+  const a = t.dataset.acao, m = st.ilhas[o.i].bombas[o.j]
+  if (a === 'disp') dispor(id, t.dataset.disp)
+  if (a === 'cob') cobrir(id, !m.coberta)
+  if (a === 'esq') mover(id, o.i, o.j - 1)
+  if (a === 'dir') mover(id, o.i, o.j + 2)
+  if (a === 'ilhaF') mover(id, o.i - 1, 99)
+  if (a === 'ilhaT') mover(id, o.i + 1, 99)
+  if (a === 'tirar') retirar(id)
+})
+menu.addEventListener('keydown', (e) => {
+  const itens = [...menu.querySelectorAll('button:not(:disabled)')], i = itens.indexOf(document.activeElement)
+  if (e.key === 'ArrowDown') { e.preventDefault(); itens[(i + 1) % itens.length].focus() }
+  if (e.key === 'ArrowUp') { e.preventDefault(); itens[(i - 1 + itens.length) % itens.length].focus() }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fechaMenu() }
+  if (e.key === 'Tab') fechaMenu()
+})
+document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !e.target.closest('#menuCtx')) menu.hidden = true })
+window.addEventListener('blur', () => { menu.hidden = true })
+svg.addEventListener('wheel', () => { menu.hidden = true }, { passive: true })
+document.addEventListener('keydown', (e) => {
+  if (!sel || !menu.hidden || e.target.closest('input,select,textarea') || $('dialog[open]')) return
+  if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+    e.preventDefault(); const el = svg.querySelector(`[data-lb="${sel}"]`); if (!el) return
+    const r = el.getBoundingClientRect(); abreMenu(sel, r.left + r.width / 2, r.top + r.height / 2)
+  }
+})
+
+// ================================================================ formatos prontos (9/11, como no construtor das bombas de frente)
+// Só reorganizam as bombas deste posto. As ilhas recebem até 4 bombas, repartidas por igual (5 bombas: 3 e 2)
+const ORDEM_POT = (a, b) => 'ultra fast mobi'.indexOf(a.modelo) - 'ultra fast mobi'.indexOf(b.modelo)
+function formatosDoPosto() {
+  const n = posto.bombas.length, variados = new Set(posto.bombas.map((b) => b.modelo)).size > 1
+  return [
+    ['dois', 'Uma de cada lado', 'Cada bomba com 2 vagas: uma na frente e outra atrás da ilha.'],
+    ['frente', 'Compacto', 'Uma vaga por bomba, na frente da ilha: ocupa menos espaço.'],
+    ['fila', 'Em fila', 'Duas vagas por bomba, um carro na frente do outro.'],
+    variados && ['potencia', 'Por potência', 'As mais rápidas primeiro, com 2 vagas; o Mobi fica com 1.'],
+    n >= 2 && n <= 2 * MAX_BOMBAS && ['duas', 'Duas ilhas', 'Metade das bombas em cada ilha, com as vagas entre as duas.'],
+    ['zero', 'Começar do zero', 'O mapa vazio, para pôr uma bomba de cada vez.'],
+  ].filter(Boolean)
+}
+function formato(k) {
+  const s = vazio(); if (k === 'zero') return s
+  const cob = cobPadrao(), mod = (b, disp, lado = 'frente') => ({ bombaId: b.id, modelo: b.modelo, disp, lado: disp === 'dois' ? null : lado, coberta: cob })
+  const lista = k === 'potencia' ? [...posto.bombas].sort(ORDEM_POT) : posto.bombas
+  if (k === 'duas') {
+    const h = Math.ceil(lista.length / 2)
+    s.ilhas = [{ bombas: lista.slice(0, h).map((b) => mod(b, 'unica', 'tras')) }, { bombas: lista.slice(h).map((b) => mod(b, 'unica', 'frente')) }]
+    return s
+  }
+  const uma = (b) => (k === 'frente' || (k === 'potencia' && b.modelo === 'mobi') ? mod(b, 'unica') : k === 'fila' ? mod(b, 'fila') : mod(b, 'dois'))
+  const ni = Math.max(1, Math.ceil(lista.length / MAX_BOMBAS)), por = Math.ceil(lista.length / ni)
+  s.ilhas = []
+  for (let i = 0; i < lista.length; i += por) s.ilhas.push({ bombas: lista.slice(i, i + por).map(uma) })
+  return s
+}
+// a prévia de um formato: o próprio desenho do mapa, no ângulo da maquete, sem os "+"
+function previa(s) {
+  const st0 = st, sel0 = sel, vista0 = vista, m = 6
+  st = s; sel = null; vista = 'iso'; desenhaMapa(true)
+  const txt = svg.outerHTML.replace(/^<svg[^>]*>/, `<svg viewBox="${limites.x0 - m} ${limites.y0 - m} ${limites.x1 - limites.x0 + 2 * m} ${limites.y1 - limites.y0 + 2 * m}" aria-hidden="true">`).replace(/ id="(mundo|livres|indicador)"/g, '')
+  st = st0; sel = sel0; vista = vista0; desenhaMapa()
+  return txt
+}
+const modalModelos = $('#modalModelos')
+let escolhido = 'dois'
+function desenhaModelos() {
+  const ops = formatosDoPosto(), n = posto.bombas.length
+  if (!ops.some(([k]) => k === escolhido)) escolhido = 'dois'
+  modalModelos.innerHTML = `<div class="cab"><div><h2 id="mmTit">Formatos prontos</h2><p>Com ${n === 1 ? 'a bomba' : `as ${n} bombas`} de ${esc(posto.nome)}. Depois você ajusta as vagas, a ilha e a ordem.</p></div><button class="fechar" type="button" data-fecha aria-label="Fechar">${ICON_X}</button></div>
+    <div class="corpo"><div class="modelos">${ops.map(([k, t, d]) => `<button type="button" class="modelo" data-formato="${k}" aria-pressed="${escolhido === k}"><span class="prev">${k === 'zero' ? '<span class="zero">+</span>' : previa(formato(k))}</span><b>${t}</b><small>${d}</small></button>`).join('')}</div>
+      ${todos().length ? '<p class="aviso">O que está no mapa agora é trocado pelo formato. Dá para desfazer depois.</p>' : ''}</div>
+    <div class="pe"><span class="esp"></span><button class="btn" type="button" data-fecha>Cancelar</button><button class="btn prim" type="button" data-usar>Usar este formato</button></div>`
+}
+const usaFormato = () => { modalModelos.close(); sel = null; cam = null; muda(formato(escolhido), escolhido === 'zero' ? 'Mapa limpo: as bombas voltaram para a lista.' : 'Formato aplicado. Ajuste o que quiser.') }
+$('#abrirModelos').addEventListener('click', () => { desenhaModelos(); modalModelos.showModal(); modalModelos.focus() })
+modalModelos.addEventListener('click', (e) => {
+  if (e.target === modalModelos || e.target.closest('[data-fecha]')) { modalModelos.close(); return }
+  const f = e.target.closest('[data-formato]')
+  if (f) { escolhido = f.dataset.formato; modalModelos.querySelectorAll('[data-formato]').forEach((b) => b.setAttribute('aria-pressed', String(b === f))); return }
+  if (e.target.closest('[data-usar]')) usaFormato()
+})
+modalModelos.addEventListener('dblclick', (e) => { const f = e.target.closest('[data-formato]'); if (f) { escolhido = f.dataset.formato; usaFormato() } })
 
 // ================================================================ maquete: o formato já tem maquete? (a mesma assinatura da fila-maquetes.mjs)
 function assinatura(s = st) {
@@ -921,17 +1354,92 @@ $('#postoSel').innerHTML = POSTOS.map((p) => `<option value="${p.id}">${esc(p.no
 $('#postoSel').addEventListener('change', (e) => trocaPosto(e.target.value))
 $('#postoSel').value = posto.id
 trocaPosto(posto.id)
+
+// ================================================================ "Como funciona" (9/11, o mesmo tour do construtor das bombas de frente)
+// No primeiro acesso ele abre sozinho uma vez; "Como funciona" abre de novo. Dá para pular a qualquer momento (Esc)
+const PASSOS = [
+  ['#cardBombas', 'Suas bombas', 'Estas são as bombas do seu posto. Segure uma pela alça e arraste para uma ilha do mapa, ou toque nela.'],
+  ['.palco', 'O mapa', 'Solte a bomba na frente ou atrás da ilha: o lado onde você solta é o lado da vaga. Enquanto você arrasta, os lugares possíveis aparecem em pontilhado.'],
+  ['aside.col[aria-label="Detalhes"]', 'Ajuste cada bomba', 'Escolha uma bomba no mapa para mudar as vagas, a ilha e a posição. Arraste uma vaga para trocá-la de lado. O botão direito (no celular, tocar e segurar) abre as mesmas opções.'],
+  ['#cardCobertura', 'Cobertura', 'Com ou sem o telhado de placas solares, para todas as bombas.'],
+  ['#cardFormatos', 'Formatos prontos', 'Sem tempo? Comece de um formato pronto com as suas bombas e ajuste depois.'],
+  ['#confirmar', textoCriar(), 'Quando estiver do seu jeito, é só criar. A gente prepara o seu posto em 3D e em 2D e abre o painel.'],
+]
+const tour = $('#tour'), tourAlvo = $('#tourAlvo'), tourCartao = $('#tourCartao'), TOUR_VISTO = 'construtor-lateral-tour-v1'
+let passo = 0
+const passosVisiveis = () => PASSOS.filter(([s]) => { const el = $(s); return el && !el.hidden && el.offsetParent !== null })
+function mostraPasso() {
+  const lista = passosVisiveis(), [s, t, d] = lista[passo], m = 8
+  // no celular a coluna fica embaixo do mapa e o cartão fica preso embaixo da tela: a parte do passo sobe antes de medir
+  if (matchMedia('(max-width: 560px)').matches) { const r0 = $(s).getBoundingClientRect(); window.scrollTo({ top: Math.max(0, scrollY + r0.top - 12), behavior: 'instant' }) }
+  else $(s).scrollIntoView({ block: 'nearest', behavior: 'instant' })   // no computador a coluna da esquerda rola sozinha
+  const r = $(s).getBoundingClientRect(), antes = tourAlvo.getBoundingClientRect()
+  Object.assign(tourAlvo.style, { left: `${r.left - m}px`, top: `${r.top - m}px`, width: `${r.width + 2 * m}px`, height: `${r.height + 2 * m}px` })
+  const depois = tourAlvo.getBoundingClientRect()
+  if (antes.width && depois.width && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    tourAlvo.animate([{ transform: `translate(${antes.left - depois.left}px,${antes.top - depois.top}px) scale(${antes.width / depois.width},${antes.height / depois.height})` }, { transform: 'none' }], { duration: 250, easing: 'ease' })
+  }
+  tourCartao.innerHTML = `<small>Passo ${passo + 1} de ${lista.length}</small><h3 id="tourTit">${t}</h3><p>${d}</p>
+    <div class="tour-pe"><span class="tour-pontos">${lista.map((_, i) => `<i class="${i === passo ? 'on' : ''}"></i>`).join('')}</span>
+      ${passo < lista.length - 1 ? '<button type="button" class="pular" data-t="fim">Pular</button>' : ''}${passo ? '<button type="button" class="btn" data-t="ant">Voltar</button>' : ''}
+      <button type="button" class="btn prim" data-t="prox">${passo < lista.length - 1 ? 'Próximo' : 'Começar'}</button></div>`
+  const w = 320, h = tourCartao.offsetHeight, gap = 16
+  let x = r.right + gap, y = r.top
+  if (x + w > innerWidth - 12) x = r.left - gap - w
+  if (x < 12) { x = Math.min(Math.max(12, r.left), innerWidth - w - 12); y = r.bottom + gap }
+  if (y + h > innerHeight - 12) y = Math.max(12, innerHeight - h - 12)
+  if (r.height > innerHeight * 0.6 && x >= 12) y = Math.max(12, r.top + 40)
+  Object.assign(tourCartao.style, { left: `${x}px`, top: `${y}px` })
+  tourCartao.querySelector('[data-t="prox"]').focus()
+}
+function abreTour() { sel = null; menu.hidden = true; pv.hidden = true; pop.hidden = true; desenha(); passo = 0; tour.hidden = false; mostraPasso() }
+function fechaTour() { tour.hidden = true; try { localStorage.setItem(TOUR_VISTO, '1') } catch {}; $('#verTour').focus({ preventScroll: true }) }
+tour.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-t]'); if (!t) return
+  if (t.dataset.t === 'fim') fechaTour()
+  if (t.dataset.t === 'ant') { passo--; mostraPasso() }
+  if (t.dataset.t === 'prox') { if (passo >= passosVisiveis().length - 1) fechaTour(); else { passo++; mostraPasso() } }
+})
+tour.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { e.preventDefault(); fechaTour() }
+  if (e.key === 'ArrowRight') { e.preventDefault(); tour.querySelector('[data-t="prox"]').click() }
+  if (e.key === 'ArrowLeft' && passo) { e.preventDefault(); passo--; mostraPasso() }
+})
+window.addEventListener('resize', () => { if (!tour.hidden) mostraPasso() })
+$('#verTour').addEventListener('click', abreTour)
+// primeiro acesso: abre sozinho uma vez (?tour=1 força)
+let tourVisto = false; try { tourVisto = localStorage.getItem(TOUR_VISTO) === '1' } catch {}
+if ((DE === 'inicio' && !tourVisto) || q.get('tour') === '1') setTimeout(abreTour, 600)
 window.__pronto = true
 </script>
 <style>
   /* as cinco disposições de vaga, numa lista (o resto do estilo é o do construtor.html) */
-  .disps{display:grid;gap:6px}
-  .disp{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface,rgba(255,255,255,.04))}
-  .disp b{font-size:13.5px;font-weight:600}
-  .disp small{font-size:12px;color:var(--muted)}
-  .disp[aria-checked="true"]{border-color:var(--green-line,rgba(3,255,31,.4));background:var(--green-soft,rgba(3,255,31,.08))}
-  .disp:focus-visible{outline:2px solid var(--green,#03FF1F);outline-offset:2px}
-  #cardFormato .seg button[aria-pressed="false"]{cursor:pointer}
+  /* (9/11) as cinco formas de vaga com a ilustração: na janela que abre ao pôr a bomba, no dropdown do painel e no menu */
+  .ico-vaga{width:40px;height:28px;flex:none;border-radius:7px;background:#0E1511;display:block}
+  .menu-ctx button svg.ico-vaga{width:30px;height:21px;border-radius:5px}
+  .pop-vagas{width:296px}
+  .pv-cab{display:flex;align-items:center;gap:10px;padding:4px 4px 12px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+  .pv-cab .pv-ic{display:grid;place-items:center;width:38px;height:42px;border-radius:10px;background:#0E1511;flex:none}
+  .pv-cab .mini-bomba{height:34px}
+  .pop-vagas .pv-cab h3{padding:0;font-size:14.5px;font-weight:600;color:var(--text)}
+  .pv-cab small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+  .ops-vaga{display:grid;gap:3px}
+  .op-vaga{display:flex;align-items:center;gap:10px;width:100%;padding:5px 8px 5px 5px;border-radius:10px;border:1px solid transparent;text-align:left;font-size:13.5px}
+  .op-vaga:hover,.op-vaga:focus-visible{background:var(--surface-2);outline:0}
+  .op-vaga[aria-checked="true"]{border-color:var(--green-line);background:var(--green-soft)}
+  .pop-vagas .nota{margin:8px 4px 2px;font-size:12px}
+  .dd-vagas{position:relative}
+  .dd-btn{display:flex;align-items:center;gap:10px;width:100%;padding:6px 10px 6px 6px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2);font-size:14px;text-align:left}
+  .dd-btn:hover{border-color:var(--green-line)}
+  .dd-btn span{flex:1;min-width:0}
+  .dd-btn .chev{width:14px;height:14px;color:var(--muted);flex:none}
+  .dd-lista{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;list-style:none;padding:5px;margin:0;border-radius:12px;border:1px solid var(--line-2);background:var(--modal);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+  .dd-lista[hidden]{display:none}
+  .dd-op{display:flex;align-items:center;gap:10px;padding:5px 8px 5px 5px;border-radius:9px;font-size:13.5px;cursor:pointer}
+  .dd-op:hover,.dd-op:focus{background:var(--surface-2);outline:0}
+  .dd-op[aria-selected="true"]{background:var(--green-soft)}
+  /* (a miniatura das bombas e os cartões do formato: o estilo vem do construtor.html) arrastando, o pontilhado mostra todos os lugares (inclusive a ilha nova): os "+" fixos do mapa saem da frente */
+  body.arrastando #mapa .slot{display:none}
   @media (max-width:860px){ .palco{min-height:0} }
 </style>
 </body>

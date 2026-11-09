@@ -106,6 +106,11 @@ Casos especiais:
 - Leitura por LUT de 256 entradas, sRGB → linear × 2.
 - **Byte de sombra 188 = razão 1** (o "não muda" do multiplica): o ponto neutro foi escolhido para caber o
   escurecimento e um pouco de clareamento no mesmo byte.
+- **Sombra transparente = razão 1 exata** (vagas paralelas, `lego-lateral/`): a sombra de perto é gravada com perda
+  leve (webp 95) e os blocos de 8 × 8 que ficam no neutro (188 ± 1) saem transparentes. Os dois montadores
+  (`web/lateral.js` e `ferramentas/lateral-lego.mjs montar`) leem o transparente como 1. Sem isso, a perda (YUV)
+  deixava o neutro um pouco mais escuro no verde e, como as sombras se multiplicam onde as peças se cruzam, a tarde
+  ficava visivelmente mais escura e esverdeada. Medido contra o render inteiro: melhor que o corte sem perda.
 - Ao final, **Khronos PBR Neutral** (o tone map do Blender) e a curva sRGB. Compor em sRGB em vez de linear dá halo nas
   costuras e degraus nas sombras somadas.
 - **PNG lido byte a byte** (decodificador próprio em `compor.js`): o canvas pré-multiplica o alfa e perde precisão nas
