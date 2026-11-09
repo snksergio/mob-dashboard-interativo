@@ -1530,6 +1530,12 @@ function escolheVisaoMq() {
 }
 const VISAO_MQ = escolheVisaoMq()
 function trocaVisaoMq(v) {
+  // (9/11) o navegador ainda recusa o 3D: avisa aqui mesmo, sem ir e voltar
+  if (v === '3d' && q.get('sem3d') === 'webgl' && !webglLivre()) {
+    document.getElementById('avisoVisao').hidden = false
+    document.getElementById('avisoVisaoTxt').textContent = 'O 3D continua bloqueado. Feche o navegador por completo (todas as janelas) e abra de novo.'
+    return
+  }
   try { localStorage.setItem('painel-visao-maquete', v) } catch {}
   const u = new URL(location.href); u.searchParams.set('visao', v); u.searchParams.delete('sem3d'); location.href = u
 }
@@ -1689,7 +1695,8 @@ try {
   mq = await motor(el, { dados: pastaPosto, pasta: ESTILO_2D, hora: horaBrasil(), aoProgresso: progresso, qualidade: VISUAL.q !== 'auto' ? VISUAL.q : null })
 } catch (e) {
   console.error('a maquete não abriu:', e)
-  if (VISAO_MQ.v === '3d') { const u = new URL(location.href); u.searchParams.set('visao', '2d'); u.searchParams.set('sem3d', '1'); location.replace(u) }
+  // o motivo vai junto: "webgl" é o navegador recusando o 3D (só volta reiniciando o navegador); "erro", outra falha
+  if (VISAO_MQ.v === '3d') { const u = new URL(location.href); u.searchParams.set('visao', '2d'); u.searchParams.set('sem3d', /webgl/i.test(String(e && e.message)) ? 'webgl' : 'erro'); location.replace(u) }
   else cargaParada('Não deu para abrir a maquete agora.', false)
   await new Promise(() => {})                                   // o resto da página não roda
 }
@@ -1747,7 +1754,11 @@ function avisoVisao(txt, botao, para, guarda = true) {
   document.getElementById('avisoVisaoX').onclick = () => { a.hidden = true; if (guarda) try { localStorage.setItem('painel-visao-maquete', VISAO_MQ.v) } catch {} }
 }
 // (9/11) o 3D não abriu (veio para cá sozinho, ?sem3d=1): fechar o aviso não guarda a 2D, o 3D volta a ser tentado depois
-if (q.has('sem3d') && VISAO_MQ.v === '2d') avisoVisao('O 3D não abriu neste navegador agora: abrimos a visão 2D. Se continuar, reinicie o navegador.', 'Tentar o 3D', '3d', false)
+// "webgl": antes de ir para o 3D, "Tentar o 3D" testa se o navegador já libera (sem a ida e volta quando ainda não libera)
+const webglLivre = () => { try { const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl'); if (!g) return false; const x = g.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return true } catch { return false } }
+if (q.get('sem3d') === 'webgl' && VISAO_MQ.v === '2d') {
+  avisoVisao('O navegador bloqueou o 3D (acontece depois que a placa de vídeo trava): abrimos a visão 2D.', 'Tentar o 3D', '3d', false)
+} else if (q.has('sem3d') && VISAO_MQ.v === '2d') avisoVisao('O 3D não abriu agora: abrimos a visão 2D.', 'Tentar o 3D', '3d', false)
 else if (VISAO_MQ.motivo) avisoVisao(`${VISAO_MQ.motivo}: abrimos a visão 2D, mais leve.`, 'Ver em 3D', '3d')
 // 3D escolhido sozinho: se os primeiros segundos depois que a maquete aparece ficarem travados, sugere a 2D (sem trocar sozinho)
 function vigiaQuadros() {

@@ -538,8 +538,12 @@ const corPaint = '#1C8A46', corPaintSel = '#22A653'
 let limites = { x0: 0, x1: 1, y0: 0, y1: 1 }
 function desenhaMapa(limpo = false) {
   const G = geometria(), n = st.ilhas.length, livres = !limpo && disponiveis().length > 0
-  const yv0 = -(M.isl_w / 2 + 0.05 + M.bay_w), yN = (n - 1) * PITCH + M.isl_w / 2 + 0.05 + M.bay_w
   const comNova = livres && n < MAX_ILHAS && st.ilhas[n - 1].bombas.length > 0
+  // (9/11) a mesma regra do lateral-plano.js: sem vaga atrás na última ilha (ou na frente da primeira), a laje recua 2,7 m
+  const tem = (il, lado) => il.bombas.some((m) => m.disp === 'dois' || m.lado === lado)
+  const rF = st.ilhas[0].bombas.length && !tem(st.ilhas[0], 'frente') ? 2.7 : 0
+  const rT = !comNova && st.ilhas[n - 1].bombas.length && !tem(st.ilhas[n - 1], 'tras') ? 2.7 : 0
+  const yv0 = -(M.isl_w / 2 + 0.05 + M.bay_w) + rF, yN = (n - 1) * PITCH + M.isl_w / 2 + 0.05 + M.bay_w - rT
   const xFim = G.xFim + (livres ? M.sep_x + M.bay_l : 0)
   const lx0 = -M.ap - 0.12, lx1 = xFim + M.ap + 0.12, ly0 = yv0 - M.m_fr, ly1 = yN + M.m_fu + (comNova ? PITCH : 0)
   const laje = retRedondo(lx0, ly0, lx1, ly1, 0.9)

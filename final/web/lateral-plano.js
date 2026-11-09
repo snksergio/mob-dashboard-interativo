@@ -34,7 +34,12 @@ export function plano(layout, M) {
     return { i, y: i * pitch, comp: x - M.sep_x, bombas }
   })
   const xFim = Math.max(...ilhas.map((il) => il.comp))
-  const yv0 = ilhas[0].y - M.isl_w / 2 - 0.05 - M.bay_w, yv1 = ilhas.at(-1).y + M.isl_w / 2 + 0.05 + M.bay_w
+  // (9/11, Sergio) a última ilha sem vaga atrás (ou a primeira sem vaga na frente) não deixa a faixa da vaga sobrando: a
+  // laje recua 2 passos de 1,35 m desse lado (um número inteiro de pixels na câmera fixa: as peças do chão só mudam de
+  // lugar). Fica ~2,35 m de piso da borda da ilha à borda da laje, como os 2,2 m da frente das vagas
+  const recuoF = ilhas[0].bombas.some((b) => b.lados.includes(-1)) ? 0 : 2 * P
+  const recuoT = ilhas.at(-1).bombas.some((b) => b.lados.includes(1)) ? 0 : 2 * P
+  const yv0 = ilhas[0].y - M.isl_w / 2 - 0.05 - M.bay_w + recuoF, yv1 = ilhas.at(-1).y + M.isl_w / 2 + 0.05 + M.bay_w - recuoT
   const laje = { x0: -M.ap - 0.12, x1: xFim + M.ap + 0.12, y0: yv0 - M.m_fr, y1: yv1 + M.m_fu }
   // os trechos do teto e os pilares (build_coberturas_laterais) e o letreiro (o primeiro teto da ilha mais da frente)
   const trechos = [], pilares = []; let letreiro = null
@@ -61,7 +66,7 @@ export function plano(layout, M) {
     }
     for (const x of [...pil].sort((a, b) => a - b)) pilares.push({ x, y: il.y, ilha: il.i })
   }
-  return { ilhas, xFim, laje, trechos, pilares, letreiro, pitch, fora }
+  return { ilhas, xFim, laje, trechos, pilares, letreiro, pitch, fora, recuoF, recuoT }
 }
 
 // a bomba muda com o teto da frente (o sol e os spots chegam nela por ali): c0 / cf
@@ -84,29 +89,33 @@ export function altasDo(pl) {
 // floreiras, não)
 export function celulas(pl, M) {
   const H = pl.pitch / 2, out = [], n = pl.ilhas.length, X = pl.xFim, i0 = pl.ilhas[0].y, iN = pl.ilhas.at(-1).y
+  // (9/11) com o recuo da laje, a faixa da primeira ilha começa rF mais para dentro e a da última termina rT antes; a tira da
+  // frente, a dos fundos, os cantos e as tiras de borda das laterais vão junto (as mesmas peças, no lugar novo)
+  const rF = pl.recuoF || 0, rT = pl.recuoT || 0, f0 = i0 + rF, fN = iN - rT
   const add = (tipo, ax, ay, r, fonte = true) => out.push({ tipo, ax, ay, r, fonte })
   for (const il of pl.ilhas) {
     // (a moita da floreira da frente, vista de cima, entra na lateral e na ponta da primeira faixa: as peças dessas
     // células vêm de uma faixa do meio)
     const y = il.y, meio = il.i > 0 && il.i < n - 1
-    add('lado-e', -P, y, [-I, 0, -H, H], meio)
-    add('ponta-e', -P, y, [0, P, -H, H], il.i > 0)
+    const a = il.i === 0 ? -H + rF : -H, b2 = il.i === n - 1 ? H - rT : H
+    add('lado-e', -P, y, [-I, 0, a, b2], meio)
+    add('ponta-e', -P, y, [0, P, a, b2], il.i > 0)
     il.bombas.forEach((b, j) => {
-      add(`mod/${b.disp}${b.disp === 'dois' ? '' : b.lados[0] < 0 ? '/f' : '/t'}`, b.x0, y, [0, b.x1 - b.x0, -H, H])
-      if (j + 1 < il.bombas.length) add('junta', b.x1, y, [0, M.sep_x, -H, H])
+      add(`mod/${b.disp}${b.disp === 'dois' ? '' : b.lados[0] < 0 ? '/f' : '/t'}`, b.x0, y, [0, b.x1 - b.x0, a, b2])
+      if (j + 1 < il.bombas.length) add('junta', b.x1, y, [0, M.sep_x, a, b2])
     })
     // (à direita, a sombra da floreira do totem entra na primeira faixa logo depois do fim da maior ilha)
     const limpa = (x0) => il.i > 0 || x0 < X - 0.01
-    add('ponta-d', il.comp, y, [0, P, -H, H], limpa(il.comp))
-    for (let k = Math.round((il.comp + P) / P); k < Math.round((X + P) / P); k++) add('vazio', k * P, y, [0, P, -H, H], limpa(k * P))
-    add('lado-d', X + P, y, [0, I, -H, H], meio)
+    add('ponta-d', il.comp, y, [0, P, a, b2], limpa(il.comp))
+    for (let k = Math.round((il.comp + P) / P); k < Math.round((X + P) / P); k++) add('vazio', k * P, y, [0, P, a, b2], limpa(k * P))
+    add('lado-d', X + P, y, [0, I, a, b2], meio)
   }
-  for (let k = 0; k < Math.round(X / P); k++) { add('frente', k * P, i0, [0, P, -I, -H]); add('fundo', k * P, iN, [0, P, H, I]) }
-  add('canto-fe', 0, i0, [-I, 0, -I, -H]); add('canto-fd', X, i0, [0, I, -I, -H])
-  add('canto-te', 0, iN, [-I, 0, H, I]); add('canto-td', X, iN, [0, I, H, I])
+  for (let k = 0; k < Math.round(X / P); k++) { add('frente', k * P, f0, [0, P, -I, -H]); add('fundo', k * P, fN, [0, P, H, I]) }
+  add('canto-fe', 0, f0, [-I, 0, -I, -H]); add('canto-fd', X, f0, [0, I, -I, -H])
+  add('canto-te', 0, fN, [-I, 0, H, I]); add('canto-td', X, fN, [0, I, H, I])
   // por cima das laterais (e da tira de 1,35 m vizinha, com a ponta ou o vazio) da primeira e da última faixa, numa
   // tira de 2,7 m junto da borda
-  add('lado-e/0', -P, i0, [-I, P, -H, -H + 2 * P]); add('lado-d/0', X + P, i0, [-P, I, -H, -H + 2 * P])
-  add('lado-e/n', -P, iN, [-I, 0, H - 2 * P, H]); add('lado-d/n', X + P, iN, [0, I, H - 2 * P, H])
+  add('lado-e/0', -P, f0, [-I, P, -H, -H + 2 * P]); add('lado-d/0', X + P, f0, [-P, I, -H, -H + 2 * P])
+  add('lado-e/n', -P, fN, [-I, 0, H - 2 * P, H]); add('lado-d/n', X + P, fN, [0, I, H - 2 * P, H])
   return out
 }

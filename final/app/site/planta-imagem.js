@@ -270,15 +270,34 @@ export async function criarPlantaImagem(el, opcoes = {}) {
     const cabeCss = parseFloat(getComputedStyle(el).getPropertyValue('--mv-cabe'))
     s0 = Math.min(q0.w / W, q0.h / H) * (cabeCss > 0 ? cabeCss : Wc < 560 ? 0.96 : CABE)
     const d = Math.min(2, devicePixelRatio || 1); cnv.width = Math.round(Wc * d); cnv.height = Math.round(Hc * d)
-    aplicaVista()
+    aplicaVista(true)
   }
-  function aplicaVista() {
+  // (9/11) zoom e arrasto leves: trocar o viewBox redesenha a planta inteira (as imagens grandes, os filtros) a cada quadro
+  // e o zoom da 2D saía mais pesado que o do 3D (medido: ~3× na placa de vídeo, ~2× no processador por quadro). Enquanto
+  // a vista anda, o desenho que já está pronto só é deslocado e ampliado (transform, feito pela placa, sem redesenhar); no
+  // primeiro quadro parado, o viewBox novo entra e a planta é redesenhada uma vez, nítida. Num movimento grande, redesenha
+  // no caminho (para não borrar demais nem mostrar a borda)
+  let vbC = null, vbAnt = null, parado = 0
+  svg.style.transformOrigin = '0 0'; svg.style.willChange = 'transform'
+  function aplicaVista(fixa = false) {
+    // o fim do zoom não se arrasta: perto do alvo, chega nele (antes eram dezenas de passos minúsculos, cada um redesenhando)
+    if (Math.abs(zoom.k - zoom.alvo) < zoom.alvo * 0.002) zoom.k = zoom.alvo
     s = s0 * zoom.k
     if (zoom.k <= 1.001 && foco < 0.05 && !centroAlvo) { zoom.cx = lerp(zoom.cx, W / 2, 0.2); zoom.cy = lerp(zoom.cy, H / 2, 0.2) }
     zoom.cx = clamp(zoom.cx, 0, W); zoom.cy = clamp(zoom.cy, 0, H)
     const cxp = q0.l + q0.w / 2, cyp = q0.t + q0.h / 2
     vb = { x: zoom.cx - cxp / s, y: zoom.cy - cyp / s }
-    svg.setAttribute('viewBox', `${vb.x.toFixed(2)} ${vb.y.toFixed(2)} ${(Wc / s).toFixed(2)} ${(Hc / s).toFixed(2)}`)
+    const anda = !fixa && vbAnt && (Math.abs(s / vbAnt.s - 1) > 1e-4 || Math.hypot(vb.x - vbAnt.x, vb.y - vbAnt.y) * s > 0.05)
+    vbAnt = { x: vb.x, y: vb.y, s }
+    parado = anda ? 0 : parado + 1
+    const tx = vbC ? (vbC.x - vb.x) * s : 0, ty = vbC ? (vbC.y - vb.y) * s : 0, k = vbC ? s / vbC.s : 1
+    // redesenha: na primeira vez, parado há 2 quadros, ou longe demais do último desenho (borrado ou com a borda à mostra)
+    if (fixa || !vbC || parado >= 2 || k > 2.2 || k < 0.5 || Math.abs(tx) > Wc * 0.6 || Math.abs(ty) > Hc * 0.6) {
+      const v = `${vb.x.toFixed(2)} ${vb.y.toFixed(2)} ${(Wc / s).toFixed(2)} ${(Hc / s).toFixed(2)}`
+      if (svg.getAttribute('viewBox') !== v) svg.setAttribute('viewBox', v)
+      if (svg.style.transform) svg.style.transform = ''
+      vbC = { x: vb.x, y: vb.y, s }
+    } else if (anda || svg.style.transform) svg.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${k.toFixed(5)})`
     const kt = s / s0, gx = -vb.x * s, gy = -vb.y * s, ch = kt.toFixed(3) + gx.toFixed(1) + gy.toFixed(1)
     if (ch !== gradeChave) { gradeChave = ch; el.style.setProperty('--grade-k', kt.toFixed(3)); el.style.setProperty('--grade-x', gx.toFixed(1) + 'px'); el.style.setProperty('--grade-y', gy.toFixed(1) + 'px') }
   }
