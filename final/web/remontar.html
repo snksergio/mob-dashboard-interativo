@@ -43,15 +43,29 @@ function daAssinatura(a) {
   const lista = (s) => (s ? s.split(',').map(bomba) : [])
   return { cobertura, ilha: !!fu, fileiras: { frente: lista(fr), fundos: lista(fu) } }
 }
+// (9/11) vagas paralelas: "L|" e, por ilha (separadas por "/"), cada bomba: modelo, disposição (u, d, f), lado (F, T), "c"
+function assinaturaLateral(m) {
+  const bomba = (b) => b.modelo + { unica: 'u', dois: 'd', fila: 'f' }[b.disp] + (b.disp === 'dois' ? '' : b.lado === 'tras' ? 'T' : 'F') + (b.coberta ? 'c' : '')
+  return 'L|' + (m.ilhas || []).map((il) => (il.bombas || []).map(bomba).join(',')).join('/')
+}
+function daAssinaturaLateral(a) {
+  const bomba = (t) => {
+    const x = t.match(/^(mobi|fast|ultra)([udf])([FT]?)(c?)$/), disp = { u: 'unica', d: 'dois', f: 'fila' }[x[2]]
+    return { modelo: x[1], disp, ...(disp === 'dois' ? {} : { lado: x[3] === 'T' ? 'tras' : 'frente' }), coberta: x[4] === 'c' }
+  }
+  return { modelo: 'lateral', ilhas: a.slice(2).split('/').map((il) => ({ bombas: il.split(',').map(bomba) })) }
+}
 const so = (new URLSearchParams(location.search).get('so') || '').split(',').filter(Boolean)
 const REG = await fetch('../../dados/postos.json', { cache: 'no-store' }).then((r) => r.json())
 const resultado = window.resultado = []
 for (const q of REG.maquetes) {
   if (so.length && !so.includes(q.pasta)) continue
   const posto = REG.postos.find((p) => p.maquete === q.pasta && p.montagem)
-  let m = posto ? await fetch('../../dados/' + posto.montagem, { cache: 'no-store' }).then((r) => r.json()) : daAssinatura(q.assinatura)
-  m = { cobertura: !!m.cobertura, ilha: !!m.ilha, fileiras: { frente: m.fileiras.frente || [], fundos: m.ilha ? m.fileiras.fundos || [] : [] } }
-  if (assinatura(m) !== q.assinatura) { log(`${q.pasta}: a montagem (${assinatura(m)}) não bate com o cadastro (${q.assinatura}), fica como está`); resultado.push({ pasta: q.pasta, erro: 'assinatura' }); continue }
+  const lat = q.assinatura.startsWith('L|')
+  let m = posto ? await fetch('../../dados/' + posto.montagem, { cache: 'no-store' }).then((r) => r.json()) : lat ? daAssinaturaLateral(q.assinatura) : daAssinatura(q.assinatura)
+  if (lat) m = { modelo: 'lateral', ilhas: m.ilhas }
+  else m = { cobertura: !!m.cobertura, ilha: !!m.ilha, fileiras: { frente: m.fileiras.frente || [], fundos: m.ilha ? m.fileiras.fundos || [] : [] } }
+  if ((lat ? assinaturaLateral(m) : assinatura(m)) !== q.assinatura) { log(`${q.pasta}: a montagem (${assinatura(m)}) não bate com o cadastro (${q.assinatura}), fica como está`); resultado.push({ pasta: q.pasta, erro: 'assinatura' }); continue }
   const t0 = performance.now()
   try {
     const r = await montarMaquete(m, {})

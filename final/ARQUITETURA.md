@@ -427,6 +427,8 @@ Celular médio simulado (Chrome DevTools: CPU 4× mais lenta, emulação móvel)
 | `app/site/painel.html` | ~3.200 | o painel: simulação, abas, números, tela cheia, demonstração |
 | `web/lego.js` | ~470 | planejamento (regras de fileira, ilha e cobertura) e composição das peças |
 | `web/montar-soltas.js` / `-worker.js` | ~100 / ~140 | orquestração e Workers |
+| `web/lateral.js`, `web/lateral-plano.js`, `web/base/dados-lateral.js` | — | vagas paralelas: composição das peças de `lego-lateral/` (chão por células, sombra em dois níveis, luz como irradiância), a geometria (ilhas, trechos do teto, pilares) e as âncoras, luzes e planta |
+| `app/site/construtor-lateral.html` | ~600 | o construtor das vagas paralelas (o estilo é o do `construtor.html`) |
 | `web/base/compor.js`, `chaves.js`, `dados-sem-blender.js` | — | cor e brilho, chaves das peças, âncoras, luzes e cabos sem Blender |
 | `app.mjs`, `app/fila-maquetes.mjs` | ~100 / ~90 | servidor, cache, compressão, API das maquetes |
 | `online/sw.js`, `online/entrar.js` | ~170 / ~40 | o `app.mjs` como service worker, para hospedagem só de arquivos (seção 9.1) |

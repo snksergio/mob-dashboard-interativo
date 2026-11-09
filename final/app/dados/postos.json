@@ -92,6 +92,22 @@
       "modelo": "pecas",
       "ilha": false,
       "nome": "2 bombas · cobertura em parte"
+    },
+    {
+      "pasta": "m-4274c59f",
+      "assinatura": "L|fastdc,mobiuFc,ultrafFc/fastuT,fastd,mobiuFc/ultrafTc,fastuFc",
+      "modelo": "pecas",
+      "ilha": false,
+      "lateral": true,
+      "nome": "8 bombas em 3 ilhas · vagas paralelas · cobertura em parte"
+    },
+    {
+      "pasta": "m-998add47",
+      "assinatura": "L|fastuFc,ultrauFc,fastuFc,mobiuFc/fastfFc,ultrafFc",
+      "modelo": "pecas",
+      "ilha": false,
+      "lateral": true,
+      "nome": "6 bombas em 2 ilhas · vagas paralelas · com cobertura"
     }
   ],
   "postos": [

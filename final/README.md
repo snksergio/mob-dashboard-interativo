@@ -31,6 +31,7 @@ Porta padrão 5299 (`node app.mjs 8080` usa outra). Páginas:
 |---|---|
 | `/painel.html?posto=shopping-norte` | o painel (3D); `&visao=2d` abre a planta |
 | `/construtor.html?posto=shopping-norte` | o construtor do posto; ao salvar, monta a maquete e volta ao painel |
+| `/construtor-lateral.html?posto=shopping-norte` | o construtor das vagas paralelas (o carro para ao lado da ilha, em linha); os dois construtores trocam pelo seletor "Formato do posto" |
 | `/meu-posto.html` | a lista de postos do dono |
 | `/montador/web/remontar.html` | remonta todas as maquetes do cadastro (depois de trocar peças ou o montador) |
 
@@ -56,6 +57,7 @@ Postos de exemplo (`app/dados/postos.json`): `fast`, `mobi`, `fast-sem`, `ultra`
 | `app/fila-maquetes.mjs` | o cadastro das maquetes no servidor (reservar, guardar arquivo, concluir) |
 | `web/` | o montador, que roda no navegador: `montar-soltas.js` (entrada), `montar-soltas-worker.js`, `lego.js` (regras e composição), `base/` (cor, projeção, âncoras e moldes) |
 | `lego/<vista>-<horário>/` | as peças: `lego.json` (o índice) e os webp. Vistas 3D e 2D, cada uma em tarde, noite, manhã e pôr do sol |
+| `lego-lateral/<vista>-<horário>/` | as peças das vagas paralelas (montadas por `web/lateral.js`, com a geometria de `web/lateral-plano.js`) |
 | `primeiro-acesso/` | o segundo cadastro (o dono que ainda não montou o posto), o passo a passo e as telas do fluxo |
 | `online/`, `index.html` | a versão sem servidor: `online/sw.js` faz o papel do `app.mjs` no navegador; o `index.html` da raiz leva a ela |
 
@@ -83,6 +85,11 @@ O servidor expõe `web/` e `lego/` em `/montador/web/` e `/montador/lego/`, e `a
 Assinatura: `<tem cobertura 0|1>|<frente>|<fundos>`, cada bomba `modelo + vagas + marca`, com a marca `c` (coberta) ou
 `s` (sem) só quando foge da regra antiga (posto coberto cobre todas menos o Mobi). A mesma conta está no construtor,
 em `app/fila-maquetes.mjs` e em `web/remontar.html`.
+
+Vagas paralelas (`"modelo": "lateral"`): a montagem diz as ilhas (até 8, com até 4 bombas cada), cada bomba com modelo,
+`disp` (`unica`: 1 vaga; `dois`: uma de cada lado; `fila`: 2 em fila do mesmo lado), `lado` (`frente` ou `tras`, menos
+na `dois`) e se está coberta. Assinatura: `L|` e, por ilha (separadas por `/`), cada bomba `modelo + u|d|f + F|T + c`
+(ex.: `L|fastd,mobiuFc/ultrafTc`).
 
 ## Arquivos de uma maquete (`app/dados/m-xxxxxxxx/`)
 

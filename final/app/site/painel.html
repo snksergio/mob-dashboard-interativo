@@ -72,6 +72,10 @@ input,textarea{caret-color:var(--green)}
 .viagem p{font-size:15px;color:var(--text);font-weight:500}
 .viagem p span{color:var(--green-ink);font-variant-numeric:tabular-nums}
 .viagem small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+/* (9/11) o carregamento que parou: o motivo e a saída */
+.carga-parada{display:grid;gap:10px;justify-items:center;margin-top:6px}
+.carga-parada p{font-size:13.5px;color:var(--muted);font-weight:400}
+.carga-parada div{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 
 /* botão do posto (abre o modal de postos) e porcentagem do zoom */
 button.posto-card{font:inherit;color:inherit;text-align:left;cursor:pointer}
@@ -1527,13 +1531,15 @@ function escolheVisaoMq() {
 const VISAO_MQ = escolheVisaoMq()
 function trocaVisaoMq(v) {
   try { localStorage.setItem('painel-visao-maquete', v) } catch {}
-  const u = new URL(location.href); u.searchParams.set('visao', v); location.href = u
+  const u = new URL(location.href); u.searchParams.set('visao', v); u.searchParams.delete('sem3d'); location.href = u
 }
 const postoId = POSTOS.some((p) => p.id === q.get('posto')) ? q.get('posto') : 'fast'
 const posto = POSTOS.find((p) => p.id === postoId)
 // carregando: o vídeo do posto se montando, em loop, e a porcentagem do download embaixo
 const modeloPosto = (posto.bombas && posto.bombas[0] && posto.bombas[0].modelo) || postoId.split('-')[0]
-const pastaPosto = `dados/${posto.maquete || postoId}/`         // a maquete do posto (o formato dele)
+// a maquete do posto (o formato dele); ?maquete=m-xxxxxxxx abre outra maquete do app, para testar um formato
+const maqueteQ = /^m-[0-9a-f]{8}$/.test(q.get('maquete') || '') ? q.get('maquete') : null
+const pastaPosto = `dados/${maqueteQ || posto.maquete || postoId}/`
 document.getElementById('carregSub').textContent = posto.nome
 const viagem = document.getElementById('viagem')
 {
@@ -1552,7 +1558,27 @@ function pinta(f) {
   const et = ETAPAS.filter(([a]) => f >= a).at(-1)[1], sub = document.getElementById('carregSub'), t = `${posto.nome} · ${et}`
   if (sub.textContent !== t) sub.textContent = t
 }
-function progresso(f) { pReal = Math.max(pReal, f) }
+let pMudou = performance.now()
+function progresso(f) { if (f > pReal) pMudou = performance.now(); pReal = Math.max(pReal, f) }
+// (9/11) carregamento parado: o motivo vai para a tela, com a saída (a 2D, ou tentar de novo)
+function cargaParada(txt, com2d) {
+  if (document.getElementById('cargaParada')) return
+  const d = document.createElement('div'); d.id = 'cargaParada'; d.className = 'carga-parada'; d.setAttribute('role', 'alert')
+  d.innerHTML = `<p></p><div>${com2d ? '<button type="button" class="btn" data-ir="2d">Abrir em 2D</button>' : ''}<button type="button" class="btn" data-ir="recarregar">Tentar de novo</button></div>`
+  d.querySelector('p').textContent = txt
+  d.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ir]'); if (!b) return
+    if (b.dataset.ir === 'recarregar') location.reload()
+    else { const u = new URL(location.href); u.searchParams.set('visao', '2d'); location.href = u }
+  })
+  viagem.appendChild(d)
+}
+// nada avançou em 25 s (e a página está à vista): algo travou sem dar erro
+const vigiaCarga = setInterval(() => {
+  if (pReal >= 1) return clearInterval(vigiaCarga)
+  if (document.visibilityState !== 'visible') { pMudou = Math.max(pMudou, performance.now() - 5000); return }
+  if (performance.now() - pMudou > 25000) { clearInterval(vigiaCarga); cargaParada('Está demorando mais que o normal para abrir a maquete.', VISAO_MQ.v === '3d') }
+}, 2000)
 let ultCarga = performance.now()
 function animaCarga(agora = performance.now()) {
   if (q.has('carregamento')) { pinta(Number(q.get('carregamento')) || 0); return }
@@ -1655,7 +1681,19 @@ try { const g = JSON.parse(localStorage.getItem('painel-visual') || '{}').q; if 
 // (5/11) o endereço vale por cima de verdade: antes a maquete abria com ?qualidade= e, logo depois, a preferência guardada
 // no aparelho (aplica, abaixo) passava por cima. Vale só nesta página: o que está guardado não muda
 if (['auto', 'alta', 'leve'].includes(q.get('qualidade'))) VISUAL.q = q.get('qualidade')
-const mq = await motor(el, { dados: pastaPosto, pasta: ESTILO_2D, hora: horaBrasil(), aoProgresso: progresso, qualidade: VISUAL.q !== 'auto' ? VISUAL.q : null })
+// (9/11) a maquete que não abre não pode deixar o carregamento parado para sempre (parava em 32%: o Chrome recusa o 3D
+// depois que a placa de vídeo trava ou reinicia, até o navegador ser reiniciado). O 3D que falha abre a 2D, com um aviso;
+// a 2D que falha mostra o erro e "Tentar de novo"
+let mq
+try {
+  mq = await motor(el, { dados: pastaPosto, pasta: ESTILO_2D, hora: horaBrasil(), aoProgresso: progresso, qualidade: VISUAL.q !== 'auto' ? VISUAL.q : null })
+} catch (e) {
+  console.error('a maquete não abriu:', e)
+  if (VISAO_MQ.v === '3d') { const u = new URL(location.href); u.searchParams.set('visao', '2d'); u.searchParams.set('sem3d', '1'); location.replace(u) }
+  else cargaParada('Não deu para abrir a maquete agora.', false)
+  await new Promise(() => {})                                   // o resto da página não roda
+}
+clearInterval(vigiaCarga)
 if (q.has('captura')) window.__mq = mq                         // só para as capturas de teste (pôr carro numa vaga escolhida)
 progresso(1)                                                  // a maquete aparece no fim do script (revela), com o painel montado
 window.maquete = mq
@@ -1702,13 +1740,15 @@ document.querySelectorAll('[data-vmq]').forEach((b) => {
   b.setAttribute('aria-pressed', b.dataset.vmq === VISAO_MQ.v)
   b.addEventListener('click', () => { if (b.dataset.vmq !== VISAO_MQ.v) trocaVisaoMq(b.dataset.vmq) })
 })
-function avisoVisao(txt, botao, para) {
+function avisoVisao(txt, botao, para, guarda = true) {
   const a = document.getElementById('avisoVisao'); a.hidden = false
   document.getElementById('avisoVisaoTxt').textContent = txt
   const b = document.getElementById('avisoVisaoBtn'); b.textContent = botao; b.onclick = () => trocaVisaoMq(para)
-  document.getElementById('avisoVisaoX').onclick = () => { a.hidden = true; try { localStorage.setItem('painel-visao-maquete', VISAO_MQ.v) } catch {} }
+  document.getElementById('avisoVisaoX').onclick = () => { a.hidden = true; if (guarda) try { localStorage.setItem('painel-visao-maquete', VISAO_MQ.v) } catch {} }
 }
-if (VISAO_MQ.motivo) avisoVisao(`${VISAO_MQ.motivo}: abrimos a visão 2D, mais leve.`, 'Ver em 3D', '3d')
+// (9/11) o 3D não abriu (veio para cá sozinho, ?sem3d=1): fechar o aviso não guarda a 2D, o 3D volta a ser tentado depois
+if (q.has('sem3d') && VISAO_MQ.v === '2d') avisoVisao('O 3D não abriu neste navegador agora: abrimos a visão 2D. Se continuar, reinicie o navegador.', 'Tentar o 3D', '3d', false)
+else if (VISAO_MQ.motivo) avisoVisao(`${VISAO_MQ.motivo}: abrimos a visão 2D, mais leve.`, 'Ver em 3D', '3d')
 // 3D escolhido sozinho: se os primeiros segundos depois que a maquete aparece ficarem travados, sugere a 2D (sem trocar sozinho)
 function vigiaQuadros() {
   if (VISAO_MQ.motivo || VISAO_MQ.v !== '3d' || q.has('captura')) return

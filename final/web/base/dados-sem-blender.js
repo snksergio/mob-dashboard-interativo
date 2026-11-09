@@ -228,7 +228,7 @@ export function planta(m, MO, q) {
 // ---------------------------------------------------------------- pistolas e cabos (bomba_pecas.glb)
 // os nós do molde de cada bomba, renomeados e levados para o x da bomba; as malhas são as do molde (não duplicam), e só
 // as que algum nó usa vão para o arquivo (o molde inteiro tem as seis bombas: 1,7 MB)
-function enxugar(json, bin) {
+export function enxugar(json, bin) {
   const mapa = (usados) => new Map([...usados].sort((a, b) => a - b).map((v, i) => [v, i]))
   const mM = mapa(new Set(json.nodes.map((n) => n.mesh).filter((x) => x !== undefined)))
   const meshes = [...mM.keys()].map((i) => json.meshes[i])
@@ -272,7 +272,7 @@ export function glbPecas(m, MO) {
   const { json: out, bin: novoBin } = enxugar({ ...json, nodes: nos, scenes: [{ ...(json.scenes || [{}])[0], nodes: nos.map((_, i) => i) }], scene: 0 }, bin)
   return gravarGlb(out, novoBin)
 }
-function gravarGlb(out, bin) {
+export function gravarGlb(out, bin) {
   const enc = new TextEncoder(), j = enc.encode(JSON.stringify(out)), jp = (4 - (j.length % 4)) % 4, bp = (4 - (bin.length % 4)) % 4
   const total = 12 + 8 + j.length + jp + 8 + bin.length + bp, buf = new ArrayBuffer(total), d = new DataView(buf), b8 = new Uint8Array(buf)
   d.setUint32(0, 0x46546c67, true); d.setUint32(4, 2, true); d.setUint32(8, total, true)

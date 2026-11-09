@@ -60,8 +60,9 @@ function reduz(d, w, h, ch, f) {
   return { w: w2, h: h2, d: out }
 }
 
-export async function montarLateral(L, layout, ler, { max = 3600, mascara: comMascara = false } = {}) {
-  const C = cam(L), M = L.medidas, pl = plano(layout, M), cels = celulas(pl, M), Q = quadroLateral(L, layout, max)
+// quadro: o mesmo para todos os horários de uma vista (o painel cruza as camadas de dois horários pixel a pixel)
+export async function montarLateral(L, layout, ler, { max = 3600, mascara: comMascara = false, quadro = null } = {}) {
+  const C = cam(L), M = L.medidas, pl = plano(layout, M), cels = celulas(pl, M), Q = quadro || quadroLateral(L, layout, max)
   const { W, H, s } = Q, N = W * H, faltas = new Set()
   // ---------------------------------------------------------------- peças preparadas (na escala da montagem)
   // tipo: 'cor' (luz linear pré-multiplicada + alfa), 'razao' (sombra; transparente = 1), 'irr' (luz pura, x k)

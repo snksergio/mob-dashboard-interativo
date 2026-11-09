@@ -305,6 +305,12 @@ dialog.modal.largo{width:min(860px,calc(100vw - 32px))}
 
   <div class="grade">
     <aside class="col" aria-label="Bombas e estrutura">
+      <!-- (9/11) o outro formato, as vagas paralelas, fica no construtor-lateral.html -->
+      <section class="card" id="cardFormato">
+        <h2>Formato do posto</h2>
+        <div class="seg largo" role="group" aria-label="Formato do posto"><button type="button" aria-pressed="true">Bombas de frente</button><button type="button" data-tipo="lateral" aria-pressed="false">Vagas paralelas</button></div>
+        <p class="nota" style="margin-top:8px">O carro para de frente para a bomba. Nas vagas paralelas, ele para ao lado da ilha, em linha.</p>
+      </section>
       <section class="card" id="cardBombas">
         <h2>Suas bombas <small id="invResumo"></small></h2>
         <div id="inventario"></div>
@@ -441,7 +447,7 @@ function valida(s) {
 function carrega() {
   let s = null; try { s = JSON.parse(localStorage.getItem(chave())) } catch {}
   if (DE === 'inicio') { st = valida(s) ? s : vazio(); hist = []; futuro = []; sel = null; return }   // primeiro acesso: vazio (ou o rascunho dele)
-  if (!valida(s) && MONTAGENS[posto.id]) { const m = MONTAGENS[posto.id]; s = vazio(); s.ilha = m.ilha; s.cobertura = m.cobertura; s.fileiras = JSON.parse(JSON.stringify(m.fileiras)) }
+  if (!valida(s) && MONTAGENS[posto.id] && MONTAGENS[posto.id].fileiras) { const m = MONTAGENS[posto.id]; s = vazio(); s.ilha = m.ilha; s.cobertura = m.cobertura; s.fileiras = JSON.parse(JSON.stringify(m.fileiras)) }
   if (!valida(s) && posto.atual) { s = vazio(); s.cobertura = posto.cobertura; s.fileiras.frente = posto.bombas.map((b) => modDe(b, 2, posto.cobertura && b.modelo !== 'mobi')) }   // começa da maquete atual (feita com a regra de antes)
   st = valida(s) ? s : vazio(); hist = []; futuro = []; sel = null
 }
@@ -817,7 +823,8 @@ function adiantar() {
   // economia de dados, aparelho com pouca memória ou tela de celular: só monta ao confirmar (montar por baixo dos panos
   // gasta de 200 a 600 MB de memória e o download do formato)
   if ((navigator.connection && navigator.connection.saveData) || (navigator.deviceMemory || 4) < 4 || matchMedia('(max-width: 560px)').matches) return
-  NAV.tm = setTimeout(() => montarNav(chave, 1), 1200)                          // espera o dono parar de mexer
+  // espera o dono parar de mexer; (9/11) e não começa se a mesma montagem já está andando (o "Criar" chegou antes)
+  NAV.tm = setTimeout(() => { if (NAV.chave !== chave) montarNav(chave, 1) }, 1200)
 }
 function montarNav(chave, paralelo) {
   if (NAV.ctrl) NAV.ctrl.abort()
@@ -825,7 +832,7 @@ function montarNav(chave, paralelo) {
   Object.assign(NAV, { chave, ctrl, pronta: null, prog: null })
   NAV.promessa = moduloNav().then((mod) => mod.montarMaquete(m, { paralelo, sinal: ctrl.signal, aoProgresso: (p) => { if (NAV.chave === chave) { NAV.prog = p; mostraNav() } } }))
     .then((r) => { if (NAV.chave === chave) { NAV.pronta = r; mostraNav() } return r })
-    .catch((e) => { if (NAV.chave === chave) { NAV.chave = null; NAV.prog = null; mostraNav() } throw e })
+    .catch((e) => { if (NAV.ctrl === ctrl) { NAV.chave = null; NAV.prog = null; mostraNav() } throw e })   // (9/11) só a montagem atual limpa
   NAV.promessa.catch(() => {})
   return NAV.promessa
 }
@@ -1264,7 +1271,12 @@ modalConf.addEventListener('click', (e) => {
 modalConf.addEventListener('cancel', (e) => { if (modalConf.querySelector('.criando')) e.preventDefault() })   // Esc não fecha no meio da criação
 
 // ================================================================ posto
+// (9/11) as vagas paralelas ficam no construtor-lateral.html: o posto montado assim abre lá (a não ser que o dono tenha
+// pedido este formato, ?formato=fileira)
+const urlLateral = (id) => `construtor-lateral.html?posto=${id}${DE === 'inicio' ? '&de=inicio' : ''}${q.get('volta') ? `&volta=${q.get('volta')}` : ''}`
+$('[data-tipo="lateral"]').addEventListener('click', () => { location.href = urlLateral(posto.id) })
 function trocaPosto(id) {
+  if (DE !== 'inicio' && q.get('formato') !== 'fileira' && MONTAGENS[id] && MONTAGENS[id].modelo === 'lateral') { location.replace(urlLateral(id)); return }
   posto = POSTOS.find((p) => p.id === id) || POSTOS[0]; carrega(); cam = null
   // primeiro acesso: o posto já foi escolhido na tela anterior (o nome vai no subtítulo) e o voltar leva de volta a ela
   $('#postoEnd').textContent = DE === 'inicio' ? `${posto.nome} · ${posto.end}` : posto.end

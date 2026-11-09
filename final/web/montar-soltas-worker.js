@@ -99,7 +99,7 @@ self.onmessage = async ({ data: t }) => {
       : t.arvore ? (p) => p.tipo === 'arvore' : null
     // (3/11, noite) na noite de cada vista, também a máscara das bombas (a mesma em todo horário): à noite se vê o que acende
     // (9/11) as vagas paralelas vêm do montarLateral, já na resolução final (t.layout, sem plano: ele planeja sozinho)
-    const res = t.lateral ? await montarLateral(t.indice, t.layout, ler, { max: t.max, mascara: t.per === 'noite' })
+    const res = t.lateral ? await montarLateral(t.indice, t.layout, ler, { max: t.max, mascara: t.per === 'noite', quadro: t.quadro })
       : await montarLego(t.indice, t.plano, ler, filtro, { mascara: t.per === 'noite' })
     const { fundo, teto, sobre, mascara, aceso } = res
     ms['juntar as peças'] = agora() - t1

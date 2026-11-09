@@ -6,7 +6,9 @@
 //   3. monta em Workers (montar-soltas-worker.js), em paralelo;
 //   4. gera os dados (dados-sem-blender.js): âncoras, luzes, pistolas e cabos, projeção da 2D.
 import * as D from './base/dados-sem-blender.js'
+import * as DL from './base/dados-lateral.js'
 import { planejar } from './lego.js'
+import { quadroLateral } from './lateral.js'
 
 const raiz = new URL('../', import.meta.url).href                 // a pasta de cima (a que tem web/ e lego/)
 const pecas = new URL('./base/', import.meta.url).href            // os moldes (cópia dos da V2)
@@ -47,12 +49,19 @@ async function montarMaqueteLateral(montagem, { max = 3600, paralelo, aoProgress
   const parar = () => { if (sinal && sinal.aborted) throw new DOMException('montagem cancelada', 'AbortError') }
   const base = (v) => raiz + `lego-lateral/${v.vista}-${v.per}/`
   const pedidas = VISTAS.filter((v) => !soVistas || soVistas.includes(`${v.vista}-${v.per}`))
-  aoProgresso({ etapa: 'índices', feitos: 0, total: 1 })
+  aoProgresso({ etapa: 'moldes e índices', feitos: 0, total: 1 })
   let t = performance.now()
-  const indices = await Promise.all(pedidas.map((v) => json(base(v) + 'lego.json', medida, 'índices').catch((e) => { if (v.opcional) return null; throw e })))
-  ms['índices'] = performance.now() - t
+  const [moldes, indices] = await Promise.all([
+    Promise.all([json(pecas + 'moldes/ancoras.json', medida, 'moldes'), json(pecas + 'moldes/planta/planta.json', medida, 'moldes'), baixa(pecas + 'moldes/bomba_pecas.glb', medida, 'moldes'),
+      Promise.all(TODOS.map((p) => json(pecas + `moldes/luzes-${p}.json`, medida, 'moldes'))), Promise.all(TODOS.map((p) => baixa(pecas + `moldes/env-${p}.jpg`, medida, 'moldes')))]),
+    Promise.all(pedidas.map((v) => json(base(v) + 'lego.json', medida, 'índices').catch((e) => { if (v.opcional) return null; throw e }))),
+  ])
+  ms['moldes e índices'] = performance.now() - t
   parar()
-  const fila = pedidas.map((v, i) => indices[i] && { ...v, lateral: true, base: base(v), indice: indices[i], layout: { ilhas: montagem.ilhas }, max, contorno }).filter(Boolean)
+  // um quadro por vista, o mesmo nos quatro horários (calculado pelo primeiro índice da vista)
+  const layout = { ilhas: montagem.ilhas }, quadroVista = {}
+  pedidas.forEach((v, i) => { if (indices[i] && !quadroVista[v.vista]) quadroVista[v.vista] = quadroLateral(indices[i], layout, max) })
+  const fila = pedidas.map((v, i) => indices[i] && { ...v, lateral: true, base: base(v), indice: indices[i], layout, max, contorno, quadro: quadroVista[v.vista] }).filter(Boolean)
   // memória: cada Worker segura o fundo, o teto e a cor do chão (Float32) do quadro final; estimado pela vista 3D
   const P = paralelo || paralelos(max * Math.round(max * 0.6) * 1.2), arquivos = {}, quadros = {}
   let feitos = 0, faltas = new Set(), bombas = null
@@ -80,6 +89,20 @@ async function montarMaqueteLateral(montagem, { max = 3600, paralelo, aoProgress
   const horarios = TODOS.filter((p) => pedidas.some((v) => v.vista === '3d' && v.per === p && quadros[`3d-${p}`]))
   const horarios2d = TODOS.filter((p) => pedidas.some((v) => v.vista === 'planta' && v.per === p && quadros[`planta-${p}`]))
   const js = (o) => new Blob([JSON.stringify(o)], { type: 'application/json' })
+  // os dados do painel (dados-lateral.js): âncoras, luzes, pistolas e cabos guardados, projeção da 2D
+  t = performance.now()
+  const [ancorasM, plantaM, glbM, luzesM, envM] = moldes
+  const MO = D.prepararMoldes({ ancoras: ancorasM, planta: plantaM, glb: glbM, luzes: Object.fromEntries(TODOS.map((p, i) => [p, luzesM[i]])) })
+  const L0 = indices.find(Boolean), LL = DL.layoutLateral(montagem, L0.medidas, L0.zteto)
+  const qGrade = (Q) => ({ gx0: Q.gx0, gy0: Q.gy0, w: Q.Wf, h: Q.Hf })
+  if (quadroVista['3d']) {
+    arquivos['ancoras.json'] = js(DL.ancorasLateral(montagem, MO, LL, qGrade(quadroVista['3d'])))
+    for (const per of horarios) arquivos[`luzes-${per}.json`] = js(DL.luzesLateral(montagem, MO, LL, per))
+    arquivos['bomba_pecas.glb'] = new Blob([DL.glbPecasLateral(montagem, MO, LL)], { type: 'model/gltf-binary' })
+    TODOS.forEach((p, i) => { if (horarios.includes(p)) arquivos[`env-${p}.jpg`] = new Blob([envM[i]], { type: 'image/jpeg' }) })
+  }
+  if (quadroVista.planta) arquivos['planta/planta.json'] = js(DL.plantaLateral(montagem, MO, LL, qGrade(quadroVista.planta)))
+  ms['dados'] = performance.now() - t
   arquivos['pronto.json'] = js({ lateral: true, por_pecas: true, lego: true, sem_blender: true, no_navegador: true, horarios, horarios2d, quadros, bombas, geradoEm: new Date().toISOString(), faltam: [...faltas] })
   return { arquivos, ms, total: performance.now() - T0, medida, paralelos: P, quadro: quadros[`3d-${horarios[0]}`] || null, quadros, faltas: [...faltas] }
 }

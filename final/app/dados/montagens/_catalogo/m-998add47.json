@@ -1,0 +1,60 @@
+{
+  "schema": "igreen.posto-montagem",
+  "versao": 1,
+  "regras": "igreen-lateral-v1",
+  "modelo": "lateral",
+  "nome": "validação: 2 ilhas sem vaga atrás",
+  "cobertura": true,
+  "ilhas": [
+    {
+      "bombas": [
+        {
+          "bombaId": "sn-fast-1",
+          "modelo": "fast",
+          "disp": "unica",
+          "lado": "frente",
+          "coberta": true
+        },
+        {
+          "bombaId": "sn-ultra-1",
+          "modelo": "ultra",
+          "disp": "unica",
+          "lado": "frente",
+          "coberta": true
+        },
+        {
+          "bombaId": "sn-fast-2",
+          "modelo": "fast",
+          "disp": "unica",
+          "lado": "frente",
+          "coberta": true
+        },
+        {
+          "bombaId": "sn-mobi-1",
+          "modelo": "mobi",
+          "disp": "unica",
+          "lado": "frente",
+          "coberta": true
+        }
+      ]
+    },
+    {
+      "bombas": [
+        {
+          "bombaId": "sn-fast-3",
+          "modelo": "fast",
+          "disp": "fila",
+          "lado": "frente",
+          "coberta": true
+        },
+        {
+          "bombaId": "sn-ultra-2",
+          "modelo": "ultra",
+          "disp": "fila",
+          "lado": "frente",
+          "coberta": true
+        }
+      ]
+    }
+  ]
+}

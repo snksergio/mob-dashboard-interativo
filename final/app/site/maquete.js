@@ -247,7 +247,13 @@ export async function criarMaquete(el, opcoes = {}) {
 
   // ---------------------------------------------------------- camadas renderizadas (fundo e teto), com cruzamento de períodos
   const tl = new THREE.TextureLoader()
-  const tex = (u) => new Promise((ok) => tl.load(u, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.premultiplyAlpha = true; t.anisotropy = 4; passo(); ok(t) }))
+  // (9/11) a imagem que falha (rede, decodificação) tenta de novo uma vez; se falhar de novo, o erro sobe (o painel cai na
+  // 2D) em vez de deixar o carregamento esperando para sempre
+  const tex = (u) => new Promise((ok, falha) => {
+    const pronto = (t) => { t.colorSpace = THREE.SRGBColorSpace; t.premultiplyAlpha = true; t.anisotropy = 4; passo(); ok(t) }
+    tl.load(u, pronto, undefined, () => setTimeout(() => tl.load(u + (u.includes('?') ? '&' : '?') + 'de-novo=1', pronto, undefined,
+      () => falha(new Error(`não deu para baixar ${u.split('/').pop()}`))), 800))
+  })
   const ext = opcoes.ext || 'webp'
   const fundos = {}, tetos = {}, envs = {}
   const camadasDe = async (p) => { const [f, t] = await Promise.all([tex(base + `fundo-${p}.${ext}`), tex(base + `teto-${p}.${ext}`)]); fundos[p] = f; tetos[p] = t }
@@ -425,8 +431,11 @@ export async function criarMaquete(el, opcoes = {}) {
   // ---------------------------------------------------------- cena ao vivo
   const cena = new THREE.Scene()
   const Z = an.Z, FX_H = an.FX_H, FX_Y0 = an.FX_Y0
-  const chao = (x, y) => (y > FX_Y0 - 0.005 ? Z + FX_H : chaoPatio(y))
-  const chaoPatio = (y) => { const y0 = an.AP_Y0, y1 = an.AP_Y0 + an.RAMPA_L; return y >= y1 ? Z : y <= y0 ? 0.015 : lerp(0.015, Z, (y - y0) / (y1 - y0)) }
+  // (9/11) vagas paralelas: pátio plano (as rampas ficam nas laterais) e o topo das ilhas onde elas estão
+  const LAT = !!an.lateral
+  const naIlha = (x, y) => LAT && an.ilhas.some((il) => Math.abs(y - il.y) < il.w / 2 + 0.005 && x > il.x0 && x < il.x1)
+  const chao = (x, y) => (LAT ? (naIlha(x, y) ? Z + FX_H : Z) : y > FX_Y0 - 0.005 ? Z + FX_H : chaoPatio(y))
+  const chaoPatio = (y) => { if (LAT) return Z; const y0 = an.AP_Y0, y1 = an.AP_Y0 + an.RAMPA_L; return y >= y1 ? Z : y <= y0 ? 0.015 : lerp(0.015, Z, (y - y0) / (y1 - y0)) }
   // ilha (maquete v14): as vagas da fileira de trás vêm "de frente" no ancoras.json (como a fileira da frente); o quadro delas
   // gira 180° em volta de (CX, Y_MID), o mesmo giro que a v14 faz no Blender. Carro, pistola, cabo e anel vivem nesse quadro.
   const quadroTras = new THREE.Group()
@@ -839,13 +848,15 @@ export async function criarMaquete(el, opcoes = {}) {
     mt.customProgramCacheKey = () => 'cabo'
     return mt
   }
-  function novoCabo(inicio, pist, r = 0.022, pai = cena) {
-    // do jeito da maquete v11: sai da bomba, desce a faixa, corre no chão e sobe até a empunhadura
-    const { fim, u } = pist; const xs = inicio.x
-    const chave = [inicio, new THREE.Vector3(xs, inicio.y - 0.08, Z + FX_H + 0.25), new THREE.Vector3(xs, (FX_Y0 + inicio.y) / 2 - 0.05, Z + FX_H),
-      new THREE.Vector3(xs, FX_Y0 + 0.06, Z + FX_H), new THREE.Vector3(xs, FX_Y0 - 0.12, Z),
-      new THREE.Vector3((fim.x + u.x * 0.16 + xs) / 2, (fim.y + FX_Y0) / 2, Z), new THREE.Vector3(fim.x + u.x * 0.16, fim.y + 0.15, Z),
-      new THREE.Vector3(fim.x + u.x * 0.12, fim.y + 0.02, Z + 0.15), fim.clone().addScaledVector(u, 0.05).add(new THREE.Vector3(0, 0, -0.25)), fim]
+  function novoCabo(inicio, pist, r = 0.022, pai = cena, borda = null) {
+    // do jeito da maquete v11: sai da bomba, desce a faixa, corre no chão e sobe até a empunhadura. borda (vagas
+    // paralelas): { y, s } a beira do meio-fio do lado da vaga e o sentido dela (−1: a vaga fica em −Y, como na fileira;
+    // +1: atrás da ilha, e o cabo desce pelo outro lado)
+    const { fim, u } = pist; const xs = inicio.x, yE = borda ? borda.y : FX_Y0, sg = borda ? borda.s : -1
+    const chave = [inicio, new THREE.Vector3(xs, inicio.y + sg * 0.08, Z + FX_H + 0.25), new THREE.Vector3(xs, (yE + inicio.y) / 2 + sg * 0.05, Z + FX_H),
+      new THREE.Vector3(xs, yE - sg * 0.06, Z + FX_H), new THREE.Vector3(xs, yE + sg * 0.12, Z),
+      new THREE.Vector3((fim.x + u.x * 0.16 + xs) / 2, (fim.y + yE) / 2, Z), new THREE.Vector3(fim.x + u.x * 0.16, fim.y - sg * 0.15, Z),
+      new THREE.Vector3(fim.x + u.x * 0.12, fim.y - sg * 0.02, Z + 0.15), fim.clone().addScaledVector(u, 0.05).add(new THREE.Vector3(0, 0, -0.25)), fim]
     const pts = catmull(chave, 14)
     for (const p of pts) p.z = Math.max(p.z, chao(p.x, p.y) + r + 0.002)
     const segs = pts.length * 2
@@ -880,24 +891,32 @@ export async function criarMaquete(el, opcoes = {}) {
     const fileira = vg.fileira || 'frente', pai = fileira === 'fundos' ? quadroTras : cena
     const dc = vg.ponto === 'dc'
     const lado = vg.lado                                         // tomada do lado do carro virado para a bomba
-    const pLocal = new THREE.Vector3(lado > 0 ? porta0.x : -porta0.x, porta0.y, porta0.z)
-    const nLocal = new THREE.Vector3(lado > 0 ? n0.x : -n0.x, n0.y, 0)
+    const lat = vg.lateral || null                               // (9/11) vagas paralelas: o carro virado para +X
+    // (o carro do modelo olha para +Y; virado para +X, o local (x, y) vai para (y, −x))
+    const gira = (v) => (lat ? new THREE.Vector3(v.y, -v.x, v.z) : v)
+    const pLocal = gira(new THREE.Vector3(lado > 0 ? porta0.x : -porta0.x, porta0.y, porta0.z))
+    const nLocal = gira(new THREE.Vector3(lado > 0 ? n0.x : -n0.x, n0.y, 0))
     const pos = new THREE.Vector3(vg.x, vg.ycarro, Z)
     const porta = pos.clone().add(pLocal)
     const carro = novoCarro(CORES_CARROS[i % CORES_CARROS.length], pai)
-    // um par pistola + cabo para cada conector da bomba desta vaga (o motorista usa o conector que quiser)
+    // um par pistola + cabo para cada conector da bomba desta vaga (o motorista usa o conector que quiser). Nas vagas
+    // de trás da ilha o cabo sai por trás da bomba (a saída espelhada no eixo dela)
     const pares = {}
     for (const c of conectores.filter((c) => c.bomba === vg.bomba)) {
       const pist = novaPistola(porta, nLocal, c.dc ? 1 : 0.85, pai)
-      pares[c.id] = { pist, cabo: novoCabo(c.saida, pist, c.dc ? 0.022 : 0.016, pai) }
+      const ini = lat && lat.s > 0 ? new THREE.Vector3(c.saida.x, 2 * lat.eixo - c.saida.y, c.saida.z) : c.saida
+      pares[c.id] = { pist, cabo: novoCabo(ini, pist, c.dc ? 0.022 : 0.016, pai, lat ? { y: lat.yBorda, s: lat.s } : null) }
     }
     const natural = conectores.find((c) => c.vagasNaturais.includes(i)).id
     const { pist, cabo } = pares[natural]
-    const anel = new THREE.Mesh(new THREE.PlaneGeometry(an.BAY_W - 0.12, an.BAY_D - 0.12), new THREE.MeshBasicMaterial({ map: texAnel, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, opacity: 0 }))
-    anel.position.set(vg.x, (an.Y_BOCA + an.Y_CAB) / 2, Z + 0.012); anel.renderOrder = 0; pai.add(anel)
+    const anel = new THREE.Mesh(lat ? new THREE.PlaneGeometry(lat.baia.h - 0.12, lat.baia.w - 0.12) : new THREE.PlaneGeometry(an.BAY_W - 0.12, an.BAY_D - 0.12),
+      new THREE.MeshBasicMaterial({ map: texAnel, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, opacity: 0 }))
+    if (lat) { anel.position.set(lat.baia.cx, lat.baia.cy, Z + 0.012); anel.rotation.z = Math.PI / 2 }
+    else anel.position.set(vg.x, (an.Y_BOCA + an.Y_CAB) / 2, Z + 0.012)
+    anel.renderOrder = 0; pai.add(anel)
     const modelo = an.bombas[vg.bomba].modelo
     return { i, dc, nome: vg.nome, bomba: vg.bomba, fileira, pares, natural, con: null, ficar: false, pos, carro, pist, cabo, anel, estado: 'vazia', t: 0,
-      pct: 18 + 30 * (i % 2), kw: POT[modelo][dc ? 'dc' : 'ac'], sel: null }
+      pct: 18 + 30 * (i % 2), kw: POT[modelo][dc ? 'dc' : 'ac'], sel: null, lat, dEntra: 0, dSai: null }
   })
 
   // ---------------------------------------------------------- alarme da bomba: brilho vermelho no chão, em volta da base
@@ -1058,6 +1077,9 @@ export async function criarMaquete(el, opcoes = {}) {
   const D_CHEGADA = 2.9, D_SAIDA = 3.6, T_CHEGA = 3.2, T_CONECTA = 1.5, T_DESCONECTA = 1.0, T_SAI = 4.2
   function muda(vg, estado) { vg.estado = estado; vg.t = 0; sombraSuja = true; avisa(vg) }
   let sombraSuja = true                                           // leve: a sombra do sol só é refeita quando algo muda
+  // (9/11) vagas paralelas: a faixa (as vagas do mesmo lado da mesma ilha) está livre atrás desta vaga (antes = true)
+  // ou à frente dela, até a ponta da ilha
+  const faixaLivre = (vg, antes) => vagas.every((o) => o === vg || !o.lat || o.lat.faixa !== vg.lat.faixa || (antes ? o.lat.ordem > vg.lat.ordem : o.lat.ordem < vg.lat.ordem) || o.estado === 'vazia')
   function livreNaBomba(vg) { return conectores.find((c) => c.bomba === vg.bomba && c.uso == null && c.vagasNaturais.includes(vg.i)) || conectores.find((c) => c.bomba === vg.bomba && c.uso == null) }
   function evento(vagaIdx, acao, opc = {}) {
     const vg = vagas[vagaIdx]; if (!vg) return false
@@ -1073,6 +1095,7 @@ export async function criarMaquete(el, opcoes = {}) {
       vg.carro.cor = cor
       if (SPR.ligado) { vg.carro.esperando = true; vesteCarro(vg.carro).then(() => { vg.carro.esperando = false }) }
       vg.pct = 12 + ((vg.i * 37 + proximaCor * 23) % 40)
+      if (vg.lat) vg.dEntra = faixaLivre(vg, true) ? 6.5 : 0.9
       muda(vg, 'chegando'); vg.carro.raiz.visible = true
     }
     if (acao === 'sair' && ['carregando', 'falha'].includes(vg.estado)) { if (opc.ficar != null) vg.ficar = !!opc.ficar; muda(vg, 'desconectando') }
@@ -1106,9 +1129,23 @@ export async function criarMaquete(el, opcoes = {}) {
   function atualizaVaga(vg, dt, tempo) {
     vg.t += dt
     const c = vg.carro, sobTeto = (y) => 1 - 0.35 * suave(clamp01((y - (an.Y_BOCA - 0.8)) / 2.6))
-    let y = vg.pos.y, a = 1, giro = 0
-    // qualidade leve: o carro surge e some no lugar, só com a transparência (sem a manobra de chegada e a ré da saída)
-    if (vg.estado === 'chegando' && vis.leve) {
+    let y = vg.pos.y, x = vg.pos.x, a = 1, giro = 0
+    // (9/11) vagas paralelas: o carro entra andando para a frente (+X) e sai para a frente. Com a faixa livre atrás (ou
+    // à frente, na saída), o trajeto inteiro; senão só um deslize curto no lugar, surgindo ou sumindo, para nunca passar
+    // por cima de outro carro
+    if (vg.lat && !vis.leve && (vg.estado === 'chegando' || vg.estado === 'saindo')) {
+      if (vg.estado === 'chegando') {
+        if (c.esperando) vg.t = 0
+        const D = vg.dEntra || 0.9, longe = D > 2, T = longe ? 3.6 : 1.6, k = clamp01(vg.t / T), e = easeOut(k)
+        x = vg.pos.x - D * (1 - e); a = suave(clamp01(k / (longe ? 0.2 : 0.7))); giro = D * (e - easeOut(clamp01((vg.t - dt) / T)))
+        if (k >= 1) { muda(vg, 'conectando'); pecasRepouso(vg, false) }
+      } else {
+        if (vg.dSai == null) vg.dSai = faixaLivre(vg, false) ? 7 : 0.9
+        const D = vg.dSai, longe = D > 2, T = longe ? 4.2 : 1.6, k = clamp01(vg.t / T), e = easeInOut(k)
+        x = vg.pos.x + D * e; a = 1 - suave(clamp01((k - (longe ? 0.8 : 0.3)) / (longe ? 0.2 : 0.7))); giro = D * (e - easeInOut(clamp01((vg.t - dt) / T)))
+        if (k >= 1) { muda(vg, 'vazia'); c.raiz.visible = false; liberaConector(vg); vg.con = null; vg.dSai = null }
+      }
+    } else if (vg.estado === 'chegando' && vis.leve) {
       if (c.esperando) vg.t = 0                                    // a imagem da cor ainda está chegando
       const k = clamp01(vg.t / 1.0); a = suave(k)
       if (k >= 1) { muda(vg, 'conectando'); pecasRepouso(vg, false) }
@@ -1126,11 +1163,17 @@ export async function criarMaquete(el, opcoes = {}) {
     }
     if (vg.estado === 'vazia') { c.raiz.visible = false }
     // carro: posição, inclinação na rampa, rodas girando, transparência ao surgir/sumir
-    const yf = y + infoCarro.rodas.yf, yr = y + infoCarro.rodas.yr
-    const zf = chaoPatio(yf), zr = chaoPatio(yr)
-    c.raiz.position.set(vg.pos.x, y, (zf + zr) / 2)
-    c.raiz.rotation.set(Math.atan2(zf - zr, yf - yr), 0, 0)
-    c.sombra.position.z = Z - (zf + zr) / 2 + 0.004
+    if (vg.lat) {
+      // vagas paralelas: pátio plano, o carro virado para +X
+      c.raiz.position.set(x, y, Z); c.raiz.rotation.set(0, 0, -Math.PI / 2); c.sombra.position.z = 0.004
+      if (vg.estado === 'vazia') vg.dSai = null
+    } else {
+      const yf = y + infoCarro.rodas.yf, yr = y + infoCarro.rodas.yr
+      const zf = chaoPatio(yf), zr = chaoPatio(yr)
+      c.raiz.position.set(vg.pos.x, y, (zf + zr) / 2)
+      c.raiz.rotation.set(Math.atan2(zf - zr, yf - yr), 0, 0)
+      c.sombra.position.z = Z - (zf + zr) / 2 + 0.004
+    }
     c.giro += giro / infoCarro.rodas.raio
     for (const r of c.rodas) {
       const q = new THREE.Quaternion().setFromAxisAngle(r.eixo === 'x' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1), -c.giro * r.sinal)
@@ -1139,14 +1182,15 @@ export async function criarMaquete(el, opcoes = {}) {
     if (c.raiz.visible) opacidadeCarro(c, a)
     // ré: a luz traseira acende forte do fim da desconexão até o carro sumir. De dia o brilho aditivo some sobre o
     // carro branco, então o halo vira uma névoa vermelha normal; à noite ele soma luz
-    const reAlvo = !vis.leve && (vg.estado === 'saindo' || (vg.estado === 'desconectando' && vg.t > T_DESCONECTA * 0.6)) ? 1 : 0
+    // (nas vagas paralelas o carro sai para a frente: sem a luz de ré)
+    const reAlvo = !vis.leve && !vg.lat && (vg.estado === 'saindo' || (vg.estado === 'desconectando' && vg.t > T_DESCONECTA * 0.6)) ? 1 : 0
     c.re = lerp(c.re, reAlvo, Math.min(1, dt * 7))
     const lb = c.luzes.base || { lanterna: 3, halo: 0, noite: 0 }
     c.luzes.lanterna.forEach((m2) => (m2.emissiveIntensity = lb.lanterna * (1 + 1.2 * c.re) + 3 * c.re))   // forte demais o vermelho vira rosa
     const hm = c.luzes.halo.material, dia = lb.noite < 0.5, bl = dia ? THREE.NormalBlending : THREE.AdditiveBlending
     if (hm.blending !== bl) { hm.blending = bl; hm.needsUpdate = true }
     hm.opacity = (dia ? 0.8 * c.re : Math.max(lb.halo, 0.95 * c.re)) * a
-    c.raiz.userData.sol = sobTeto(y)
+    c.raiz.userData.sol = vg.lat ? (vg.lat.coberta ? 0.65 : 1) : sobTeto(y)
     // cabo e pistola
     let f = 0
     // leve: a pistola sai e volta para a bomba sem a animação do cabo

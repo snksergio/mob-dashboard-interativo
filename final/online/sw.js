@@ -44,7 +44,7 @@ async function atende(req, cad, rel, u) {
   if (rel.startsWith('api/')) return api(req, cad, rel.slice(4), u)
   if (req.method !== 'GET' && req.method !== 'HEAD') return new Response(null, { status: 405 })
   if (rel.startsWith('dados/')) return dados(req, cad, rel.slice(6))
-  const mt = rel.match(/^montador\/(web|lego)\/(.+)$/)
+  const mt = rel.match(/^montador\/(web|lego|lego-lateral)\/(.+)$/)      // (9/11) lego-lateral: as peças das vagas paralelas
   if (mt) return daRede(req, `${PACOTE}${mt[1]}/${mt[2]}`, rel)
   return daRede(req, PACOTE + 'app/site/' + (rel === '' ? 'painel.html' : rel), rel)
 }
@@ -95,7 +95,14 @@ const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, 
 // ---------------------------------------------------------------- o cadastro (o mesmo de app/fila-maquetes.mjs)
 const coberta = (m, b) => (b.coberta !== undefined ? !!b.coberta : !!m.cobertura && b.modelo !== 'mobi')
 const marca = (m, b) => { const antes = !!m.cobertura && b.modelo !== 'mobi', agora = coberta(m, b); return agora === antes ? '' : agora ? 'c' : 's' }
+// (9/11) vagas paralelas: "L|" e, por ilha (separadas por "/"), cada bomba: modelo, disposição (u, d, f), lado (F, T) e "c"
+const ehLateral = (m) => !!m && m.modelo === 'lateral'
+function assinaturaLateral(m) {
+  const bomba = (b) => b.modelo + { unica: 'u', dois: 'd', fila: 'f' }[b.disp] + (b.disp === 'dois' ? '' : b.lado === 'tras' ? 'T' : 'F') + (b.coberta ? 'c' : '')
+  return 'L|' + (m.ilhas || []).map((il) => (il.bombas || []).map(bomba).join(',')).join('/')
+}
 function assinatura(m) {
+  if (ehLateral(m)) return assinaturaLateral(m)
   const lista = (f) => (f === 'fundos' && !m.ilha ? [] : (m.fileiras && m.fileiras[f]) || [])
   const fila = (f) => lista(f).map((b) => b.modelo + b.vagas + marca(m, b)).join(',')
   const cob = [...lista('frente'), ...lista('fundos')].some((b) => coberta(m, b))
@@ -103,6 +110,11 @@ function assinatura(m) {
 }
 const fnv = (s) => { let h = 0x811c9dc5; for (const ch of s) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0 } return h.toString(16).padStart(8, '0') }
 const descricao = (m) => {
+  if (ehLateral(m)) {
+    const bs = (m.ilhas || []).flatMap((il) => il.bombas || []), n = bs.length, k = (m.ilhas || []).length, cobertas = bs.filter((b) => b.coberta).length
+    const cob = !cobertas ? 'sem cobertura' : cobertas === n ? 'com cobertura' : 'cobertura em parte'
+    return `${n} bomba${n > 1 ? 's' : ''} em ${k} ilha${k > 1 ? 's' : ''} · vagas paralelas · ${cob}`
+  }
   const n = (m.fileiras.frente || []).length + (m.ilha ? (m.fileiras.fundos || []).length : 0)
   const lista = [...(m.fileiras.frente || []), ...(m.ilha ? m.fileiras.fundos || [] : [])], cobertas = lista.filter((b) => coberta(m, b)).length
   const cob = !cobertas ? 'sem cobertura' : cobertas === lista.length ? 'com cobertura' : 'cobertura em parte'
@@ -137,7 +149,8 @@ async function prontaDe(cad, reg, ass) {
 async function reservar(cad, { postoId, montagem }) {
   const reg = await lerPostos(cad), posto = postoId ? reg.postos.find((p) => p.id === postoId) : null
   if (postoId && !posto) return { erro: 'posto desconhecido' }
-  if (!montagem || !montagem.fileiras || !(montagem.fileiras.frente || []).length) return { erro: 'montagem vazia' }
+  const vazia = ehLateral(montagem) ? !(montagem.ilhas || []).some((il) => (il.bombas || []).length) : !montagem || !montagem.fileiras || !(montagem.fileiras.frente || []).length
+  if (!montagem || vazia) return { erro: 'montagem vazia' }
   const ass = assinatura(montagem), pasta = 'm-' + fnv(ass + '|pecas')
   if (!posto) {                                                  // o catálogo: a maquete de um formato, sem posto
     const pronta = await prontaDe(cad, reg, ass)
@@ -148,7 +161,8 @@ async function reservar(cad, { postoId, montagem }) {
   }
   posto.montagem = `montagens/${postoId}.json`
   await grava(cad, posto.montagem, JSON.stringify({ ...montagem, postoId }, null, 2))
-  posto.cobertura = !!montagem.cobertura; posto.ilha = !!montagem.ilha
+  posto.cobertura = ehLateral(montagem) ? (montagem.ilhas || []).some((il) => (il.bombas || []).some((b) => b.coberta)) : !!montagem.cobertura
+  posto.ilha = !!montagem.ilha; if (ehLateral(montagem)) posto.modelo = 'lateral'; else delete posto.modelo
   const pronta = await prontaDe(cad, reg, ass)
   if (pronta) {
     posto.maquete = pronta.pasta; posto.equip = descricao(montagem); delete posto.pendente
@@ -170,7 +184,7 @@ async function concluir(cad, { postoId, maquete }) {
   const montagem = await lerJSON(cad, doCatalogo ? `montagens/_catalogo/${maquete}.json` : posto.montagem), ass = assinatura(montagem)
   for (const a of ['ancoras.json', 'fundo-tarde.webp', 'teto-noite.webp', 'planta/planta.json']) if (!(await existe(cad, `${maquete}/${a}`))) return { erro: `falta ${a}` }
   reg.maquetes = reg.maquetes.filter((q) => q.pasta !== maquete)
-  reg.maquetes.push({ pasta: maquete, assinatura: ass, modelo: 'pecas', ilha: !!montagem.ilha, nome: descricao(montagem) })
+  reg.maquetes.push({ pasta: maquete, assinatura: ass, modelo: 'pecas', ilha: !!montagem.ilha, ...(ehLateral(montagem) ? { lateral: true } : {}), nome: descricao(montagem) })
   for (const p of reg.postos) if (p.pendente === maquete) { p.maquete = maquete; p.equip = descricao(montagem); delete p.pendente }
   await gravarPostos(cad, reg)
   return { estado: 'pronto', maquete }

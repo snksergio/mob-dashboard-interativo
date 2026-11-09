@@ -38,7 +38,7 @@ const POT = { fast: { dc: 38, ac: 7 }, ultra: { dc: 76, ac: 7 }, mobi: { dc: 7, 
 const NOME_BOMBA = { fast: 'Mobi Fast', ultra: 'Mobi Ultra Fast', mobi: 'Mobi' }
 const COR_IMG = { '#e9ebed': 'branco', '#b9c0c6': 'prata', '#4a5157': 'grafite', '#1f8a4c': 'verde' }
 const IMGS = ['branco', 'prata', 'grafite', 'verde']
-const CAR = { w: 2.8, h: 5.6 }                                  // metros do quadro do render do carro (carro_planta.py)
+const CAR = { w: 2.8, h: 5.6, lw: 5.6, lh: 3.6 }                // metros do quadro do render do carro (carro_planta.py); lw/lh: o de lado
 const PORTA = { x: 0.89, y: 1.33, z: 0.97 }                     // tomada (carro.json), lado virado para a bomba
 const D_CHEGADA = 3.6, D_SAIDA = 4.2, T_CHEGA = 3.2, T_CONECTA = 1.5, T_DESCONECTA = 1.0, T_SAI = 4.2
 const ZOOM_MIN = 0.75, ZOOM_MAX = 3, CABE = 0.7               // CABE: no 100% a planta ocupa 70% do espaço
@@ -211,27 +211,31 @@ export async function criarPlantaImagem(el, opcoes = {}) {
   const BW = an.BAY_W, BD = an.BAY_D
   let proxCor = 0
   const vagas = an.vagas.map((v, i) => {
-    const fileira = v.fileira || 'frente', tras = fileira === 'fundos'
+    const fileira = v.fileira || 'frente', tras = fileira === 'fundos', lat = v.lateral || null   // (9/11) vagas paralelas
     const x = v.x, y = v.ycarro, x0 = x - BW / 2, x1 = x + BW / 2
     // retângulos da vaga: os cantos vão para o mundo (na fileira de trás, girados) e o retângulo é o que os contém
     const caixa = (ax, ay, bx, by) => { const [p, q] = [mundo(fileira, ax, ay), mundo(fileira, bx, by)]; const a = P(Math.min(p[0], q[0]), Math.max(p[1], q[1])), b = P(Math.max(p[0], q[0]), Math.min(p[1], q[1])); return { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y } }
-    const ret = { ...caixa(x0 + 0.18, BD - 0.13, x1 - 0.18, 0.13), rx: 0.3 * K, ry: 0.3 * KY * sen, fill: 'none' }
+    const bz = lat && lat.baia, [bx0, bx1, by0, by1] = bz ? [bz.cx - bz.w / 2, bz.cx + bz.w / 2, bz.cy - bz.h / 2, bz.cy + bz.h / 2] : [x0, x1, 0, BD]
+    const ret = { ...(bz ? caixa(bx0 + 0.13, by1 - 0.18, bx1 - 0.13, by0 + 0.18) : caixa(x0 + 0.18, BD - 0.13, x1 - 0.18, 0.13)), rx: 0.3 * K, ry: 0.3 * KY * sen, fill: 'none' }
     const anelG = no('rect', { ...ret, stroke: CORES.carregando, 'stroke-width': (0.16 * K).toFixed(1), opacity: 0, filter: 'url(#pi-brilho)' }, gAneis)
     const anel = no('rect', { ...ret, stroke: CORES.carregando, 'stroke-width': (0.05 * K).toFixed(1), opacity: 0 }, gAneis)
-    const area = no('rect', { ...caixa(x0, BD, x1, 0), fill: 'transparent', style: 'cursor:pointer' }, gAneis)
+    const area = no('rect', { ...caixa(bx0, by1, bx1, by0), fill: 'transparent', style: 'cursor:pointer' }, gAneis)
     area.addEventListener('click', () => { if (!arrastou) el.dispatchEvent(new CustomEvent('mv-vaga', { detail: { vaga: i, estado: vagas[i].estado } })) })
     const gc = no('g', { opacity: 0, style: 'pointer-events:none' }, gCarros)
     // na fileira de trás o carro vem de frente para a câmera: faróis embaixo e ré em cima (o mesmo desenho, espelhado)
-    const gLuz = no('g', tras ? { transform: 'scale(1 -1)' } : {}, gc)
+    // (nas vagas paralelas o carro olha para a direita: faróis à direita, ré à esquerda)
+    const gLuz = no('g', tras ? { transform: 'scale(1 -1)' } : lat ? { transform: `rotate(90) scale(${(KY * sen / K).toFixed(3)} ${(K / (KY * sen)).toFixed(3)})` } : {}, gc)
     const farois = no('g', { opacity: 0 }, gLuz)
     for (const dx of [-0.55, 0.55]) no('ellipse', { cx: dx * K, cy: -(2.4 * sen + 0.55 * cos) * KY - 0.5 * KY * sen, rx: 0.42 * K, ry: 0.8 * KY * sen, fill: 'url(#pi-farol)' }, farois)
     const re = no('ellipse', { cx: 0, cy: (2.15 * sen - 0.5 * cos) * KY, rx: 1.05 * K, ry: 0.45 * KY * sen, fill: 'url(#pi-re)', opacity: 0 }, gLuz)
     // sombra de contato (os carros da variação ilustrada vêm sem sombra)
     if (pj.sombraCarro) no('rect', { x: -1.05 * K, y: -2.25 * KY * sen + 0.2 * KY, width: 2.1 * K, height: 4.5 * KY * sen, rx: 0.5 * K, fill: '#000', opacity: 0.38, filter: 'url(#pi-sombra)' }, gc)
-    const img = no('image', { href: `dados/planta/${CARROS}${tras ? 'r' : ''}-branco.webp`, x: -CAR.w / 2 * K, y: -CAR.h / 2 * KY, width: CAR.w * K, height: CAR.h * KY, preserveAspectRatio: 'none' }, gc)
+    // (o carro de lado é o render deitado: 5,6 × 3,6 m em vez de 2,8 × 5,6)
+    const [cw, ch] = lat ? [CAR.lw, CAR.lh] : [CAR.w, CAR.h]
+    const img = no('image', { href: `dados/planta/${CARROS}${tras ? 'r' : lat ? 'l' : ''}-branco.webp`, x: -cw / 2 * K, y: -ch / 2 * KY, width: cw * K, height: ch * KY, preserveAspectRatio: 'none' }, gc)
     const cabo = no('path', { fill: 'none', stroke: '#0B0D0C', 'stroke-width': (0.075 * K).toFixed(1), 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, gCabos)
     const fluxo = no('path', { fill: 'none', stroke: CORES.carregando, 'stroke-width': (0.04 * K).toFixed(1), 'stroke-linecap': 'round', 'stroke-dasharray': `${(0.07 * K).toFixed(1)} ${(0.14 * K).toFixed(1)}`, opacity: 0 }, gCabos)
-    return { i, dc: v.ponto === 'dc', nome: v.nome, bomba: v.bomba, lado: v.lado, fileira, pos: { x, y }, con: null, ficar: false, estado: 'vazia', t: 0, cy: y,
+    return { i, dc: v.ponto === 'dc', nome: v.nome, bomba: v.bomba, lado: v.lado, fileira, pos: { x, y }, con: null, ficar: false, estado: 'vazia', t: 0, cy: y, cx: x, lat, dEntra: 0, dSai: null,
       pct: 18 + 30 * (i % 2), kw: POT[an.bombas[v.bomba].modelo][v.ponto === 'dc' ? 'dc' : 'ac'], anel, anelG, anelA: 0, gc, img, farois, re, cabo, fluxo, realce: false, pessoa: null, aviso: null }
   })
   // o teto e o totem ficam por cima dos carros
@@ -324,6 +328,8 @@ export async function criarPlantaImagem(el, opcoes = {}) {
 
   // ---------------------------------------------------------- estados das vagas (os mesmos do 3D)
   function muda(vg, estado) { vg.estado = estado; vg.t = 0; avisa(vg) }
+  // (9/11) vagas paralelas: a faixa livre atrás da vaga (antes) ou à frente dela, como no 3D
+  const faixaLivre = (vg, antes) => vagas.every((o) => o === vg || !o.lat || o.lat.faixa !== vg.lat.faixa || (antes ? o.lat.ordem > vg.lat.ordem : o.lat.ordem < vg.lat.ordem) || o.estado === 'vazia')
   function livreNaBomba(vg) { return conectores.find((c) => c.bomba === vg.bomba && c.uso == null && c.vagasNaturais.includes(vg.i)) || conectores.find((c) => c.bomba === vg.bomba && c.uso == null) }
   function liberaConector(vg) { const c = conectores[vg.con]; if (c && c.uso === vg.i) c.uso = null }
   function evento(i, acao, opc = {}) {
@@ -334,8 +340,9 @@ export async function criarPlantaImagem(el, opcoes = {}) {
       c.uso = vg.i; vg.con = c.id; vg.dc = c.dc; vg.ficar = !!opc.ficar
       vg.kw = POT[an.bombas[vg.bomba].modelo][c.dc ? 'dc' : 'ac']
       const cor = COR_IMG[String(opc.cor || '').toLowerCase()] || IMGS[proxCor++ % IMGS.length]
-      vg.img.setAttribute('href', `dados/planta/${CARROS}${vg.fileira === 'fundos' ? 'r' : ''}-${cor}.webp`)
+      vg.img.setAttribute('href', `dados/planta/${CARROS}${vg.fileira === 'fundos' ? 'r' : vg.lat ? 'l' : ''}-${cor}.webp`)
       vg.pct = 12 + ((vg.i * 37 + proxCor * 23) % 40)
+      if (vg.lat) vg.dEntra = faixaLivre(vg, true) ? 6.5 : 0.9
       muda(vg, 'chegando')
     }
     if (acao === 'sair' && ['carregando', 'falha'].includes(vg.estado)) { if (opc.ficar != null) vg.ficar = !!opc.ficar; muda(vg, 'desconectando') }
@@ -507,7 +514,7 @@ export async function criarPlantaImagem(el, opcoes = {}) {
         if (vg.sel.dataset.h !== html) { vg.sel.innerHTML = html; vg.sel.dataset.h = html }
         vg.sel.classList.toggle('falha', vg.estado === 'falha'); vg.sel.classList.toggle('pessoa', !!ps)
       }
-      itens.push(item(vg.sel, tela(PV(vg, vg.pos.x, vg.cy - 0.6, an.Z + 1.9)), on, true))
+      itens.push(item(vg.sel, tela(PV(vg, vg.lat ? vg.cx : vg.pos.x, vg.lat ? vg.pos.y : vg.cy - 0.6, an.Z + 1.9)), on, true))
       itens.push(item(vg.info, tela(PV(vg, vg.pos.x, vg.pos.y - 1.4, an.Z + 0.3)), tempo < vg.infoAte))
     }
     for (const b of bombas) {
@@ -526,9 +533,20 @@ export async function criarPlantaImagem(el, opcoes = {}) {
   // ---------------------------------------------------------- quadro
   function vaga(vg, dt) {
     vg.t += dt
-    let y = vg.pos.y, a = 1, re = 0
-    // qualidade leve: o carro surge e some no lugar, só com a transparência (sem a manobra de chegada e a ré da saída)
-    if (vg.estado === 'chegando' && leve) {
+    let y = vg.pos.y, x = vg.pos.x, a = 1, re = 0
+    // (9/11) vagas paralelas: entra e sai para a frente (+X); trajeto inteiro com a faixa livre, senão um deslize curto
+    if (vg.lat && !leve && (vg.estado === 'chegando' || vg.estado === 'saindo')) {
+      if (vg.estado === 'chegando') {
+        const D = vg.dEntra || 0.9, longe = D > 2, T = longe ? 3.6 : 1.6, q = clamp01(vg.t / T), e = easeOut(q)
+        x = vg.pos.x - D * (1 - e); a = suave(clamp01(q / (longe ? 0.25 : 0.7)))
+        if (q >= 1) muda(vg, 'conectando')
+      } else {
+        if (vg.dSai == null) vg.dSai = faixaLivre(vg, false) ? 7 : 0.9
+        const D = vg.dSai, longe = D > 2, T = longe ? 4.2 : 1.6, q = clamp01(vg.t / T), e = easeInOut(q)
+        x = vg.pos.x + D * e; a = 1 - suave(clamp01((q - (longe ? 0.75 : 0.3)) / (longe ? 0.25 : 0.7)))
+        if (q >= 1) { muda(vg, 'vazia'); liberaConector(vg); vg.con = null; vg.dSai = null }
+      }
+    } else if (vg.estado === 'chegando' && leve) {
       const q = clamp01(vg.t / 1.0); a = suave(q)
       if (q >= 1) muda(vg, 'conectando')
     } else if (vg.estado === 'saindo' && leve) {
@@ -543,9 +561,9 @@ export async function criarPlantaImagem(el, opcoes = {}) {
       y = vg.pos.y - D_SAIDA * e; a = 1 - suave(clamp01((q - 0.75) / 0.25)); re = 1
       if (q >= 1) { muda(vg, 'vazia'); liberaConector(vg); vg.con = null }
     }
-    if (vg.estado === 'vazia') a = 0
-    vg.cy = y
-    const c = PV(vg, vg.pos.x, y, an.Z)
+    if (vg.estado === 'vazia') { a = 0; vg.dSai = null }
+    vg.cy = y; vg.cx = x
+    const c = PV(vg, x, y, an.Z)
     at(vg.gc, 'transform', `translate(${c.x.toFixed(2)} ${c.y.toFixed(2)})`)
     at(vg.gc, 'opacity', a.toFixed(3))
     at(vg.farois, 'opacity', (Math.max(noite, 0.6 * chuva.k) * (vg.estado === 'vazia' ? 0 : 1)).toFixed(2))
@@ -556,8 +574,12 @@ export async function criarPlantaImagem(el, opcoes = {}) {
     else if (vg.estado === 'desconectando') { f = leve ? 0 : 1 - easeInOut(clamp01(vg.t / T_DESCONECTA)); if (leve || vg.t >= T_DESCONECTA) { liberaConector(vg); muda(vg, vg.ficar ? 'concluido' : 'saindo') } }
     const cn = conectores[vg.con]
     if (cn && f > 0) {
-      const de = PV(vg, cn.s[0], cn.s[1], cn.s[2]), ate = PV(vg, vg.pos.x + (vg.lado > 0 ? -PORTA.x : PORTA.x), y + PORTA.y, an.Z + PORTA.z)
-      const meio = PV(vg, (cn.s[0] + vg.pos.x + (vg.lado > 0 ? -PORTA.x : PORTA.x)) / 2, (cn.s[1] + y + PORTA.y) / 2, an.Z + 0.12)   // o cabo pende quase até o chão
+      // a tomada no carro (nas vagas paralelas, o carro virado para +X: o local (x, y) vai para (y, −x)); nas vagas de
+      // trás da ilha o cabo sai por trás da bomba (a saída espelhada no eixo)
+      const lx = vg.lado > 0 ? -PORTA.x : PORTA.x, [tx, ty] = vg.lat ? [x + PORTA.y, y - lx] : [x + lx, y + PORTA.y]
+      const sy = vg.lat && vg.lat.s > 0 ? 2 * vg.lat.eixo - cn.s[1] : cn.s[1]
+      const de = PV(vg, cn.s[0], sy, cn.s[2]), ate = PV(vg, tx, ty, an.Z + PORTA.z)
+      const meio = PV(vg, (cn.s[0] + tx) / 2, (sy + ty) / 2, an.Z + 0.12)   // o cabo pende quase até o chão
       const d = `M${de.x.toFixed(1)} ${de.y.toFixed(1)}Q${meio.x.toFixed(1)} ${meio.y.toFixed(1)} ${ate.x.toFixed(1)} ${ate.y.toFixed(1)}`
       at(vg.cabo, 'd', d); at(vg.fluxo, 'd', d)
       at(vg.cabo, 'stroke-dashoffset', (1 - f).toFixed(3)); at(vg.cabo, 'opacity', '1')
